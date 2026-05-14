@@ -389,7 +389,7 @@ function removeImage() { currentImageBase64 = null; isDoc = false; document.getE
 
 // --- Location Attachment ---
 function attachLocation() { if (navigator.geolocation) { showToast("Fetching Location...", "info");
-    navigator.geolocation.getCurrentPosition((pos) => { const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`; document.getElementById("notesInput").innerHTML += `<br><a href="${link}" target="_blank" style="background:#34c759; color:white; padding:4px 8px; border-radius:8px; text-decoration:none; font-size:12px;">📍 View Location</a>`; showToast("Location attached!", "success"); }, () => showToast("Denied.", "error"));
+    navigator.geolocation.getCurrentPosition((pos) => {const link = `http://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`; document.getElementById("notesInput").innerHTML += `<br><a href="${link}" target="_blank" style="background:#34c759; color:white; padding:4px 8px; border-radius:8px; text-decoration:none; font-size:12px;">📍 View Location</a>`; showToast("Location attached!", "success"); }, () => showToast("Denied.", "error"));
 } else { showToast("Not supported.", "error"); } }
 
 // --- Categorization ---
