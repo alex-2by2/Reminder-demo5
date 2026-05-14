@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Reminder App</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.8/dist/es5/rrule.min.js"></script>
+    <script>
+        const manifest = {
+            "name": "Master Reminder", "short_name": "Reminder", "start_url": ".", "display": "standalone",
+            "background_color": "#f4f5f7", "theme_color": "#007AFF",
+            "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/825/825590.png", "sizes": "512x512", "type": "image/png"}]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.write(`<link rel="manifest" href="${URL.createObjectURL(manifestBlob)}">`);
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+            const CACHE_NAME = 'master-reminder-v2';
+            self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['/']))); self.skipWaiting(); });
+            self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
+            self.addEventListener('fetch', (e) => { e.respondWith(caches.match(e.request).then(res => res || fetch(e.request))); });`;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(console.error);
+        }
+    </script>
+    <style>
+        :root { --primary: #007AFF; --primary-hover: #0056b3; --bg-grad-1: #eef2f5; --bg-grad-2: #eef2f5; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%); min-height: 100vh; margin: 0; padding: 20px 20px 90px 20px; color: #1c1c1e; display: flex;
+        justify-content: center; align-items: flex-start; transition: background 0.5s ease; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+        
+        body.dark-mode { background: #000000; color: #f2f2f7; }
+        body.dark-mode .app-container { background: #1c1c1e; border: none; box-shadow: none; }
+        body.dark-mode .widget-card, body.dark-mode .ai-tip-card, body.dark-mode .analytics-section, body.dark-mode .reminder-item, body.dark-mode .habit-item { background: #2c2c2e; border-color: rgba(255,255,255,0.1); box-shadow: none; }
+        body.dark-mode input, body.dark-mode textarea, body.dark-mode select, body.dark-mode .search-box { background: #3a3a3c; color: #fff; border: none; }
+        body.dark-mode .bottom-nav { background: rgba(28,28,30,0.9); border-top: 1px solid rgba(255,255,255,0.1); }
+        body.dark-mode h2, body.dark-mode h3.section-title, body.dark-mode .user-greeting, body.dark-mode .widget-card p, body.dark-mode .reminder-details h4 { color: #fff; }
+        body.dark-mode .widget-card h5 { color: #8e8e93; }
+        
+        @keyframes fadeInApp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .app-container { background: #ffffff; border-radius: 24px; padding: 25px 20px; width: 100%; max-width: 500px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); position: relative; margin-bottom: 20px; animation: fadeInApp 0.5s ease-out forwards; box-sizing: border-box; }
+        h1, h2, h3, h4, h5 { font-weight: 700; margin-top: 0; }
+        .user-greeting { display: flex; align-items: center; gap: 8px; color: #1c1c1e; margin: 0 0 15px 0; font-size: 24px; }
+        h3.section-title { color: #1c1c1e; margin-top: 25px; margin-bottom: 12px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .header-actions { position: absolute; top: 25px; right: 20px; display: flex; gap: 8px; z-index: 10; align-items: center; }
+        .icon-btn-small { background: #f2f2f7; color: #8e8e93; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; }
+        .icon-btn-small:hover { background: #e5e5ea; transform: scale(1.05); }
+        .logout-btn { color: #ff3b30; }
+        .pomodoro-btn { background: #ff3b30; color: white; border-radius: 16px; padding: 6px 12px; border: none; font-weight: 700; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3); }
+        .pomodoro-btn:hover { background: #ff453a; transform: translateY(-1px); }
+        .btn { font-weight: 600; border-radius: 10px; padding: 8px 12px; border: none; cursor: pointer; color: white; }
+        .add-btn { width: 100%; padding: 16px; border-radius: 16px; border: none; background: var(--primary); color: white; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); margin-top: 10px; }
+        .print-btn { background: #ffffff; color: #1c1c1e; border: 1px solid #e5e5ea; border-radius: 12px; padding: 8px 12px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .widgets-dashboard { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .widget-card { background: #ffffff; border-radius: 16px; padding: 18px; text-align: center; border: 1px solid #f2f2f7; box-shadow: 0 2px 10px rgba(0,0,0,0.02); width: 100%; box-sizing: border-box; }
+        .widget-card h5 { margin: 0 0 8px 0; color: #8e8e93; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+        .widget-card p { margin: 0; font-weight: 700; font-size: 20px; color: #1c1c1e; }
+        .goal-widget { background: #34c759 !important; border: none; }
+        .goal-widget h5, .goal-widget p { color: white !important; }
+        .ai-tip-card { background: #ffffff; padding: 15px; border-radius: 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #666; border: 1px solid #f2f2f7; cursor: pointer; }
+        .level-badge-container { display: flex; justify-content: center; margin-bottom: 25px; gap: 10px; }
+        .level-chip { background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: #fff; font-weight: 700; padding: 8px 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(255, 159, 10, 0.3); font-size: 13px; cursor: pointer; border: none; }
+        .pro-badge { background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: white; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+        .analytics-section { background: #f2f2f7; padding: 16px; border-radius: 16px; margin-bottom: 25px; border: none; }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; color: #1c1c1e; font-weight: 700; font-size: 13px; margin-bottom: 12px; }
+        .view-report-btn { background: #ffffff; color: var(--primary); padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; border: none; font-weight: 700; }
+        .progress-bar-bg { width: 100%; height: 8px; background: rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #34c759; width: 0%; border-radius: 8px; transition: width 0.8s ease; }
+        input, textarea, select, .search-box { padding: 14px 16px; border-radius: 14px; border: none; outline: none; background: #f2f2f7; font-size: 15px; font-family: inherit; width: 100%; box-sizing: border-box; margin-bottom: 12px; color: #1c1c1e; transition: 0.2s; }
+        input:focus, select:focus { background: #e5e5ea; }
+        select { appearance: none; cursor: pointer; }
+        .habit-input-container { display: block; margin-bottom: 20px; }
+        .habit-input-container input { margin-bottom: 10px; }
+        .habit-add-btn { background: var(--primary); color: white; border: none; border-radius: 16px; padding: 6px 18px; font-weight: 700; font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); }
+        .habit-item { flex-direction: column; }
+        .habit-details h4 { font-size: 15px; margin: 0 0 4px 0; }
+        .streak-badge { background: #e5f1ff; color: #007aff; font-size: 11px; padding: 4px 8px; border-radius: 8px; font-weight: 700; margin-right: 5px; }
+        .checkin-btn { background: #34c759; color: white; border: none; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .checkin-btn:disabled { background: #e5e5ea; color: #8e8e93; cursor: not-allowed; }
+        .templates-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 15px; }
+        .templates-list::-webkit-scrollbar { display: none; }
+        .template-chip { background: #e5f1ff; color: var(--primary); padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; border: none; transition: 0.2s; }
+        .template-chip.active { background: var(--primary); color: white; }
+        .reminder-list { list-style: none; padding: 0; margin: 0; }
+        .reminder-item { background: #ffffff; margin-bottom: 12px; padding: 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: flex-start; border: 1px solid #f2f2f7; position: relative; flex-wrap: wrap; }
+        .reminder-details h4 { margin: 0 0 6px 0; font-size: 16px; color: #1c1c1e; font-weight: 600; }
+        .priority-high { border-left: 4px solid #ff3b30; } .priority-medium { border-left: 4px solid #ff9500; } .priority-low { border-left: 4px solid #34c759; }
+        .tools-panel { display: flex; gap: 8px; margin-bottom: 15px; }
+        .tools-panel select { flex: 1; margin-bottom: 0; padding: 10px 14px; background: #f2f2f7; font-size: 13px; border-radius: 12px; }
+        .fab-btn { position: fixed; right: 20px; width: 56px; height: 56px; color: white; border: none; border-radius: 50%; font-size: 28px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 1000; transition: transform 0.2s; }
+        .fab-btn:active { transform: scale(0.9); }
+        .fab-add { bottom: 90px; background: var(--primary); }
+        .fab-voice { bottom: 160px; background: #5e5ce6; font-size: 22px; }
+        .floating-music-btn { position: fixed; bottom: 90px; left: 20px; width: 44px; height: 44px; background: #ffffff; color: #1c1c1e; border: 1px solid #e5e5ea; border-radius: 50%; font-size: 18px; box-shadow: 0 4px 12px rgba(0,0,0, 0.05); cursor: pointer; z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #e5e5ea; z-index: 9000; }
+        .nav-item { display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8e8e93; font-size: 10px; font-weight: 600; cursor: pointer; flex: 1; height: 100%; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item span.icon { font-size: 22px; margin-bottom: 4px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: flex-end; z-index: 9999; opacity: 0; transition: 0.3s; padding: 0; }
+        .modal-content { background: #ffffff; width: 100%; max-width: 500px; padding: 25px 20px 40px; border-radius: 24px 24px 0 0; transform: translateY(100%); transition: 0.4s; box-sizing: border-box; position: relative; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .close-modal-btn { position: absolute; top: 15px; right: 20px; font-size: 20px; color: #8e8e93; cursor: pointer; background: #f2f2f7; width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        .page-section { display: none; width: 100%; max-width: 500px; animation: fadeInApp 0.3s ease-out forwards; padding-bottom: 60px; }
+        .page-section.active { display: block; }
+        #toastContainer { position: fixed; top: 40px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; }
+        .toast { padding: 16px; border-radius: 16px; color: white; font-weight: 600; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); transform: translateY(-100px); animation: slideDown 0.4s forwards, fadeOut 0.4s forwards 3s; display: flex; align-items: center; gap: 10px; }
+        .toast.success { background: #34c759; } .toast.error { background: #ff3b30; } .toast.info { background: #007aff; }
+        @keyframes slideDown { to { transform: translateY(0); } } @keyframes fadeOut { to { opacity: 0; transform: translateY(-100px); } }
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex: 1; padding: 10px 12px; border-radius: 12px; border: none; background: #f2f2f7; color: #8e8e93; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 13px; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: #1c1c1e; }
+        body.dark-mode .form-group label { color: #e2e8f0; }
+        .action-btn { flex: 1; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; border: none; color: white; }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); }
+        .btn-secondary { background: linear-gradient(135deg, #667eea, #764ba2); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+        .custom-action-btn { flex: 1; justify-content: center; background: #f2f2f7; border: none; }
+        body.dark-mode .custom-action-btn { background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,0.05); }
+        .home-calendar-card { border-radius: 16px; padding: 18px; margin-bottom: 20px; border: 1px solid #f2f2f7; }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .cal-nav-btn { background: var(--primary); color: white; border: none; border-radius: 12px; width: 60px; height: 35px; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        #homeCalMonthDisplay { margin: 0; font-size: 16px; font-weight: 700; }
+        .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 600; color: #8e8e93; margin-bottom: 10px; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .cal-day { aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center; background: #f2f2f7; color: #1c1c1e; border-radius: 10px; font-weight: 600; font-size: 15px; cursor: pointer; position: relative; }
+        body.dark-mode .cal-day { background: #3a3a3c; color: #fff; }
+        .cal-day.empty { background: transparent !important; cursor: default; }
+        .cal-day.today { border: 2px solid var(--primary); color: var(--primary); }
+        .cal-day.has-event::after { content: ''; position: absolute; bottom: 4px; width: 5px; height: 5px; background: #ff3b30; border-radius: 50%; }
+        .cal-day.selected { background: var(--primary) !important; color: white !important; }
+        .cal-day.selected::after { background: white; }
+        .clear-filter-container { display: flex; justify-content: center; margin-top: 15px; }
+        .clear-filter-btn { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; cursor: pointer; }
+
+        /* PREMIUM GLASSMORPHISM UI */
+        .app-container, .widget-card, .home-calendar-card, .analytics-section, .ai-tip-card, .music-panel { background: rgba(255, 255, 255, 0.65) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.4) !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important; }
+        body.dark-mode .app-container, body.dark-mode .widget-card, body.dark-mode .home-calendar-card, body.dark-mode .analytics-section, body.dark-mode .ai-tip-card, body.dark-mode .music-panel { background: rgba(28, 28, 30, 0.65) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; }
+        .bottom-nav { background: rgba(255, 255, 255, 0.75) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255, 255, 255, 0.3) !important; }
+        body.dark-mode .bottom-nav { background: rgba(28, 28, 30, 0.75) !important; }
+        .store-btn { background: linear-gradient(135deg, #a2a1ff, #5e5ce6); color: white; border: none; padding: 6px 12px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        
+        /* Zen Mode CSS */
+        body.zen-mode .bottom-nav, body.zen-mode .header-actions, body.zen-mode .fab-btn, body.zen-mode .floating-music-btn { display: none !important; opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<canvas id="confettiCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999999;"></canvas>
+<div id="splashScreen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.6s ease-out;">
+    <h1 style="font-size: 32px; margin: 0; font-weight: 800;">⏰ Master App</h1>
+    <div style="width: 40px; height: 40px; border: 4px solid #f2f2f7; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px;"></div>
+</div>
+
+<div id="pinScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ffffff; z-index: 99999; flex-direction: column; justify-content: center; align-items: center;">
+    <h2>🔒 Enter PIN</h2>
+    <div class="pin-dots" style="display: flex; gap: 20px; margin: 30px 0;">
+        <div class="pin-dot" id="dot1" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--primary);"></div>
+        <div class="pin-dot" id="dot2" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--primary);"></div>
+        <div class="pin-dot" id="dot3" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--primary);"></div>
+        <div class="pin-dot" id="dot4" style="width:16px;height:16px;border-radius:50%;border:2px solid var(--primary);"></div>
+    </div>
+    <div class="numpad" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <button onclick="enterPin(1)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">1</button>
+        <button onclick="enterPin(2)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">2</button>
+        <button onclick="enterPin(3)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">3</button>
+        <button onclick="enterPin(4)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">4</button>
+        <button onclick="enterPin(5)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">5</button>
+        <button onclick="enterPin(6)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">6</button>
+        <button onclick="enterPin(7)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">7</button>
+        <button onclick="enterPin(8)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">8</button>
+        <button onclick="enterPin(9)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">9</button>
+        <button onclick="clearPin()" style="width:70px;height:70px;border-radius:50%;background:none;border:none;font-size:16px;font-weight:600;">CLR</button>
+        <button onclick="enterPin(0)" style="width:70px;height:70px;border-radius:50%;background:#f2f2f7;border:none;font-size:24px;font-weight:600;">0</button>
+        <button onclick="deletePin()" style="width:70px;height:70px;border-radius:50%;background:none;border:none;font-size:24px;font-weight:600;">⌫</button>
+    </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<div id="authScreen" class="app-container" style="max-width: 400px; margin-top: 10vh; display: none;">
+    <h2 style="text-align:left;">Login</h2>
+    <p style="color:#8e8e93; font-size:14px; margin-top:-5px; margin-bottom:20px;">Save your data securely to the cloud.</p>
+    <button class="add-btn" onclick="loginWithGoogle()" style="background: white; color: #1c1c1e; border: 1px solid #e5e5ea; margin-bottom:15px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: none;">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18" height="18"> Continue with Google
+    </button>
+    <div style="text-align: center; color: #8e8e93; font-size: 12px; margin-bottom: 15px;">OR</div>
+    <input type="email" id="emailInput" placeholder="Email Address" required>
+    <input type="password" id="passwordInput" placeholder="Password" required>
+    <button class="add-btn" onclick="loginUser()" style="margin-bottom:10px;">Login</button>
+    <button class="add-btn" onclick="registerUser()" style="background: #f2f2f7; color: #1c1c1e; box-shadow: none; margin-bottom:10px;">Create Account</button>
+    <button onclick="resetPassword()" style="background: none; border: none; color: var(--primary); font-size: 14px; width: 100%; font-weight: 600; padding: 10px;">Forgot Password?</button>
+</div>
+
+<div id="mainApp" style="display: none; width: 100%; justify-content: center; flex-direction: column; align-items: center;">
+    
+    <button class="floating-music-btn" onclick="toggleMusicPanel()">🎵</button>
+    <div class="music-panel" id="musicPanel" style="position: fixed; bottom: 140px; left: 20px; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 16px; z-index: 1000; display: none; width: 200px;">
+        <h5 style="margin:0 0 10px 0; font-size: 14px;">🎧 Focus Audio</h5>
+        <select id="floatingSoundSelect" onchange="playFloatingAudio()" style="margin-bottom: 10px; padding: 8px;">
+            <option value="none">🔇 No Sound</option>
+            <option value="https://actions.google.com/sounds/v1/weather/rain_on_roof.ogg">🌧️ Rain</option>
+            <option value="https://actions.google.com/sounds/v1/water/waves_crashing_on_rock_beach.ogg">🌊 Waves</option>
+            <option value="https://actions.google.com/sounds/v1/crowds/restaurant_ambience.ogg">☕ Cafe</option>
+        </select>
+        <button onclick="playFloatingAudio()" style="background:var(--primary); color:white; border:none; width:100%; padding:8px; border-radius:10px; font-weight:bold; cursor:pointer;">Play / Pause</button>
+    </div>
+
+    <button class="fab-btn fab-voice" onclick="startSmartVoiceAssistant()" title="Smart AI Voice Assistant">🎙️</button>
+    <button class="fab-btn fab-add" onclick="switchPage('add')" title="Add New Task">＋</button>
+
+    <div id="page-home" class="page-section active">
+        <div class="app-container">
+            <div class="header-actions">
+                <button class="pomodoro-btn" onclick="openPomoModal()">🍅 Focus</button>
+                <button class="icon-btn-small" onclick="shareAppURL()">🔗</button>
+                <button class="icon-btn-small" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
+            </div>
+            <h2 class="user-greeting">👋 Hello, <span id="displayUserName">User</span><span id="proBadgeDisplay" style="display:none;" class="pro-badge">PRO</span></h2>
+            <div class="ai-tip-card" id="aiTipContainer">
+                <span style="font-size:20px;">💡</span><div id="aiTipText">"Do something today that your future self will thank you for."</div>
+            </div>
+
+            <div class="widgets-dashboard">
+                <div class="widget-card">
+                    <h5>TASKS TODAY</h5><p id="widgetTasksToday">0</p>
+                    <span id="widgetHabitsToday" style="font-size:11px; color:#8e8e93; display:block; margin-top:4px;">0 Habits Pending</span>
+                </div>
+                <div class="widget-card goal-widget">
+                    <h5>DAILY GOAL 🎯</h5><p id="widgetGoalText" style="margin-bottom:8px; font-size:16px;">0/5 Done</p>
+                    <div class="progress-bar-bg" style="height: 6px;"><div class="progress-fill" id="widgetGoalFill" style="background: white;"></div></div>
+                </div>
+                <div class="widget-card">
+                    <h5>WATER 💧</h5>
+                    <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:5px;">
+                        <button onclick="updateWater(-1)" style="border:none; background:#e5e5ea; border-radius:50%; width:28px; height:28px; cursor:pointer; font-weight:bold;">-</button>
+                        <h3 style="margin:0; font-size:16px;"><span id="waterIntake" style="font-weight:700;">0</span><span style="font-size:12px; color:#8e8e93;">/8</span></h3>
+                        <button onclick="updateWater(1)" style="border:none; background:var(--primary); color:white; border-radius:50%; width:28px; height:28px; cursor:pointer; font-weight:bold;">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="level-badge-container">
+                <button class="level-chip" id="gamificationBadge" onclick="openLeaderboard()">⭐ Level 1 | ✨ 0/50 XP</button>
+                <button class="level-chip" style="background: linear-gradient(135deg, #a2a1ff, #5e5ce6);" onclick="openStore()">🛍️ Store</button>
+            </div>
+            
+            <div class="analytics-section">
+                <div class="stats-header">
+                    <div><span id="taskCountText">0/0 Tasks Completed</span> <span style="color:#8e8e93; margin:0 4px;">|</span> <span id="percentageText">0%</span></div>
+                    <button class="view-report-btn" onclick="openAnalyticsModal()">📊 Report</button>
+                </div>
+                <div class="progress-bar-bg"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+           
+            <h3 class="section-title">🔥 Habits</h3>
+            <div class="habit-input-container">
+                <input type="text" id="habitInput" placeholder="Enter new habit...">
+                <button class="habit-add-btn" onclick="addHabit()">Add</button>
+            </div>
+            <ul class="habit-list" id="habitList"></ul>
+
+            <div style="margin: 25px 0; border-top: 1px dashed #e5e5ea;"></div>
+
+            <h3 class="section-title">📅 Reminders</h3>
+            <div class="home-calendar-card">
+                <div class="cal-header">
+                    <button class="cal-nav-btn" onclick="changeHomeMonth(-1)">◀</button>
+                    <h3 id="homeCalMonthDisplay">Month Year</h3>
+                    <button class="cal-nav-btn" onclick="changeHomeMonth(1)">▶</button>
+                </div>
+                <div class="cal-weekdays"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+                <div class="cal-grid" id="homeCalendarGrid"></div>
+                <div class="clear-filter-container" id="clearFilterWrapper" style="display: none;">
+                    <button class="clear-filter-btn" onclick="clearCalendarFilter()">Clear Filter</button>
+                </div>
+            </div>
+
+            <div class="tools-panel" style="background:#f2f2f7; padding:8px; border-radius:16px; align-items:center;">
+                <span style="font-size:14px; padding-left:8px;">⏱️</span>
+                <select id="sortInput" onchange="loadReminders()" style="margin:0; padding:8px; background:transparent; border:none; box-shadow:none;">
+                    <option value="date">Sort by Time</option><option value="priority-high">High Priority</option>
+                    <option value="priority-low">Low Priority</option><option value="manual">Custom Order</option>
+                </select>
+            </div>
+            
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <button class="print-btn" onclick="openMatrixModal()">🔲 Matrix</button>
+                <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+            </div>
+
+            <div class="templates-list" id="tagFilterContainer"></div>
+
+            <div class="tabs" id="tabContainer" style="margin-top:10px;">
+                <button class="tab-btn active" id="tab-all" onclick="changeTab('all')">All</button>
+                <button class="tab-btn" id="tab-today" onclick="changeTab('today')">Today</button>
+                <button class="tab-btn" id="tab-upcoming" onclick="changeTab('upcoming')">Upcoming</button>
+                <button class="tab-btn" id="tab-done" onclick="changeTab('done')">Done</button>
+            </div>
+            
+            <ul class="reminder-list" id="reminderList"></ul>
+            <p id="syncStatusText" style="text-align: center; color: #8e8e93; font-size: 11px; margin-top: 30px;">☁️ Syncing...</p>
+        </div>
+    </div>
+
+    <div id="page-add" class="page-section">
+        <div class="app-container add-event-container" style="margin: auto;">
+            <h2 id="modalTitle" style="margin-top: 0; margin-bottom: 20px; font-size:24px; font-weight:700;">Add Event</h2>
+            
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="margin:0;">Quick Template</label>
+                    <button onclick="saveCustomTemplate()" style="background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; font-weight: 600;">Save Current</button>
+                </div>
+                <select id="quickTemplateSelect" onchange="applyQuickTemplate()">
+                    <option value="">Select</option><option value="Birthday">Birthday</option><option value="Anniversary">Anniversary</option>
+                    <option value="Other">Other</option><option value="Water">Water</option><option value="Food">Food</option>
+                    <option value="Wakeup">Wakeup</option><option value="Sleeping">Sleeping</option><option value="Reading">Reading</option>
+                    <option value="GYM">GYM</option><option value="Walking">Walking</option><option value="Running">Running</option>
+                    <option value="Bill">Bill</option><option value="Rent">Rent</option><option value="EMI">EMI</option>
+                    <option value="Event">Event</option><option value="Appointment">Appointment</option>
+                    <optgroup label="Saved Custom Templates" id="customSavedTemplatesGroup"></optgroup>
+                </select>
+                <button onclick="shareCustomTemplate()" style="width:100%; margin-top:8px; background:#e5f1ff; color:#007aff; border:none; padding:8px; border-radius:10px; font-weight:600; cursor:pointer;">🔗 Share Selected Template</button>
+            </div>
+
+            <div class="form-group"><label>Event Name *</label><input type="text" id="taskInput" placeholder="Event name" required></div>
+
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Date & Time *</label><input type="datetime-local" id="timeInput" required style="margin-bottom:0;"></div>
+                <div class="form-group" style="flex:0.2; margin-bottom:0; display:flex; align-items:flex-end;">
+                     <button onclick="aiSuggestTime()" title="AI Auto Time" style="height: 48px; width: 100%; background: rgba(0, 122, 255, 0.1); color:var(--primary); border:none; border-radius:10px; cursor:pointer; font-weight:700; font-size: 18px;">🪄</button>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Repeat</label>
+                    <select id="repeatInput" onchange="toggleCustomRepeat()" style="margin-bottom:0;">
+                        <option value="none">Once</option><option value="daily">Daily</option><option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option><option value="yearly">Yearly</option><option value="hourly">Hourly</option><option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Priority</label>
+                    <select id="priorityInput" style="margin-bottom:0;"><option value="low">🟢 Low</option><option value="medium" selected>🟡 Medium</option><option value="high">🔴 High</option></select>
+                </div>
+            </div>
+
+            <div id="customRepeatUI" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: none;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 13px; font-weight: 600;">Repeat every</span>
+                    <input type="number" id="customRepeatInterval" value="1" min="1" style="width: 60px; margin: 0; text-align:center;">
+                    <select id="customRepeatType" style="flex: 1; margin: 0;"><option value="hours">Hours</option><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option></select>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Tags</label><input type="text" id="tagsInput" placeholder="#Tags" style="margin:0;"></div>
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Assignee</label><input type="text" id="assigneeInput" placeholder="👤 Assign" style="margin:0;"></div>
+            </div>
+
+            <div class="form-group"><label>Alarm Notification</label><select id="preAlarmInput"><option value="0">At time of event</option><option value="5">5m before</option><option value="10">10m before</option></select></div>
+
+            <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="margin:0; font-size:14px; font-weight:600;">Sub-tasks</label>
+                    <button onclick="aiGenerateSubtasks()" style="background: #5e5ce6; color: white; border: none; border-radius: 8px; font-size: 11px; padding: 6px 10px; cursor: pointer; font-weight: 700;">🪄 AI Plan</button>
+                </div>
+                <div id="subtasksContainer"></div>
+                <button onclick="addSubtaskField()" style="background: transparent; border: 1px dashed #8e8e93; color: #8e8e93; width: 100%; padding: 10px; border-radius: 10px; cursor: pointer; font-weight:600; font-size:13px;">+ Add Item</button>
+            </div>
+
+            <div class="form-group"><label>Notes</label><div class="rich-editor" id="notesInput" contenteditable="true" data-placeholder="Add notes..." style="min-height:70px; background:#f8fafc; border-radius:10px; padding:12px; border:1px solid #cbd5e1;"></div></div>
+
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <button class="print-btn custom-action-btn" onclick="document.getElementById('imageUpload').click()">📎 Attach</button>
+                <button class="print-btn custom-action-btn" onclick="attachLocation()">📍 Location</button>
+                <button class="print-btn custom-action-btn" id="recordBtn" onclick="toggleVoiceMemo()" style="color:#ff3b30;">🔴 Voice</button>
+                <input type="file" id="imageUpload" accept="image/*,.pdf,.doc,.docx" style="display: none;" onchange="handleImageUpload(event)">
+            </div>
+    
+            <div id="voiceMemoPreviewContainer" style="display:none; margin-bottom:15px; align-items:center; gap:10px; background:#f2f2f7; padding:10px; border-radius:12px;">
+                <audio id="voiceMemoAudio" controls style="flex:1; height: 35px;"></audio>
+                <button onclick="removeVoiceMemo()" style="background: #ff3b30; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-weight: bold;">✖</button>
+            </div>
+            <div id="imagePreviewContainer" style="display: none; position: relative; margin-bottom:15px;">
+                <img id="imagePreview" src="" style="width:100%; border-radius:12px;">
+                <div id="docPreview" style="padding: 15px; background: #f2f2f7; border-radius: 12px; font-size: 13px; font-weight: 600; display: none;">📄 Document Attached</div>
+                <button onclick="removeImage()" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">✖</button>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button id="submitBtn" class="action-btn btn-success" onclick="addOrUpdateReminder(); switchPage('home');">Add</button>
+                <button class="action-btn btn-secondary" onclick="switchPage('home')">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-settings" class="page-section">
+        <div class="app-container" style="margin: auto;">
+            <div class="header-actions"><button class="icon-btn-small logout-btn" onclick="logoutUser()" style="background:#ffe5e5;">🚪</button></div>
+            <h2 style="margin-top: 0; margin-bottom: 20px; font-size:22px;">Settings</h2>
+            
+            <label style="font-size: 12px; font-weight: 700; color: #8e8e93; margin-bottom: 6px; display:block;">Profile Name</label>
+            <input type="text" id="profileNameInput" placeholder="Enter your name" style="margin-bottom: 15px;">
+
+            <label style="font-size: 12px; font-weight: 700; color: #8e8e93; margin-bottom: 6px; display:block;">Daily Task Goal</label>
+            <input type="number" id="dailyGoalInput" value="5" min="1" style="margin-bottom: 15px;">
+            
+            <label style="font-size: 12px; font-weight: 700; color: #8e8e93; margin-bottom: 6px; display:block;">Alarm Sound</label>
+            <select id="alarmSoundInput" style="margin-bottom: 20px;"><option value="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">Default Beep</option><option value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg">Digital Watch</option></select>
+
+            <div style="background: #f2f2f7; border-radius: 16px; padding: 5px 15px; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e5e5ea;">
+                    <span style="font-size: 14px; font-weight: 600;">🗣️ Voice Alarm</span><input type="checkbox" id="voiceAlarmToggle" style="width:20px; height:20px; margin:0;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
+                    <span style="font-size: 14px; font-weight: 600;">🔒 App Lock (PIN)</span><input type="checkbox" id="appLockToggle" style="width:20px; height:20px; margin:0;" onchange="toggleAppLockSetup()">
+                </div>
+            </div>
+
+            <label style="font-size: 12px; font-weight: 700; color: #8e8e93; margin-bottom: 6px; display:block;">Theme Color</label>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <div style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:#ff2d55;" onclick="setThemeColor('#ff2d55', '#d02246', '#eef2f5', '#eef2f5')"></div>
+                <div style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:#007AFF;" onclick="setThemeColor('#007AFF', '#0056b3', '#eef2f5', '#eef2f5')"></div>
+                <div style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:#34c759;" onclick="setThemeColor('#34c759', '#248a3d', '#eef2f5', '#eef2f5')"></div>
+                <div style="width:30px;height:30px;border-radius:50%;cursor:pointer;background:#af52de;" onclick="setThemeColor('#af52de', '#8a3eaf', '#eef2f5', '#eef2f5')"></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="print-btn" onclick="exportToCSV()" style="flex:1; justify-content:center;">📥 Export Data</button>
+                <button class="print-btn" onclick="document.getElementById('importDataInput').click()" style="flex:1; justify-content:center;">📤 Restore</button>
+                <input type="file" id="importDataInput" accept=".csv, .json" style="display:none;" onchange="importDataFile(event)">
+            </div>
+            
+            <button onclick="openModal('proModal')" style="background: linear-gradient(135deg, #ffd60a, #ff9f0a); border:none; border-radius:16px; margin-bottom: 15px; padding: 16px; width: 100%; color: white; font-size:16px; font-weight:700; cursor:pointer;">👑 Upgrade to PRO</button>
+            <button class="add-btn" onclick="saveProfileSettings(); switchPage('home');">Save Settings</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><span class="icon">🏠</span>Home</div>
+        <div class="nav-item" id="nav-add" onclick="switchPage('add')"><span class="icon">➕</span>Add</div>
+        <div class="nav-item" id="nav-settings" onclick="switchPage('settings')"><span class="icon">⚙️</span>Settings</div>
+    </div>
+
+    <div class="modal-overlay" id="matrixModal"><div class="modal-content"><span class="close-modal-btn" onclick="closeModal('matrixModal')">✖</span><h2 style="margin-top: 0; text-align: center;">🔲 Eisenhower Matrix</h2><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;"><div style="background:#fff0f0; padding:12px; border-radius:14px;"><h4 style="margin:0 0 10px; font-size:12px; color:#ff3b30;">🔴 Do First</h4><div id="q1Tasks"></div></div><div style="background:#fff8e5; padding:12px; border-radius:14px;"><h4 style="margin:0 0 10px; font-size:12px; color:#ff9500;">🟡 Schedule</h4><div id="q2Tasks"></div></div><div style="background:#e5f9e9; padding:12px; border-radius:14px;"><h4 style="margin:0 0 10px; font-size:12px; color:#34c759;">🟢 Delegate</h4><div id="q3Tasks"></div></div><div style="background:#e5f1ff; padding:12px; border-radius:14px;"><h4 style="margin:0 0 10px; font-size:12px; color:#007aff;">🔵 Eliminate</h4><div id="q4Tasks"></div></div></div></div></div>
+    <div class="modal-overlay" id="briefingModal"><div class="modal-content" style="text-align: center;"><span class="close-modal-btn" onclick="closeModal('briefingModal')">✖</span><h1 style="margin-top: 0; font-size: 50px;">🌅</h1><h2 style="color: var(--primary);">Good Morning!</h2><div style="background: #f2f2f7; padding: 20px; border-radius: 16px; margin: 20px 0; text-align: left;"><h4 style="margin: 0 0 10px 0;">🎯 Tasks Scheduled: <span id="briefingTaskCount" style="color: var(--primary);">0</span></h4><h4 style="margin: 0;">🔥 Habits Pending: <span id="briefingHabitCount" style="color: #ff9500;">0</span></h4></div><button class="add-btn" onclick="closeModal('briefingModal')">Start My Day</button></div></div>
+    <div class="modal-overlay" id="proModal"><div class="modal-content" style="text-align: center;"><span class="close-modal-btn" onclick="closeModal('proModal')">✖</span><h1 style="margin-top: 0; font-size: 50px;">👑</h1><h2 style="color: #ff9500;">Master PRO</h2><ul style="text-align: left; font-size: 15px; line-height: 2; margin-bottom: 25px; font-weight:600; color:#666;"><li>✨ Exclusive Gold Theme</li><li>👑 PRO Badge on profile</li><li>🪄 Unlimited AI Assistant</li><li>☁️ Advanced Backup</li></ul><button class="add-btn" onclick="activatePro()" style="background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: white;">Upgrade for $4.99/mo</button></div></div>
+    <div class="modal-overlay" id="analyticsModal"><div class="modal-content"><span class="close-modal-btn" onclick="closeModal('analyticsModal')">✖</span><h2 style="margin-top: 0; margin-bottom: 20px;">📊 Report</h2><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;"><div style="background:#f2f2f7; padding:15px; border-radius:14px; text-align:center;"><h5 style="margin:0 0 5px; color:#8e8e93; font-size:11px;">Total Tasks</h5><h2 id="statTotalTasks" style="margin:0; font-size:22px;">0</h2></div><div style="background:#e5f9e9; padding:15px; border-radius:14px; text-align:center;"><h5 style="margin:0 0 5px; color:#34c759; font-size:11px;">Completed</h5><h2 id="statCompletedTasks" style="margin:0; color:#34c759; font-size:22px;">0</h2></div></div><div style="background: #f2f2f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;"><canvas id="productivityChart" width="400" height="200"></canvas></div><button onclick="generateAIReview()" class="add-btn" style="background:#5e5ce6; margin-bottom:15px;">🪄 AI Performance Review</button><div id="aiReviewOutput" style="font-size:13px; font-weight:600; color:var(--primary); text-align:center;"></div></div></div>
+    <div class="modal-overlay" id="leaderboardModal"><div class="modal-content"><span class="close-modal-btn" onclick="closeModal('leaderboardModal')">✖</span><h2 style="margin-top: 0; margin-bottom: 15px;">🏆 Leaderboard</h2><div id="leaderboardContainer" style="background: #f2f2f7; border-radius: 16px; padding: 15px;"><p style="text-align:center;">Loading Top Users...</p></div></div></div>
+    <div class="modal-overlay" id="pomodoroModal"><div class="modal-content" style="text-align: center;"><span class="close-modal-btn" onclick="closeModal('pomodoroModal'); if(document.body.classList.contains('zen-mode')) toggleZenMode();">✖</span><h2 style="margin-top: 0;">🍅 Focus Timer</h2><select id="pomoTaskSelect" style="margin-top: 15px; padding: 12px; border-radius:12px;"><option value="">🎯 Select Task (Optional)</option></select><select id="pomoTimeSelect" style="margin-top: 10px; padding: 12px; border-radius:12px;" onchange="resetPomo()"><option value="1500">⏳ 25 Min</option><option value="3000">⏳ 50 Min</option><option value="300">☕ 5 Min Break</option></select><div id="pomodoroDisplay" style="font-size: 60px; font-weight: 700; margin: 25px 0; color:#ff3b30;">25:00</div><div style="display:flex; gap:10px;"><button class="add-btn" style="flex:1; background:#34c759; margin:0;" onclick="startPomo()">Start</button><button class="add-btn" style="flex:1; background:#ff9500; margin:0;" onclick="pausePomo()">Pause</button><button class="add-btn" style="flex:1; background:#e5e5ea; color:#1c1c1e; margin:0;" onclick="resetPomo()">Reset</button></div></div></div>
+    
+    <div class="modal-overlay" id="storeModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('storeModal')">✖</span>
+            <h2 style="margin-top:0; text-align:center;">🛍️ Rewards Store</h2>
+            <p style="text-align:center; color:var(--primary); font-weight:700; font-size:18px;">Your XP: <span id="storeXpDisplay">0</span> ✨</p>
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+                <div style="background:rgba(0,0,0,0.03); padding:15px; border-radius:16px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><h4 style="margin:0 0 4px; font-size:14px;">🌌 Neon Dark Theme</h4><span style="font-size:11px; color:#8e8e93;">Unlock premium night colors</span></div>
+                    <button class="store-btn" onclick="buyReward('neon_theme', 500)">500 XP</button>
+                </div>
+                <div style="background:rgba(0,0,0,0.03); padding:15px; border-radius:16px; display:flex; justify-content:space-between; align-items:center;">
+                    <div><h4 style="margin:0 0 4px; font-size:14px;">👑 VIP Crown Avatar</h4><span style="font-size:11px; color:#8e8e93;">Add crown to your profile name</span></div>
+                    <button class="store-btn" onclick="buyReward('vip_crown', 1000)">1000 XP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+function googleTranslateElementInit() { new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'en,gu,hi', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element'); }
+</script><script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+<script>
+    // --- FIREBASE INITIALIZATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY", authDomain: "reminder-76588.firebaseapp.com", projectId: "reminder-76588", storageBucket: "reminder-76588.firebasestorage.app", messagingSenderId: "813515230126", appId: "1:813515230126:web:dde11175645257dc44d63f"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth(); const db = firebase.firestore();
+    db.enablePersistence().catch(err => { console.log("Offline mode error:", err.code); });
+    
+    // --- Global Variables ---
+    let currentUser = null; let timerInterval; let currentTab = 'all';
+    let editId = null; let userLevel = 1; let selectedDateFilter = null; let currentImageBase64 = null; let isDoc = false;
+    let userName = "User"; let userAlarmSound = "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"; let voiceAlarmEnabled = false; let pomoInterval; let pomoTime = 1500;
+    let chartInstance = null; let focusAudio = new Audio(); let currentCalMonth = new Date().getMonth(); let currentCalYear = new Date().getFullYear();
+    let deletedTaskTemp = null; let deleteTimeout = null; let wakeLock = null; let activeTagFilter = ""; let waterCount = 0;
+    let mediaRecorder; let audioChunks = []; let voiceMemoBase64 = null; let isProUser = false; let appPinCode = localStorage.getItem("appPin") || null;
+    let currentEnteredPin = ""; let isMusicPlaying = false; let syncTimeout = null;
+    
+    // --- GEMINI API KEY FIXED ---
+    const FIXED_GEMINI_KEY = "AIzaSyBU17fkkveWH9Sd6j_N2uNRBrXQ0HfADaQ";
+    
+    // --- Navigation ---
+    function switchPage(pageId) {
+        document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        document.getElementById('nav-' + pageId).classList.add('active');
+        if(pageId === 'add') loadDraft();
+        if(pageId === 'home') {
+            document.getElementById("taskInput").value = "";
+            document.getElementById("notesInput").innerHTML = ""; document.getElementById("timeInput").value = ""; document.getElementById("repeatInput").value = "none"; document.getElementById("priorityInput").value = "medium"; document.getElementById("tagsInput").value = ""; document.getElementById("subtasksContainer").innerHTML = ""; removeImage(); removeVoiceMemo();
+            document.getElementById("assigneeInput").value = ""; editId = null; document.getElementById("customRepeatUI").style.display = "none"; document.getElementById("submitBtn").innerText = "Save Task"; document.getElementById("modalTitle").innerText = "New Task"; document.getElementById("preAlarmInput").value = "0";
+        }
+    }
+
+    // --- Initialization ---
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const splash = document.getElementById('splashScreen'); splash.style.opacity = '0';
+            setTimeout(() => { splash.style.display = 'none'; if(appPinCode && localStorage.getItem("loggedIn") === "true") { document.getElementById("pinScreen").style.display = "flex"; } else { checkMorningBriefing(); } }, 500);
+        }, 1500);
+    });
+    document.addEventListener("DOMContentLoaded", () => {
+        applyTimeOfDayTheme(); isProUser = localStorage.getItem("isPro") === "true"; if(isProUser) { document.getElementById("proBadgeDisplay").style.display = "inline-flex"; }
+        if(appPinCode) document.getElementById("appLockToggle").checked = true;
+        window.addEventListener('offline', () => { document.getElementById("syncStatusText").innerText = "🚫 Offline Mode"; showToast("Working in Offline Mode.", "error"); });
+        window.addEventListener('online', () => { document.getElementById("syncStatusText").innerText = "☁️ Syncing..."; showToast("Back online! Syncing...", "success"); syncToCloud(); });
+        loadReminders(); renderHomeCalendar();
+    });
+    
+    // --- App Lock ---
+    function enterPin(num) { if(currentEnteredPin.length < 4) { currentEnteredPin += num;
+        document.getElementById("dot" + currentEnteredPin.length).style.background = "var(--primary)"; if(currentEnteredPin.length === 4) { setTimeout(() => { if(currentEnteredPin === appPinCode) { document.getElementById("pinScreen").style.display = "none"; checkMorningBriefing(); } else { showToast("Incorrect PIN!", "error"); clearPin(); } }, 200);
+        } } }
+    function clearPin() { currentEnteredPin = ""; document.querySelectorAll(".pin-dot").forEach(d => d.style.background = "transparent");
+    }
+    function deletePin() { if(currentEnteredPin.length > 0) { document.getElementById("dot" + currentEnteredPin.length).style.background = "transparent"; currentEnteredPin = currentEnteredPin.slice(0, -1);
+    } }
+    function toggleAppLockSetup() {
+        const toggle = document.getElementById("appLockToggle");
+        if(toggle.checked) {
+            const pin = prompt("Enter a 4-digit PIN for App Lock:");
+            if(pin && pin.length === 4 && !isNaN(pin)) { appPinCode = pin; localStorage.setItem("appPin", pin); showToast("App Lock Enabled!", "success");
+            } else { toggle.checked = false; showToast("Invalid PIN.", "error"); }
+        } else { appPinCode = null;
+        localStorage.removeItem("appPin"); showToast("App Lock Disabled", "info"); }
+    }
+
+    // --- Premium Features ---
+    function activatePro() { isProUser = true;
+        localStorage.setItem("isPro", "true"); document.getElementById("proBadgeDisplay").style.display = "inline-flex"; closeModal('proModal'); showToast("🎉 Welcome to PRO!", "success");
+    }
+    function toggleMusicPanel() { const p = document.getElementById("musicPanel"); p.style.display = p.style.display === "block" ? "none" : "block";
+    }
+    function playFloatingAudio() {
+        const src = document.getElementById("floatingSoundSelect").value;
+        if(src === "none") { focusAudio.pause(); isMusicPlaying = false; return; }
+        if(isMusicPlaying && focusAudio.src === src) { focusAudio.pause();
+        isMusicPlaying = false; } else { focusAudio.src = src; focusAudio.loop = true; focusAudio.play(); isMusicPlaying = true;
+        }
+    }
+
+    // --- Morning Briefing ---
+    function checkMorningBriefing() {
+        if(!currentUser) return;
+        const today = getTodayStr();
+        if(localStorage.getItem('lastBriefingDate') !== today) {
+            const reminders = JSON.parse(localStorage.getItem("reminders")) || []; const habits = JSON.parse(localStorage.getItem("habits")) || [];
+            document.getElementById("briefingTaskCount").innerText = reminders.filter(r => r.status !== 'completed' && r.time.split('T')[0] === today).length;
+            document.getElementById("briefingHabitCount").innerText = habits.filter(h => h.lastCheckIn !== today).length;
+            openModal('briefingModal'); localStorage.setItem('lastBriefingDate', today);
+        }
+    }
+
+    // --- Authentication ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            currentUser = user; localStorage.setItem("loggedIn", "true"); document.getElementById('authScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'flex'; switchPage('home'); if(!appPinCode) showToast("Logged in! Ready.", "success"); startCloudSync();
+        } else { currentUser = null; localStorage.setItem("loggedIn", "false"); document.getElementById('authScreen').style.display = 'block'; document.getElementById('mainApp').style.display = 'none'; }
+    });
+    function loginWithGoogle() { const provider = new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).then((result) => { db.collection("users").doc(result.user.uid).set({ userName: result.user.displayName, userLevel: 1, habitXP_tasks: 0 }, { merge: true }); }).catch(err => showToast(err.message, "error"));
+    }
+    function registerUser() { const email = document.getElementById("emailInput").value; const password = document.getElementById("passwordInput").value;
+        if(!email || password.length < 6) return showToast("Enter valid email/password", "error");
+        auth.createUserWithEmailAndPassword(email, password).then((u) => { db.collection("users").doc(u.user.uid).set({ reminders: [], habits: [], userLevel: 1, habitXP_tasks: 0, userName: "User", alarmSound: userAlarmSound, voiceAlarm: false, dailyTaskGoal: 5 }); }).catch((e) => showToast(e.message, "error"));
+    }
+    function loginUser() { const email = document.getElementById("emailInput").value; const password = document.getElementById("passwordInput").value;
+        if(!email || !password) return showToast("Enter email and password", "error"); auth.signInWithEmailAndPassword(email, password).catch((e) => showToast(e.message, "error"));
+    }
+    function resetPassword() { const email = document.getElementById("emailInput").value; if(!email) return showToast("Enter your email address first!", "error");
+        auth.sendPasswordResetEmail(email).then(() => { showToast("Password reset link sent!", "success"); }).catch((e) => showToast(e.message, "error"));
+    }
+    function logoutUser() { auth.signOut().then(() => { showToast("Logged out.", "info"); localStorage.clear(); location.reload(); });
+    }
+
+    // --- Cloud Syncing ---
+    function startCloudSync() {
+        if(!currentUser) return;
+        db.collection("users").doc(currentUser.uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+                if(!doc.metadata.hasPendingWrites) {
+                    localStorage.setItem("reminders", JSON.stringify(data.reminders || [])); localStorage.setItem("habits", JSON.stringify(data.habits || [])); localStorage.setItem("userLevel", data.userLevel || 1); localStorage.setItem("habitXP_tasks", data.habitXP_tasks || 0); localStorage.setItem("dailyTaskGoal", data.dailyTaskGoal || 5); userName = data.userName || "User"; userAlarmSound = data.alarmSound 
+                    || "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"; voiceAlarmEnabled = data.voiceAlarm || false;
+                    waterCount = data.waterDate === getTodayStr() ? (data.waterCount || 0) : 0; 
+                    document.getElementById("waterIntake").innerText = waterCount;
+                    if(data.theme) setThemeColor(data.theme.p, data.theme.ph, data.theme.b1, data.theme.b2, false);
+                    if(data.customTemplates) localStorage.setItem("customTemplates", JSON.stringify(data.customTemplates));
+                    if(data.isProUser) { isProUser = true; localStorage.setItem("isPro", "true"); document.getElementById("proBadgeDisplay").style.display="inline-flex";
+                    }
+                    document.getElementById("displayUserName").innerText = userName;
+                    document.getElementById("profileNameInput").value = userName; document.getElementById("dailyGoalInput").value = data.dailyTaskGoal || 5; document.getElementById("alarmSoundInput").value = userAlarmSound; document.getElementById("voiceAlarmToggle").checked = voiceAlarmEnabled; userLevel = data.userLevel || 1; 
+                    renderCustomTemplates();
+                    loadReminders(); loadHabits(); document.getElementById("syncStatusText").innerText = "☁️ Synced";
+                }
+            }
+        });
+    }
+
+    function syncToCloud() {
+        if(!currentUser) return; if(!navigator.onLine) return;
+        document.getElementById("syncStatusText").innerText = "☁️ Saving...";
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(() => {
+            const dataToSave = {
+                reminders: JSON.parse(localStorage.getItem("reminders")) || [], habits: JSON.parse(localStorage.getItem("habits")) || [], userLevel: parseInt(localStorage.getItem("userLevel")) || 1, habitXP_tasks: parseInt(localStorage.getItem("habitXP_tasks")) || 0, userName: userName, alarmSound: userAlarmSound, voiceAlarm: voiceAlarmEnabled, theme: JSON.parse(localStorage.getItem("appTheme")) || null, customTemplates: JSON.parse(localStorage.getItem("customTemplates")) || [], waterCount: waterCount, waterDate: getTodayStr(), isProUser: isProUser, dailyTaskGoal: parseInt(localStorage.getItem("dailyTaskGoal")) || 5
+            };
+         
+            db.collection("users").doc(currentUser.uid).set(dataToSave, {merge: true}).then(() => { document.getElementById("syncStatusText").innerText = "☁️ Synced"; }).catch((e) => { document.getElementById("syncStatusText").innerText = "⚠️ Sync Error"; });
+        }, 2000);
+    }
+
+    // --- Settings & UI Helpers ---
+    function updateWater(val) { waterCount += val;
+        if(waterCount < 0) waterCount = 0; document.getElementById("waterIntake").innerText = waterCount; if(val > 0 && waterCount === 8) showToast("Goal Reached! 🎉", "success");
+        syncToCloud(); }
+    function setThemeColor(p, ph, b1, b2, sync=true) { document.documentElement.style.setProperty('--primary', p); document.documentElement.style.setProperty('--primary-hover', ph); document.documentElement.style.setProperty('--bg-grad-1', b1); document.documentElement.style.setProperty('--bg-grad-2', b2);
+        localStorage.setItem("appTheme", JSON.stringify({p, ph, b1, b2})); if(sync) { syncToCloud(); showToast("Theme saved!", "success");
+        } }
+    function applyTimeOfDayTheme() { if (localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); return; } const savedTheme = JSON.parse(localStorage.getItem("appTheme"));
+        if(savedTheme) return; }
+    function saveProfileSettings() { userName = document.getElementById("profileNameInput").value.trim() || "User"; userAlarmSound = document.getElementById("alarmSoundInput").value; voiceAlarmEnabled = document.getElementById("voiceAlarmToggle").checked;
+        const dGoal = parseInt(document.getElementById("dailyGoalInput").value) || 5; localStorage.setItem("dailyTaskGoal", dGoal); document.getElementById("displayUserName").innerText = userName; updateMiniDashboard(); syncToCloud(); showToast("Settings saved!", "success");
+    }
+    function openModal(modalId) { document.getElementById(modalId).classList.add('active'); if(modalId === 'analyticsModal') setTimeout(renderChart, 100);
+    }
+    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+
+    // --- Leaderboard ---
+    function openLeaderboard() {
+        openModal('leaderboardModal');
+        const cont = document.getElementById("leaderboardContainer"); cont.innerHTML = "<p style='text-align:center;'>Fetching...</p>";
+        db.collection("users").orderBy("habitXP_tasks", "desc").limit(10).get().then((querySnapshot) => {
+            let html = ""; let rank = 1;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data(); let trophy = rank === 1 ? "🥇" : (rank === 2 ? "🥈" : (rank === 3 ? "🥉" : "🏅"));
+               
+                 html += `<div style="padding:12px; background:#ffffff; margin-bottom:8px; border-radius:12px; display:flex; justify-content:space-between; box-shadow:0 2px 4px rgba(0,0,0,0.02);"><span>${trophy} ${data.userName || "Unknown"}</span><span style="font-weight:700; color:var(--primary);">${(data.habitXP_tasks||0)*10} XP</span></div>`; rank++;
+            }); 
+            cont.innerHTML = html || "<p>No data found.</p>";
+        });
+    }
+
+    // --- Full Calendar ---
+    function changeHomeMonth(dir) { currentCalMonth += dir;
+        if(currentCalMonth > 11) { currentCalMonth = 0; currentCalYear++; } if(currentCalMonth < 0) { currentCalMonth = 11; currentCalYear--; } renderHomeCalendar();
+        if(currentTab === 'upcoming') loadReminders(); }
+    function renderHomeCalendar() {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const displayEl = document.getElementById("homeCalMonthDisplay"); if(!displayEl) return;
+        displayEl.innerText = `${monthNames[currentCalMonth]} ${currentCalYear}`; 
+        const grid = document.getElementById("homeCalendarGrid"); grid.innerHTML = "";
+        let firstDay = new Date(currentCalYear, currentCalMonth, 1).getDay(); let daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+        const reminders = JSON.parse(localStorage.getItem("reminders")) || []; const taskDates = reminders.filter(r => r.status !== 'completed').map(r => r.time.split('T')[0]);
+        for(let i=0; i<firstDay; i++) { grid.innerHTML += `<div class="cal-day empty"></div>`;
+        }
+        const todayStr = getTodayStr();
+        for(let i=1; i<=daysInMonth; i++) {
+            const dStr = `${currentCalYear}-${(currentCalMonth+1).toString().padStart(2,'0')}-${i.toString().padStart(2,'0')}`;
+            const hasTask = taskDates.includes(dStr); const isToday = dStr === todayStr; const isSelected = selectedDateFilter === dStr;
+            let classes = "cal-day";
+            if(isToday) classes += " today"; if(hasTask) classes += " has-event"; if(isSelected) classes += " selected";
+            grid.innerHTML += `<div class="${classes}" onclick="filterByDate('${dStr}')">${i}</div>`;
+        }
+        const isFilterActive = selectedDateFilter || currentCalMonth !== new Date().getMonth() ||
+        currentCalYear !== new Date().getFullYear();
+        document.getElementById("clearFilterWrapper").style.display = isFilterActive ? "flex" : "none";
+    }
+    function filterByDate(dateStr) { selectedDateFilter = selectedDateFilter === dateStr ? null : dateStr; loadReminders();
+    }
+    function clearCalendarFilter() { selectedDateFilter = null; currentCalMonth = new Date().getMonth(); currentCalYear = new Date().getFullYear(); renderHomeCalendar(); changeTab('all');
+        loadReminders(); }
+
+    // --- Pomodoro Focus Timer ---
+    function toggleZenMode() { document.body.classList.toggle("zen-mode");
+    }
+    function updatePomoDisplay() { document.getElementById("pomodoroDisplay").innerText = `${Math.floor(pomoTime / 60).toString().padStart(2, '0')}:${(pomoTime % 60).toString().padStart(2, '0')}`;
+    }
+    function openPomoModal() {
+        const select = document.getElementById("pomoTaskSelect");
+        let html = `<option value="">🎯 Select Task (Optional)</option>`;
+        (JSON.parse(localStorage.getItem("reminders")) || []).filter(r => r.status === 'pending').forEach(r => { html += `<option value="${r.id}">${r.task}</option>`; });
+        select.innerHTML = html; openModal('pomodoroModal');
+    }
+    function resetPomo() { clearInterval(pomoInterval); focusAudio.pause(); pomoTime = parseInt(document.getElementById("pomoTimeSelect").value) || 1500; updatePomoDisplay();
+        if (wakeLock !== null) { wakeLock.release().then(() => wakeLock = null);
+        } }
+    async function startPomo() { 
+        clearInterval(pomoInterval);
+        try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen');
+        } } catch (err) {}
+        pomoInterval = setInterval(() => { 
+            pomoTime--; updatePomoDisplay(); 
+            if(pomoTime <= 0) { 
+                clearInterval(pomoInterval); focusAudio.pause(); playAlarm(); if (wakeLock !== null) { wakeLock.release().then(() => wakeLock = null); }
+                showToast("Focus Session Complete! ☕", "success"); resetPomo(); const selectedTaskId 
+                = document.getElementById("pomoTaskSelect").value;
+                if(selectedTaskId && confirm("Session finished! Did you complete the task?")) toggleStatus(Number(selectedTaskId)); 
+            } 
+        }, 1000);
+    }
+    function pausePomo() { clearInterval(pomoInterval); focusAudio.pause(); if (wakeLock !== null) { wakeLock.release().then(() => wakeLock = null);
+    } }
+
+    // --- AI Features (Gemini Integration using FIXED KEY) ---
+    async function aiGenerateSubtasks() {
+        const taskName = document.getElementById("taskInput").value.trim();
+        if(!taskName) return showToast("Enter Task Title first!", "error");
+        showToast("🪄 AI is planning...", "info");
+        try {
+            const prompt = `Break down the goal "${taskName}" into 3 to 4 short steps.
+            Output ONLY a valid JSON array of strings. Example: ["Step 1", "Step 2"]`;
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${FIXED_GEMINI_KEY}`, { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+            });
+            const data = await response.json(); if(data.error) throw new Error(data.error.message);
+            let text = data.candidates[0].content.parts[0].text; text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+            JSON.parse(text).forEach(sub => addSubtaskField(sub, false)); showToast("🪄 Auto-Plan Complete!", "success");
+        } catch(e) { showToast("AI Error: " + e.message, "error");
+            console.error("Gemini AI Error:", e); }
+    }
+    
+    async function aiSuggestTime() {
+        const taskName = document.getElementById("taskInput").value.trim();
+        if(!taskName) return showToast("Enter Task Title!", "error");
+        showToast("🪄 AI is thinking...", "info");
+        try {
+            const now = new Date();
+            const prompt = `Task: "${taskName}". Current time: ${now.toISOString()}. Suggest a logical future date/time. Respond ONLY with format: YYYY-MM-DDTHH:mm.`;
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${FIXED_GEMINI_KEY}`, { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+            });
+            const data = await response.json(); if(data.error) throw new Error(data.error.message);
+            let aiTime = data.candidates[0].content.parts[0].text.trim(); document.getElementById("timeInput").value = aiTime; showToast("🪄 Time set!", "success");
+        } catch(e) { showToast("AI Error: " + e.message, "error"); console.error("Gemini AI Error:", e);
+        }
+    }
+    
+    async function generateAIReview() {
+        const outputDiv = document.getElementById("aiReviewOutput");
+        outputDiv.innerText = "🪄 Analyzing...";
+        try {
+            const reminders = JSON.parse(localStorage.getItem("reminders")) || []; const comp = reminders.filter(r => r.status === "completed").length; const pend = reminders.length - comp; const xp = localStorage.getItem("habitXP_tasks") || "0";
+            const prompt = `Act as a coach. Completed: ${comp}, Pending: ${pend}, XP: ${xp}. Write a punchy 2-sentence review with emojis.`;
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${FIXED_GEMINI_KEY}`, { 
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+            });
+            const data = await response.json(); if(data.error) throw new Error(data.error.message);
+            outputDiv.innerText = data.candidates[0].content.parts[0].text.trim(); showToast("Review Generated!", "success");
+        } catch(e) { outputDiv.innerText = "AI Error."; showToast("AI Error: " + e.message, "error"); console.error("Gemini AI Error:", e);
+        }
+    }
+    
+    async function startSmartVoiceAssistant() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) return showToast("Not supported.", "error");
+        const rec = new SpeechRecognition(); 
+        rec.lang = 'en-IN'; rec.onstart = function() { showToast("Listening... 🎙️", "info"); };
+        rec.onresult = async function(event) { 
+            const text = event.results[0][0].transcript;
+            showToast("Processing...", "info"); 
+            try {
+                const now = new Date().toISOString();
+                const prompt = `Extract info: "${text}". Current: ${now}. Return ONLY JSON: "task" (str), "time" (YYYY-MM-DDTHH:mm), "priority" (high/medium/low).`;
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${FIXED_GEMINI_KEY}`, { 
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({contents: [{parts:[{text: prompt}]}]}) 
+                });
+                const data = await res.json(); if(data.error) throw new Error(data.error.message);
+                let result = data.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim(); const parsed = JSON.parse(result);
+                let rems = JSON.parse(localStorage.getItem("reminders")) || [];
+                rems.push({ id: Date.now(), task: parsed.task, time: parsed.time, priority: parsed.priority || 'medium', preAlarm: 0, assignee: "", notes: "", status: "pending", notified: false, repeat: "none", category: autoCategorizeTask(parsed.task) });
+                localStorage.setItem("reminders", JSON.stringify(rems)); syncToCloud(); loadReminders(); showToast("Auto-Added! ✅", "success");
+            } catch(err) { showToast("AI Error: " + err.message, "error"); console.error("Gemini AI Error:", err);
+            }
+        }; 
+        rec.start();
+    }
+
+    // --- Subtasks Handling ---
+    function addSubtaskField(val = "", done = false) {
+        const cont = document.getElementById("subtasksContainer");
+        const id = Date.now() + Math.random(); const div = document.createElement("div"); div.style.display = "flex"; div.style.gap="10px"; div.style.marginBottom="10px"; div.className="subtask-item";
+        div.innerHTML = `<input type="checkbox" class="subtask-checkbox" style="width:20px;height:20px;" ${done ? 'checked' : ''} id="cb_${id}"> <input type="text" style="flex:1; margin:0; padding:8px 12px; border-radius:10px; border:1px solid #e5e5ea;"
+        class="subtask-inp" placeholder="Sub-task..." value="${val}" id="inp_${id}"> <button style="background:#ffe5e5; color:#ff3b30; border:none; border-radius:10px; padding:8px; cursor:pointer;" onclick="this.parentElement.remove()">✖</button>`; cont.appendChild(div);
+    }
+    function getSubtasksFromForm() { let subs = [];
+        document.querySelectorAll(".subtask-item").forEach(item => { const val = item.querySelector(".subtask-inp").value.trim(); if(val) subs.push({ text: val, done: item.querySelector(".subtask-checkbox").checked }); }); return subs;
+    }
+    function toggleSubtaskLocal(taskId, subIndex, checkbox) {
+        let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        reminders = reminders.map(r => { if(r.id === taskId && r.subtasks && r.subtasks[subIndex]) r.subtasks[subIndex].done = checkbox.checked; return r; });
+        localStorage.setItem("reminders", JSON.stringify(reminders)); syncToCloud(); loadReminders(); 
+    }
+
+    // --- Productivity Chart ---
+    function renderChart() {
+        const rems = JSON.parse(localStorage.getItem("reminders")) || []; 
+        const last7Days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - i); return d.toISOString().split('T')[0]; }).reverse();
+        const dataCounts = last7Days.map(date => rems.filter(r => r.time.split('T')[0] === date && r.status === 'completed').length);
+        const ctx = document.getElementById('productivityChart').getContext('2d'); if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, { type: 'bar', data: { labels: last7Days.map(d => d.slice(5)), datasets: [{ label: 'Tasks', data: dataCounts, backgroundColor: '#34c759', borderRadius: 8 }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    }
+
+    // --- Utility Functions ---
+    function showToast(message, type = 'info') { const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div"); toast.className = `toast ${type}`; let icon = type === "success" ?
+        "✅" : (type === "error" ? "⚠️" : "💡"); toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`; container.appendChild(toast); setTimeout(() => toast.remove(), 3000);
+    }
+    function toggleTheme() { const isDark = document.body.classList.toggle("dark-mode"); localStorage.setItem("darkMode", isDark); document.getElementById("themeToggleBtn").innerText = isDark ? "☀️" : "🌙";
+    }
+    function getTodayStr() { const today = new Date(); return (new Date(today - today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+    function getYesterdayStr() { const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        return (new Date(yesterday - yesterday.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; }
+    function toggleCustomRepeat() { const val = document.getElementById("repeatInput").value;
+        const ui = document.getElementById("customRepeatUI"); const typeSelect = document.getElementById("customRepeatType"); if(val === "custom") { ui.style.display = "block";
+        if(typeSelect.value === "hours") typeSelect.value = "days"; } else if (val === "hourly") { ui.style.display = "block"; typeSelect.value = "hours";
+        } else { ui.style.display = "none"; } }
+    function loadDraft() { if(editId) return; const draft = JSON.parse(localStorage.getItem("taskDraft"));
+        if(draft) { if(!document.getElementById("taskInput").value) document.getElementById("taskInput").value = draft.task || ""; if(!document.getElementById("notesInput").innerHTML) document.getElementById("notesInput").innerHTML = draft.notes || "";
+        } }
+
+    // --- Voice Memo Attachments ---
+    function toggleVoiceMemo() {
+        const btn = document.getElementById("recordBtn");
+        if(!mediaRecorder || mediaRecorder.state === "inactive") {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream); mediaRecorder.start(); audioChunks = []; btn.innerHTML = "⏹️ Stop Recording..."; btn.style.background = "#ff3b30"; btn.style.color = "white";
+                mediaRecorder.addEventListener("dataavailable", event => { audioChunks.push(event.data); });
+                mediaRecorder.addEventListener("stop", () => {
+    
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' }); const reader = new FileReader(); 
+                    reader.readAsDataURL(audioBlob); reader.onloadend = function() { voiceMemoBase64 = reader.result; document.getElementById("voiceMemoAudio").src = voiceMemoBase64; document.getElementById("voiceMemoPreviewContainer").style.display = "flex"; showToast("Saved!", "success"); }
+                });
+            }).catch(e => showToast("Mic denied.", "error"));
+        } else { mediaRecorder.stop(); btn.innerHTML = "🔴 Voice Memo"; btn.style.background = "rgba(255,59,48,0.1)"; btn.style.color = "#ff3b30"; mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        }
+    }
+    function removeVoiceMemo() { voiceMemoBase64 = null; document.getElementById("voiceMemoPreviewContainer").style.display = "none";
+    }
+
+    // --- Image & Document Attachments ---
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if(!file) return; if(file.size > 2 * 1024 * 1024) return showToast("File too large! Max 2MB allowed.", "error");
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if(file.type.startsWith('image/')) {
+                isDoc = false;
+                const img = new Image(); img.onload = function() {
+                    const canvas = document.createElement("canvas");
+                    const MAX_WIDTH = 500; let scaleSize = 1; if(img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize; const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    currentImageBase64 = canvas.toDataURL("image/jpeg", 0.7); document.getElementById("imagePreview").src = currentImageBase64; document.getElementById("imagePreview").style.display = "block"; document.getElementById("docPreview").style.display = "none"; document.getElementById("imagePreviewContainer").style.display = "block";
+                }
+                img.src = e.target.result;
+            } else { isDoc = true; currentImageBase64 = e.target.result; document.getElementById("imagePreview").style.display = "none"; document.getElementById("docPreview").style.display = "block"; document.getElementById("imagePreviewContainer").style.display = "block";
+            }
+        }
+        reader.readAsDataURL(file);
+    }
+    function removeImage() { currentImageBase64 = null; isDoc = false; document.getElementById("imagePreviewContainer").style.display = "none"; document.getElementById("imageUpload").value = "";
+    }
+
+    // --- Location Attachment ---
+    function attachLocation() { if (navigator.geolocation) { showToast("Fetching Location...", "info");
+        navigator.geolocation.getCurrentPosition((pos) => { const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`; document.getElementById("notesInput").innerHTML += `<br><a href="${link}" target="_blank" style="background:#34c759; color:white; padding:4px 8px; border-radius:8px; text-decoration:none; font-size:12px;">📍 View Location</a>`; showToast("Location attached!", "success"); }, () => showToast("Denied.", "error"));
+        } else { showToast("Not supported.", "error"); } }
+
+    // --- Categorization ---
+    function autoCategorizeTask(taskName) {
+        const lowerTask = taskName.toLowerCase();
+        if (/call|contact|phone|ring/.test(lowerTask)) return { name: "Call", icon: "📞" }; if (/buy|shop|grocery|milk|bread|mall|market/.test(lowerTask)) return { name: "Shopping", icon: "🛒" };
+        if (/doctor|pill|medicine|workout|gym|clinic|health|water/.test(lowerTask)) return { name: "Health", icon: "🏥" }; if (/meet|zoom|boss|project|office|email|work|code|sync/.test(lowerTask)) return { name: "Work", icon: "💻" };
+        if (/pay|bank|money|bill|salary|rent|finance/.test(lowerTask)) return { name: "Finance", icon: "💰" }; if (/read|study|book|exam|homework|assignment|test/.test(lowerTask)) return { name: "Study", icon: "📚" };
+        return { name: "Task", icon: "📝" }; 
+    }
+
+    // --- Custom Templates ---
+    function saveCustomTemplate() {
+        const t = document.getElementById("taskInput").value.trim();
+        if(!t) return showToast("Enter title first!", "error");
+        let temps = JSON.parse(localStorage.getItem("customTemplates")) || [];
+        temps.push({ title: t, notes: document.getElementById("notesInput").innerHTML, rep: document.getElementById("repeatInput").value, pri: document.getElementById("priorityInput").value });
+        localStorage.setItem("customTemplates", JSON.stringify(temps)); renderCustomTemplates(); syncToCloud(); showToast("Saved!", "success");
+    }
+    function renderCustomTemplates() { const group = document.getElementById("customSavedTemplatesGroup"); if(!group) return; const temps = JSON.parse(localStorage.getItem("customTemplates")) || [];
+        let html = ''; temps.forEach((t, i) => { html += `<option value="custom_${i}">⭐ ${t.title}</option>`; }); group.innerHTML = html;
+    }
+    function applyQuickTemplate() {
+        const select = document.getElementById("quickTemplateSelect");
+        const val = select.value; if(!val) return;
+        if(val.startsWith("custom_")) {
+            const index = parseInt(val.split("_")[1]);
+            const temps = JSON.parse(localStorage.getItem("customTemplates")) || []; const t = temps[index];
+            if(t) { document.getElementById("taskInput").value = t.title; document.getElementById("notesInput").innerHTML = t.notes || "";
+            document.getElementById("repeatInput").value = t.rep || "none"; document.getElementById("priorityInput").value = t.pri || "medium"; toggleCustomRepeat(); const now = new Date(); now.setHours(now.getHours() + 1);
+            const tzoffset = now.getTimezoneOffset() * 60000; document.getElementById("timeInput").value = (new Date(now - tzoffset)).toISOString().slice(0, 16);
+            }
+            select.value = ""; return;
+        }
+        const templates = { "Birthday": { rep: "yearly", pri: "high" }, "Anniversary": { rep: "yearly", pri: "high" }, "Other": { rep: "none", pri: "medium" }, "Water": { rep: "hourly", pri: "medium" }, "Food": { rep: "daily", pri: "medium" }, "Wakeup": { rep: "daily", pri: "high" }, "Sleeping": { rep: "daily", pri: "medium" }, "Reading": { rep: "daily", pri: "low" }, "GYM": { rep: "daily", pri: "medium" }, "Walking": { rep: "daily", pri: "low" }, "Running": { rep: "daily", pri: "medium" }, "Bill": { rep: "monthly", pri: "high" }, "Rent": { rep: "monthly", 
+        pri: "high" }, "EMI": { rep: "monthly", pri: "high" }, "Event": { rep: "none", pri: "medium" }, "Appointment": { rep: "none", pri: "high" } };
+        const t = templates[val];
+        if(t) {
+            document.getElementById("taskInput").value = val;
+            document.getElementById("repeatInput").value = t.rep; document.getElementById("priorityInput").value = t.pri;
+            if(t.rep === 'hourly') { document.getElementById("customRepeatType").value = "hours"; document.getElementById("customRepeatInterval").value = "1";
+            }
+            toggleCustomRepeat(); removeImage(); removeVoiceMemo(); const now = new Date();
+            now.setHours(now.getHours() + 1); const tzoffset = now.getTimezoneOffset() * 60000; document.getElementById("timeInput").value = (new Date(now - tzoffset)).toISOString().slice(0, 16);
+        }
+        select.value = "";
+    }
+
+    // --- Analytics & Gamification ---
+    function openAnalyticsModal() { const reminders = JSON.parse(localStorage.getItem("reminders")) || []; document.getElementById("statTotalTasks").innerText = reminders.length; document.getElementById("statCompletedTasks").innerText = reminders.filter(r => r.status === "completed").length; openModal('analyticsModal');
+    }
+    function updateMiniDashboard() {
+        const reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        const habits = JSON.parse(localStorage.getItem("habits")) || []; const todayStr = getTodayStr(); const tomorrow = new Date(); tomorrow.setHours(0,0,0,0); tomorrow.setDate(tomorrow.getDate() + 1);
+        let todayPendingTasks = 0; let todayCompletedTasks = 0;
+        reminders.forEach(r => { const rDate = new Date(r.time); if (r.status !== "completed") { if (rDate < tomorrow) todayPendingTasks++; } else { if(r.time.split('T')[0] === todayStr) todayCompletedTasks++; } });
+        document.getElementById("widgetTasksToday").innerText = `${todayPendingTasks}`; document.getElementById("widgetHabitsToday").innerText = `${habits.filter(h => h.lastCheckIn !== todayStr).length} Habits Pending`;
+        let dailyGoal = parseInt(localStorage.getItem("dailyTaskGoal")) || 5;
+        let goalPct = Math.min((todayCompletedTasks / dailyGoal) * 100, 100);
+        document.getElementById("widgetGoalText").innerText = `${todayCompletedTasks}/${dailyGoal} Done`; document.getElementById("widgetGoalFill").style.width = `${goalPct}%`;
+    }
+    function updateAnalyticsAndGamification() {
+        const reminders = JSON.parse(localStorage.getItem("reminders"))||[];
+        const completedReminders = reminders.filter(r => r.status === "completed").length; const totalTasks = reminders.length; let percentage = totalTasks > 0 ?
+        Math.round((completedReminders / totalTasks) * 100) : 0;
+        document.getElementById("taskCountText").innerText = `${completedReminders}/${totalTasks} Completed`; document.getElementById("percentageText").innerText = `${percentage}%`; document.getElementById("progressFill").style.width = `${percentage}%`;
+        const habitCompleted = parseInt(localStorage.getItem("habitXP_tasks") || "0"); const totalCompletedForXP = completedReminders + habitCompleted; const totalXP = totalCompletedForXP * 10;
+        const newLevel = Math.floor(totalCompletedForXP / 5) + 1; const xpInCurrentLevel = totalXP % 50;
+        document.getElementById("gamificationBadge").innerHTML = `⭐ Level ${newLevel} | ✨ ${xpInCurrentLevel}/50 XP`;
+        if (newLevel > userLevel) { userLevel = newLevel; localStorage.setItem("userLevel", userLevel); fireConfetti();
+        } else if (newLevel < userLevel) { userLevel = newLevel; localStorage.setItem("userLevel", userLevel);
+        }
+    }
+
+    // --- Filtering ---
+    function filterByTag(tag) { activeTagFilter = activeTagFilter === tag ? "" : tag; loadReminders(); }
+    function changeTab(tabName) { currentTab = tabName; document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active')); document.getElementById(`tab-${tabName}`).classList.add('active'); searchReminders();
+    }
+    function searchReminders() { loadReminders(document.getElementById("searchInput") ? document.getElementById("searchInput").value.toLowerCase() : "");
+    }
+
+    // --- Habits Core ---
+    function addHabit() { const name = document.getElementById("habitInput").value.trim();
+        if(!name) return showToast("Enter name.", "error"); const habits = JSON.parse(localStorage.getItem("habits"))||[]; habits.push({ id: Date.now(), name: name, streak: 0, maxStreak: 0, lastCheckIn: null, history: [] });
+        localStorage.setItem("habits", JSON.stringify(habits)); document.getElementById("habitInput").value = ""; showToast("Habit added!", "success"); loadHabits(); syncToCloud();
+    }
+    function checkInHabit(id) {
+        let habits = JSON.parse(localStorage.getItem("habits")) || [];
+        const todayStr = getTodayStr(); const yesterdayStr = getYesterdayStr(); let checkedIn = false;
+        habits = habits.map(habit => {
+            if (habit.id === id) {
+                if (habit.lastCheckIn === todayStr) return habit;
+                if (habit.lastCheckIn === yesterdayStr) { habit.streak += 1; } else { habit.streak = 1; }
+                if (habit.streak > habit.maxStreak) habit.maxStreak = habit.streak;
+                 habit.lastCheckIn = todayStr; checkedIn = true; if(!habit.history) habit.history = []; if(!habit.history.includes(todayStr)) habit.history.push(todayStr); showToast(`🔥 Streak: ${habit.streak}!`, "success");
+            } return habit;
+        });
+        if(checkedIn) { localStorage.setItem("habits", JSON.stringify(habits)); loadHabits(); let completed = parseInt(localStorage.getItem("habitXP_tasks") || "0"); localStorage.setItem("habitXP_tasks", completed + 1); updateAnalyticsAndGamification(); syncToCloud();
+        }
+    }
+    function deleteHabit(id) { let habits = JSON.parse(localStorage.getItem("habits"))||[];
+        localStorage.setItem("habits", JSON.stringify(habits.filter(h => h.id !== id))); showToast("Deleted.", "error"); loadHabits(); syncToCloud();
+    }
+    function loadHabits() {
+        const habitList = document.getElementById("habitList");
+        habitList.innerHTML = ""; const habits = JSON.parse(localStorage.getItem("habits"))||[]; const todayStr = getTodayStr();
+        habits.forEach(habit => {
+            const isCheckedInToday = habit.lastCheckIn === todayStr; const li = document.createElement("li"); li.className = "habit-item"; li.style.background = "#fff"; li.style.padding = "15px"; li.style.borderRadius = "16px"; li.style.marginBottom = "10px"; li.style.border = "1px solid #f2f2f7";
+            li.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <div><h4 style="margin:0 0 5px 0; font-size:15px; color:#1c1c1e;">${habit.name}</h4><span style="background:#e5f1ff; color:#007aff; font-size:11px; padding:4px 8px; border-radius:8px; font-weight:700;">🔥 ${habit.streak}</span></div>
+                <div style="display:flex; gap:8px;"><button style="background:${isCheckedInToday?'#e5e5ea':'#34c759'}; color:${isCheckedInToday?'#8e8e93':'#fff'}; border:none; border-radius:10px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer;" onclick="checkInHabit(${habit.id})" ${isCheckedInToday?"disabled":""}>${isCheckedInToday ?
+                "Done ✅" : "Check-in"}</button><button style="background:#ffe5e5; color:#ff3b30; border:none; border-radius:10px; padding:8px 12px; cursor:pointer;"
+                onclick="deleteHabit(${habit.id})">🗑️</button></div>
+            </div>`;
+            habitList.appendChild(li);
+        }); updateMiniDashboard();
+    }
+
+    // --- Reminders Core ---
+    function addOrUpdateReminder() {
+        const task = document.getElementById("taskInput").value.trim();
+        const notes = document.getElementById("notesInput").innerHTML; const time = document.getElementById("timeInput").value; const repeat = document.getElementById("repeatInput").value; const priority = document.getElementById("priorityInput").value; const image = currentImageBase64;
+        const audio = voiceMemoBase64; const tags = document.getElementById("tagsInput").value.trim(); const subtasks = getSubtasksFromForm(); const preAlarm = parseInt(document.getElementById("preAlarmInput").value) || 0;
+        const assignee = document.getElementById("assigneeInput").value.trim();
+        let customRepeat = null; if(repeat === 'custom' || repeat === 'hourly') { customRepeat = { interval: document.getElementById("customRepeatInterval").value, type: document.getElementById("customRepeatType").value };
+        }
+        if (!task || !time) return showToast("Enter title and time.", "error");
+        const aiCategory = autoCategorizeTask(task); let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        if (editId) {
+            const index = reminders.findIndex(r => r.id === editId);
+            if (index !== -1) { reminders[index] = {...reminders[index], task, notes, time, repeat, priority, image, audio, isDoc, category: aiCategory, tags, subtasks, customRepeat, notified: false, preAlarm, assignee};
+            }
+            editId = null; showToast("Updated!", "success");
+        } else {
+            reminders.push({ id: Date.now(), task, notes, image, audio, isDoc, pinned: false, time, repeat, customRepeat, priority, tags, subtasks, category: aiCategory, status: "pending", notified: false, preAlarm, assignee });
+            showToast(`Saved!`, "success");
+        }
+        localStorage.setItem("reminders", JSON.stringify(reminders)); localStorage.removeItem("taskDraft"); loadReminders(); syncToCloud();
+    }
+
+    function editReminder(id) {
+        const reminder = (JSON.parse(localStorage.getItem("reminders")) || []).find(r => r.id === id);
+        if (reminder) {
+            document.getElementById("taskInput").value = reminder.task;
+            document.getElementById("notesInput").innerHTML = reminder.notes || ""; document.getElementById("timeInput").value = reminder.time; document.getElementById("repeatInput").value = reminder.repeat || "none"; document.getElementById("priorityInput").value = reminder.priority || "medium";
+            document.getElementById("tagsInput").value = reminder.tags || ""; document.getElementById("preAlarmInput").value = reminder.preAlarm || "0"; document.getElementById("assigneeInput").value = reminder.assignee || "";
+            document.getElementById("subtasksContainer").innerHTML = "";
+            if(reminder.subtasks) reminder.subtasks.forEach(sub => addSubtaskField(sub.text, sub.done));
+            if((reminder.repeat === 'custom' || reminder.repeat === 'hourly') && reminder.customRepeat) { document.getElementById("customRepeatUI").style.display = "block";
+            document.getElementById("customRepeatInterval").value = reminder.customRepeat.interval; document.getElementById("customRepeatType").value = reminder.customRepeat.type; } else { document.getElementById("customRepeatUI").style.display = "none";
+            }
+            if(reminder.image) { currentImageBase64 = reminder.image; isDoc = reminder.isDoc;
+            document.getElementById("imagePreviewContainer").style.display = "block"; if(isDoc) { document.getElementById("imagePreview").style.display = "none"; document.getElementById("docPreview").style.display = "block"; } else { document.getElementById("imagePreview").src = currentImageBase64; document.getElementById("imagePreview").style.display = "block";
+            document.getElementById("docPreview").style.display = "none"; } } else { removeImage(); }
+            if(reminder.audio) { voiceMemoBase64 = reminder.audio;
+            document.getElementById("voiceMemoAudio").src = voiceMemoBase64; document.getElementById("voiceMemoPreviewContainer").style.display = "flex"; } else { removeVoiceMemo();
+            }
+            editId = id; document.getElementById("modalTitle").innerText = "Edit Task";
+            document.getElementById("submitBtn").innerText = "Update Task"; switchPage('add'); 
+        }
+    }
+
+    function togglePin(id) { let reminders = JSON.parse(localStorage.getItem("reminders")) || []; reminders = reminders.map(r => { if(r.id === id) r.pinned = !r.pinned; return r; }); localStorage.setItem("reminders", JSON.stringify(reminders)); loadReminders(); syncToCloud();
+    }
+    
+    function initSortable() {
+        const el = document.getElementById('reminderList');
+        if(window.sortableInst) window.sortableInst.destroy();
+        window.sortableInst = new Sortable(el, { handle: '.drag-handle', animation: 200, delay: 150, delayOnTouchOnly: true, onEnd: function () {
+            const sortType = document.getElementById("sortInput").value; if(sortType !== "manual") { showToast("Switch to 'Custom Order' to save!", "error"); loadReminders(); return; }
+            const listItems = document.querySelectorAll('#reminderList .reminder-item'); let newOrderIds = []; listItems.forEach(li => newOrderIds.push(Number(li.getAttribute('data-id'))));
+            let oldRems = JSON.parse(localStorage.getItem("reminders")) || []; let sortedRems = []; newOrderIds.forEach(id => { const r = oldRems.find(x => x.id === id); if(r) sortedRems.push(r); });
+            const filteredOut = oldRems.filter(x => !newOrderIds.includes(x.id)); sortedRems = sortedRems.concat(filteredOut); localStorage.setItem("reminders", JSON.stringify(sortedRems)); syncToCloud();
+        } });
+    }
+
+    function loadReminders(filterText = "") {
+        const reminderList = document.getElementById("reminderList");
+        reminderList.innerHTML = ""; let reminders = JSON.parse(localStorage.getItem("reminders")) || []; updateAnalyticsAndGamification(); updateMiniDashboard();
+        let allTags = new Set();
+        reminders.forEach(r => { if(r.tags) { r.tags.split(',').forEach(t => { if(t.trim()) allTags.add(t.trim()); }); } });
+        let tagsHtml = `<button class="template-chip ${activeTagFilter===''?'active':''}" onclick="filterByTag('')">All Tags</button>`;
+        allTags.forEach(t => { tagsHtml += `<button class="template-chip ${activeTagFilter===t?'active':''}" onclick="filterByTag('${t}')">${t}</button>`; });
+        document.getElementById("tagFilterContainer").innerHTML = tagsHtml;
+        
+        if (selectedDateFilter) { reminders = reminders.filter(r => r.time.split('T')[0] === selectedDateFilter);
+        } else {
+            const tomorrow = new Date(); tomorrow.setHours(0,0,0,0); tomorrow.setDate(tomorrow.getDate() + 1);
+            reminders = reminders.filter(r => {
+                const rDate = new Date(r.time); if (currentTab === 'done') return r.status === 'completed'; if (currentTab === 'all') return true; if (r.status === 'completed') return false;
+                if (currentTab === 'today') return rDate < tomorrow; if (currentTab === 'upcoming') { return rDate.getMonth() === currentCalMonth && rDate.getFullYear() === currentCalYear; } return true;
+            });
+        }
+
+        if (filterText) { reminders = reminders.filter(r => r.task.toLowerCase().includes(filterText) || (r.notes && r.notes.toLowerCase().includes(filterText)) || (r.tags && r.tags.toLowerCase().includes(filterText)) );
+        }
+        if (activeTagFilter) { reminders = reminders.filter(r => r.tags && r.tags.includes(activeTagFilter));
+        }
+        renderHomeCalendar(); clearInterval(timerInterval);
+        if (reminders.length === 0) { reminderList.innerHTML = `<div style="text-align:center; padding:40px 20px; color:#8e8e93;">No tasks found</div>`; return;
+        }
+
+        const sortType = document.getElementById("sortInput").value;
+        if(sortType !== "manual") {
+            reminders.sort((a, b) => {
+                if (a.pinned !== b.pinned) return b.pinned ? 1 : -1; const pMap = { "high": 3, "medium": 2, "low": 1 };
+                if (sortType === "priority-high") return pMap[b.priority||"medium"] - pMap[a.priority||"medium"] || new Date(a.time) - new Date(b.time);
+                if (sortType === "priority-low") return pMap[a.priority||"medium"] - pMap[b.priority||"medium"] || new Date(a.time) - new Date(b.time);
+                return new Date(a.time) - new Date(b.time); 
+            });
+        }
+
+        reminders.forEach(reminder => {
+            const li = document.createElement("li"); const isCompleted = reminder.status === "completed"; const priorityClass = reminder.priority ? `priority-${reminder.priority}` : 'priority-medium'; li.className = `reminder-item ${priorityClass}`;
+            if(isCompleted) { li.style.opacity = "0.6"; li.style.borderLeftColor = "#8e8e93"; }
+            li.id = `rem_card_${reminder.id}`; li.setAttribute('data-id', reminder.id);
+            const formattedTime = new Date(reminder.time).toLocaleString("en-IN", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+
+            let pinnedBadge = reminder.pinned ? `<div style="position:absolute; top:-10px; right:-10px; font-size:16px;">⭐</div>` : ``;
+            let catHTML = reminder.category ? `<div style="background:#e5f1ff; color:#007aff; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:700; margin-bottom:5px; display:inline-block;">${reminder.category.icon} ${reminder.category.name}</div>` : '';
+            let repeatText = ''; if((reminder.repeat === 'custom' || reminder.repeat === 'hourly') && reminder.customRepeat) { repeatText = `Every ${reminder.customRepeat.interval} ${reminder.customRepeat.type}`;
+            } else if (reminder.repeat && reminder.repeat !== 'none') { repeatText = reminder.repeat.charAt(0).toUpperCase() + reminder.repeat.slice(1);
+            }
+            let repeatHTML = (reminder.repeat && reminder.repeat !== 'none') ? `<div style="background:#fff0f0; color:#ff3b30; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:700; margin-bottom:5px; display:inline-block; margin-left:5px;">🔁 ${repeatText}</div>` : '';
+
+            let tagsHTML = "";
+            if(reminder.tags) { reminder.tags.split(',').forEach(tag => { if(tag.trim()) tagsHTML += `<span style="background:#e5e5ea; color:#8e8e93; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:700; margin-bottom:5px; display:inline-block; margin-left:5px;">${tag.trim()}</span> `; });
+            }
+            let subHTML = "";
+            if(reminder.subtasks && reminder.subtasks.length > 0) {
+                let doneCount = reminder.subtasks.filter(s=>s.done).length;
+                let totalCount = reminder.subtasks.length; let pct = (doneCount/totalCount)*100;
+                subHTML = `<div style="width:100%; height:6px; background:#e5e5ea; border-radius:6px; margin:8px 0; overflow:hidden;"><div style="height:100%; width:${pct}%; background:#34c759;"></div></div><ul style="list-style:none; padding:0; margin:0;">`;
+                reminder.subtasks.forEach((sub, idx) => { subHTML += `<li style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:4px; color:#666;"><input type="checkbox" style="width:16px;height:16px;margin:0;" ${sub.done?'checked':''} onchange="toggleSubtaskLocal(${reminder.id}, ${idx}, this)" ${isCompleted?'disabled':''}> <span style="${sub.done?'text-decoration:line-through;opacity:0.6;':''} font-weight:500;">${sub.text}</span></li>`; });
+                subHTML += `</ul>`;
+            }
+
+            let notesHTML = reminder.notes ? `<div style="margin: 8px 0; font-size: 13px; color: #666; background: #f2f2f7; padding: 10px; border-radius: 10px;">${reminder.notes}</div>` : "";
+            let actionBtns = isCompleted ? `<div style="display:flex; gap:8px; width:100%;"><button style="flex:1; background:#ff9500; color:white; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;"
+            onclick="toggleStatus(${reminder.id})">Undo</button><button style="flex:1; background:#ff3b30; color:white; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;" onclick="deleteReminder(${reminder.id})">🗑️</button></div>` : `<div style="display:flex; gap:8px; width:100%; flex-wrap:wrap;"><button style="flex:1; background:#34c759; color:white; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;"
+            onclick="toggleStatus(${reminder.id})">Done</button><button style="flex:1; background:#007aff; color:white; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;" onclick="editReminder(${reminder.id})">Edit</button><button style="flex:none; background:#ffcc00; color:black; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;" onclick="togglePin(${reminder.id})">${reminder.pinned ?
+            'Unpin' : '⭐'}</button><button style="flex:none; background:#ff3b30; color:white; border:none; border-radius:10px; padding:8px; font-weight:600; cursor:pointer;" onclick="deleteReminder(${reminder.id})">🗑️</button></div>`;
+            let completedDetailsHTML = isCompleted ?
+            `<div style="margin-top:8px; display:inline-block; background:#e5f9e9; color:#34c759; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:700;">✅ Done</div>` : `<div id="timer-${reminder.id}" style="margin-top:8px; display:inline-block; background:#f2f2f7; color:#1c1c1e; padding:4px 8px; border-radius:8px; font-size:11px; font-weight:700;">Loading...</div>`;
+            li.innerHTML = `
+                <div class="drag-handle" style="cursor:grab; font-size:20px; color:#aaa; margin-right:10px; padding-top:5px;">☰</div>
+                ${pinnedBadge}
+                <div style="flex-grow:1; width:calc(100% - 30px);">
+                    <div style="display:flex; flex-wrap:wrap;">${catHTML} ${repeatHTML} ${tagsHTML}</div>
+                    <h4 style="margin:5px 0; font-size:16px; color:#1c1c1e; font-weight:600; ${isCompleted?'text-decoration:line-through;':''}">${reminder.task}</h4>
+                    ${notesHTML} ${subHTML}
+                    <p style="font-size:12px; margin:5px 0 0 0; font-weight:600; color:#8e8e93;">📅 ${formattedTime}</p>
+                    ${completedDetailsHTML}
+                </div>
+                <div style="width:100%; margin-top:12px; display:flex; flex-direction:column; gap:8px;">${actionBtns}</div>`;
+            reminderList.appendChild(li);
+        });
+        updateTimers();
+        timerInterval = setInterval(updateTimers, 1000); initSortable();
+    }
+
+    function speakAlarm(taskText) { if (!voiceAlarmEnabled) return;
+        if ('speechSynthesis' in window) { const synth = window.speechSynthesis; const utterThis = new SpeechSynthesisUtterance("Reminder! It is time to " + taskText);
+        synth.speak(utterThis); } }
+    function updateTimers() {
+        let reminders = JSON.parse(localStorage.getItem("reminders")) || []; const now = new Date().getTime(); let remsToSave = false;
+        reminders.forEach(reminder => {
+            if (reminder.status !== "completed") {
+                const timerElement = document.getElementById(`timer-${reminder.id}`);
+                if (timerElement) {
+                    const distance = new Date(reminder.time).getTime() - now; const preAlarmMillis = (reminder.preAlarm || 0) * 60000;
+                    if (distance <= preAlarmMillis) {
+                        timerElement.innerHTML = "⏳ Time's up!"; timerElement.style.background = "#ffe5e5"; timerElement.style.color = "#ff3b30";
+                        if (!reminder.notified) { playAlarm(); speakAlarm(reminder.task); reminder.notified = true; remsToSave = true; }
+                    } else {
+                        const d = Math.floor(distance / 86400000), h = Math.floor((distance % 86400000) / 3600000), m = Math.floor((distance % 3600000) / 60000), s = Math.floor((distance % 60000) / 1000);
+                        timerElement.innerHTML = `⏱️ Left: ${d>0?d+'d ':''}${h>0||d>0?h+'h ':''}${m}m ${s}s`;
+                    }
+                }
+            }
+        });
+        if (remsToSave) { localStorage.setItem("reminders", JSON.stringify(reminders)); loadReminders(); }
+    }
+
+    function generateNextRepeatTask(oldTask) {
+        let newTime = new Date(oldTask.time);
+        if ((oldTask.repeat === 'custom' || oldTask.repeat === 'hourly') && oldTask.customRepeat) {
+            const val = parseInt(oldTask.customRepeat.interval);
+            if(oldTask.customRepeat.type === 'hours') newTime.setHours(newTime.getHours() + val); if(oldTask.customRepeat.type === 'days') newTime.setDate(newTime.getDate() + val); if(oldTask.customRepeat.type === 'weeks') newTime.setDate(newTime.getDate() + (val*7));
+            if(oldTask.customRepeat.type === 'months') newTime.setMonth(newTime.getMonth() + val);
+        } else {
+            if (oldTask.repeat === 'daily') newTime.setDate(newTime.getDate() + 1);
+            if (oldTask.repeat === 'weekly') newTime.setDate(newTime.getDate() + 7); if (oldTask.repeat === 'monthly') newTime.setMonth(newTime.getMonth() + 1);
+            if (oldTask.repeat === 'yearly') newTime.setFullYear(newTime.getFullYear() + 1);
+        }
+        const tzoffset = newTime.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(newTime - tzoffset)).toISOString().slice(0, 16);
+        let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        reminders.push({ ...oldTask, id: Date.now(), time: localISOTime, pinned: false, status: "pending", notified: false }); localStorage.setItem("reminders", JSON.stringify(reminders));
+    }
+
+    function fireConfetti() {
+        const canvas = document.getElementById('confettiCanvas');
+        const ctx = canvas.getContext('2d'); canvas.width = window.innerWidth; canvas.height = window.innerHeight; let particles = [];
+        for(let i=0; i<100; i++) { particles.push({ x: canvas.width/2, y: canvas.height/2, vx: (Math.random()-0.5)*20, vy: (Math.random()-0.5)*20 - 5, color: `hsl(${Math.random()*360}, 100%, 50%)`, size: Math.random()*8+2 });
+        }
+        function animate() { ctx.clearRect(0,0, canvas.width, canvas.height);
+            particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.vy += 0.5; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill(); if(p.y > canvas.height) particles.splice(i, 1); });
+            if(particles.length > 0) requestAnimationFrame(animate); else ctx.clearRect(0,0, canvas.width, canvas.height); } 
+        animate();
+    }
+
+    function toggleStatus(id) {
+        let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        let taskToRepeat = null;
+        reminders = reminders.map(r => {
+            if (r.id === id) { 
+                if (r.status === "pending") { r.status = "completed"; r.completedBy = userName || "User"; r.completedAt = new Date().toISOString(); showToast("Done!", "success"); fireConfetti(); if (r.repeat && r.repeat !== "none") taskToRepeat = r; } else { r.status = "pending"; r.notified = false; delete r.completedBy; delete r.completedAt; showToast("Restored.", "info"); } 
+            } return r;
+        });
+        localStorage.setItem("reminders", JSON.stringify(reminders)); if (taskToRepeat) generateNextRepeatTask(taskToRepeat); searchReminders(); syncToCloud();
+    }
+
+    function playAlarm() { new Audio(userAlarmSound).play().catch(e => console.log(e)); if (navigator.vibrate) { navigator.vibrate([1000, 500, 1000, 500, 1000]);
+    } }
+    
+    function deleteReminder(id) { 
+        let r = JSON.parse(localStorage.getItem("reminders"))||[];
+        deletedTaskTemp = r.find(x => x.id === id); localStorage.setItem("reminders", JSON.stringify(r.filter(x => x.id !== id))); searchReminders(); syncToCloud(); 
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div"); toast.className = `toast error`; toast.innerHTML = `<span>🗑️ Deleted</span> <button onclick="undoDelete()" style="background:white; color:black; border:none; padding:4px 8px; border-radius:8px; cursor:pointer; font-weight:700; margin-left:10px;">UNDO</button>`;
+        container.appendChild(toast); 
+        clearTimeout(deleteTimeout); deleteTimeout = setTimeout(() => { if(toast) toast.remove(); deletedTaskTemp = null; }, 5000);
+    }
+    
+    function undoDelete() { if(deletedTaskTemp) { let r = JSON.parse(localStorage.getItem("reminders"))||[]; r.push(deletedTaskTemp); localStorage.setItem("reminders", JSON.stringify(r));
+        deletedTaskTemp = null; document.querySelectorAll('.toast.error').forEach(t => t.remove()); showToast("Restored! ♻️", "success"); searchReminders(); syncToCloud();
+    } }
+
+    // --- Export / Import ---
+    function shareAppURL() { const data = encodeURIComponent(btoa(JSON.stringify({ t: "Master App", n: "Sync life." })));
+        const url = window.location.origin + window.location.pathname + "?share=" + data; navigator.clipboard.writeText(url).then(() => showToast("Link Copied!", "success"));
+    }
+    function exportToCSV() {
+        const reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+        if(reminders.length === 0) return showToast("No data", "error");
+        let csvContent = "data:text/csv;charset=utf-8,Title,Notes,Date & Time,Priority,Status,Category,Repeat\n";
+        reminders.forEach(r => { const title = `"${(r.task || "").replace(/"/g, '""')}"`; const notes = `"${((r.notes||"").replace(/(<([^>]+)>)/gi, "")).replace(/\"/g, '""')}"`; csvContent += `${title},${notes},${r.time},${r.priority || "medium"},${r.status},${r.category ? r.category.name : "Task"},${r.repeat || "none"}\n`; });
+        const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "My_Tasks.csv"); document.body.appendChild(link); link.click(); link.remove(); showToast("Exported!", "success");
+    }
+    function importDataFile(event) {
+        const file = event.target.files[0];
+        if (!file) return; const reader = new FileReader();
+        reader.onload = function(e) { try { const data = JSON.parse(e.target.result);
+        if(data.reminders) { localStorage.setItem("reminders", JSON.stringify(data.reminders)); if(data.habits) localStorage.setItem("habits", JSON.stringify(data.habits)); showToast("Restored! Refreshing...", "success"); syncToCloud(); setTimeout(()=> location.reload(), 1500); } else { showToast("Invalid JSON", "error");
+        } } catch (err) { showToast("JSON only", "error"); } }; reader.readAsText(file);
+    }
+
+    // --- Eisenhower Matrix ---
+    function openMatrixModal() {
+        const rems = JSON.parse(localStorage.getItem("reminders")) || []; const pending = rems.filter(r => r.status === 'pending'); const today = getTodayStr(); let q1="", q2="", q3="", q4="";
+        pending.forEach(r => {
+            const isUrgent = r.time.split('T')[0] <= today; const isImportant = r.priority === 'high';
+            const taskHtml = `<div style="font-size:12px; background:white; padding:8px; border-radius:8px; margin-bottom:6px; cursor:pointer;" onclick="editReminder(${r.id}); closeModal('matrixModal')">👉 ${r.task}</div>`;
+            if(isUrgent && isImportant) q1 += taskHtml; else if(!isUrgent && isImportant) q2 += taskHtml; else if(isUrgent && !isImportant) q3 += taskHtml; else q4 += taskHtml;
+        });
+        document.getElementById("q1Tasks").innerHTML = q1 || "<p style='font-size:11px; text-align:center; color:#8e8e93;'>Clear!</p>"; document.getElementById("q2Tasks").innerHTML = q2 || "<p style='font-size:11px; text-align:center; color:#8e8e93;'>Clear!</p>"; document.getElementById("q3Tasks").innerHTML = q3 ||
+        "<p style='font-size:11px; text-align:center; color:#8e8e93;'>Clear!</p>"; document.getElementById("q4Tasks").innerHTML = q4 || "<p style='font-size:11px; text-align:center; color:#8e8e93;'>Clear!</p>"; openModal('matrixModal');
+    }
+
+    // --- GAMIFICATION STORE ---
+    function openStore() {
+        const completedTasks = JSON.parse(localStorage.getItem("reminders") || "[]").filter(r => r.status === "completed").length;
+        const habitXP = parseInt(localStorage.getItem("habitXP_tasks") || "0"); const spentXP = parseInt(localStorage.getItem("spentXP") || "0");
+        const availableXP = ((completedTasks + habitXP) * 10) - spentXP; document.getElementById("storeXpDisplay").innerText = availableXP > 0 ? availableXP : 0; openModal('storeModal');
+    }
+    function buyReward(itemId, cost) {
+        const completedTasks = JSON.parse(localStorage.getItem("reminders") || "[]").filter(r => r.status === "completed").length;
+        const habitXP = parseInt(localStorage.getItem("habitXP_tasks") || "0"); let spentXP = parseInt(localStorage.getItem("spentXP") || "0");
+        const totalAvailableXP = ((completedTasks + habitXP) * 10) - spentXP; let unlockedItems = JSON.parse(localStorage.getItem("unlockedItems")) || [];
+        if(unlockedItems.includes(itemId)) { return showToast("You already own this! 🎉", "info"); }
+        if(totalAvailableXP >= cost) {
+            unlockedItems.push(itemId);
+            localStorage.setItem("unlockedItems", JSON.stringify(unlockedItems)); localStorage.setItem("spentXP", spentXP + cost); showToast("Reward Unlocked! 🎁", "success");
+            if(itemId === 'neon_theme') { setThemeColor('#bf5af2', '#9d4ed6', '#1c1c1e', '#2c2c2e'); if(!document.body.classList.contains("dark-mode")) toggleTheme();
+            } else if(itemId === 'vip_crown') { if(!userName.includes("👑")) { userName = "👑 " + userName; document.getElementById("profileNameInput").value = userName; saveProfileSettings();
+            } } openStore(); syncToCloud();
+        } else { showToast(`Not enough XP! Need ${cost - totalAvailableXP} more.`, "error");
+        }
+    }
+
+    // --- SHARED STUDY/PROJECT TEMPLATES ---
+    function shareCustomTemplate() {
+        const select = document.getElementById("quickTemplateSelect");
+        const val = select.value;
+        if(!val.startsWith("custom_")) return showToast("Please select a Custom Template to share!", "error");
+        const index = parseInt(val.split("_")[1]);
+        const temps = JSON.parse(localStorage.getItem("customTemplates")) || []; const templateData = temps[index];
+        if(templateData) {
+            const dataStr = encodeURIComponent(btoa(JSON.stringify({ type: 'template', data: templateData })));
+            const shareUrl = window.location.origin + window.location.pathname + "?importTemplate=" + dataStr;
+            navigator.clipboard.writeText(shareUrl).then(() => { showToast("Template Link Copied! 🔗 Send it to friends.", "success"); });
+        }
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search); const importData = params.get('importTemplate');
+        if(importData) {
+            setTimeout(() => {
+                try {
+                    const decoded = JSON.parse(atob(decodeURIComponent(importData)));
+                    if(decoded.type === 'template' && decoded.data) {
+                        let temps = JSON.parse(localStorage.getItem("customTemplates")) || []; temps.push(decoded.data); localStorage.setItem("customTemplates", JSON.stringify(temps));
+                        renderCustomTemplates(); showToast("Study Template Imported Successfully! ✅", "success"); window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } catch(e) { showToast("Invalid Template Link", "error"); }
+            }, 2000); 
+        }
+    });
+</script>
+</body>
+</html>
