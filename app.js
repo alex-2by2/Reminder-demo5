@@ -21,7 +21,8 @@ let mediaRecorder; let audioChunks = []; let voiceMemoBase64 = null; let isProUs
 let currentEnteredPin = ""; let isMusicPlaying = false; let syncTimeout = null;
 
 // --- GEMINI API KEY FIXED ---
-const FIXED_GEMINI_KEY = "AIzaSyBU17fkkveWH9Sd6j_N2uNRBrXQ0HfADaQ";
+const firebaseConfig = { apiKey: "YOUR_FIREBASE_API_KEY", ... }
+const FIXED_GEMINI_KEY = "YOUR_GEMINI_API_KEY";
 
 // --- Navigation ---
 function switchPage(pageId) {
