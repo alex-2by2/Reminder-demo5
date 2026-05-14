@@ -2,9 +2,6 @@
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(console.error);
 }
-// --- GEMINI API KEY FIXED ---
-const firebaseConfig = { apiKey: "YOUR_FIREBASE_API_KEY", ... }
-const FIXED_GEMINI_KEY = "YOUR_GEMINI_API_KEY";
 
 // --- FIREBASE INITIALIZATION ---
 const firebaseConfig = {
