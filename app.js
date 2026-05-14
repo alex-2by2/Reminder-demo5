@@ -20,10 +20,6 @@ let deletedTaskTemp = null; let deleteTimeout = null; let wakeLock = null; let a
 let mediaRecorder; let audioChunks = []; let voiceMemoBase64 = null; let isProUser = false; let appPinCode = localStorage.getItem("appPin") || null;
 let currentEnteredPin = ""; let isMusicPlaying = false; let syncTimeout = null;
 
-// --- GEMINI API KEY FIXED ---
-const firebaseConfig = { apiKey: "YOUR_FIREBASE_API_KEY", ... }
-const FIXED_GEMINI_KEY = "YOUR_GEMINI_API_KEY";
-
 // --- Navigation ---
 function switchPage(pageId) {
     document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
