@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== AUTHENTICATION CHECK =====
+    // બધા operations માટે user logged in હોવો જોઈએ
+    
+    // ===== USERS COLLECTION =====
+    // માત્ર પોતેનો user document વાંચી અને લખી શકે
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+      
+      // User reminders sub-collection
+      match /reminders/{reminderId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      // User habits sub-collection
+      match /habits/{habitId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      // User settings sub-collection
+      match /settings/{settingId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      // User profile
+      match /profile/{profileId} {
+        allow read, write: if request.auth.uid == userId;
+      }
+    }
+    
+    // ===== LEADERBOARD (PUBLIC) =====
+    // બધા logged-in users જોઈ શકે, પણ માત્ર પોતો પોતેનું score લખી શકે
+    match /leaderboard/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId && 
+                      request.resource.data.userId == userId;
+    }
+    
+    // ===== PUBLIC TEMPLATES (SHARED) =====
+    // બધા templates વાંચી શકે, પણ માત્ર creator update કરી શકે
+    match /publicTemplates/{templateId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth.uid == resource.data.createdBy;
+    }
+    
+    // ===== DENY ALL BY DEFAULT =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
