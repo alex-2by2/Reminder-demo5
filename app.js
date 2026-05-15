@@ -283,30 +283,6 @@ async function generateAIReview() {
     } catch(e) { outputDiv.innerText = "AI Error."; showToast("AI Error: " + e.message, "error"); console.error("Gemini AI Error:", e); }
 }
 
-async function startSmartVoiceAssistant() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return showToast("Not supported.", "error");
-    const rec = new SpeechRecognition(); 
-    rec.lang = 'en-IN';
-    rec.onstart = function() { showToast("Listening... 🎙️", "info"); };
-    rec.onresult = async function(event) { 
-        const text = event.results[0][0].transcript;
-        showToast("Processing...", "info"); 
-        try {
-            const now = new Date().toISOString();
-            const prompt = `Extract info: "${text}". Current: ${now}. Return ONLY JSON: "task" (str), "time" (YYYY-MM-DDTHH:mm), "priority" (high/medium/low).`;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${FIXED_GEMINI_KEY}`, { 
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({contents: [{parts:[{text: prompt}]}]}) 
-            });
-            const data = await res.json(); if(data.error) throw new Error(data.error.message);
-            let result = data.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim(); const parsed = JSON.parse(result);
-            let rems = JSON.parse(localStorage.getItem("reminders")) || [];
-            rems.push({ id: Date.now(), task: parsed.task, time: parsed.time, priority: parsed.priority || 'medium', preAlarm: 0, assignee: "", notes: "", status: "pending", notified: false, repeat: "none", category: autoCategorizeTask(parsed.task) });
-            localStorage.setItem("reminders", JSON.stringify(rems)); syncToCloud(); loadReminders(); showToast("Auto-Added! ✅", "success");
-        } catch(err) { showToast("AI Error: " + err.message, "error"); console.error("Gemini AI Error:", err); }
-    }; 
-    rec.start();
-}
 
 // --- Subtasks Handling ---
 function addSubtaskField(val = "", done = false) {
