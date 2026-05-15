@@ -323,6 +323,33 @@ function toggleCustomRepeat() { const val = document.getElementById("repeatInput
 function loadDraft() { if(editId) return; const draft = JSON.parse(localStorage.getItem("taskDraft"));
     if(draft) { if(!document.getElementById("taskInput").value) document.getElementById("taskInput").value = draft.task || ""; if(!document.getElementById("notesInput").innerHTML) document.getElementById("notesInput").innerHTML = draft.notes || ""; } 
 }
+// --- Auto Cleanup Routine ---
+function cleanupOldTasks() {
+    let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+    const thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000; // 30 Divas (Milliseconds ma)
+    const now = new Date().getTime();
+    let originalLength = reminders.length;
+
+    reminders = reminders.filter(r => {
+        // Jo task pending hoy, to tene delete nathi karvano
+        if (r.status !== "completed") return true;
+        
+        // Jo task complete thayo hoy pan 'completedAt' date na hoy (juna tasks mate)
+        // to aapne teni event date ('time') no aadhar laishu
+        const timeToCheck = r.completedAt ? new Date(r.completedAt).getTime() : new Date(r.time).getTime();
+        
+        // Jo aaje time 30 divas thi ochho hoy to j aane rakhvo, nahitar filter out (delete) kari devo
+        return (now - timeToCheck) < thirtyDaysInMillis;
+    });
+
+    // Jo koi task delete thayo hoy to j local storage ane cloud update karo
+    if (reminders.length < originalLength) {
+        localStorage.setItem("reminders", JSON.stringify(reminders));
+        console.log(`Auto-cleanup: ${originalLength - reminders.length} old tasks deleted.`);
+        syncToCloud(); // Cloud mathi pan delete karva mate
+    }
+}
+
 
 // --- Voice Memo Attachments ---
 function toggleVoiceMemo() {
