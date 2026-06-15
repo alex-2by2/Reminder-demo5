@@ -957,6 +957,88 @@
         .clear-filter-btn { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); transition: 0.2s; }
         .clear-filter-btn:active { transform: scale(0.95); }
 
+        /* Student Mode Styles */
+        .student-tab { display: none; animation: fadeIn 0.3s ease-in; }
+        .student-tab.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .subject-card { 
+            background: linear-gradient(135deg, var(--subject-color, #007AFF) 0%, rgba(0, 122, 255, 0.6) 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .subject-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
+        .subject-card:active { transform: scale(0.98); }
+        .subject-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .subject-card-title { font-size: 18px; font-weight: 700; margin: 0; }
+        .subject-card-code { font-size: 11px; opacity: 0.8; }
+        .subject-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .subject-card-stat { background: rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 8px; text-align: center; }
+        .subject-card-stat-label { font-size: 10px; opacity: 0.8; display: block; }
+        .subject-card-stat-value { font-size: 16px; font-weight: 700; display: block; }
+        .subject-card-menu { position: absolute; top: 12px; right: 12px; background: rgba(255, 255, 255, 0.2); border: none; color: white; border-radius: 6px; padding: 6px 8px; font-size: 14px; cursor: pointer; }
+        
+        .exam-card {
+            background: #f2f2f7;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--subject-color, #007AFF);
+        }
+        body.dark-mode .exam-card { background: #3a3a3c; }
+        .exam-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+        .exam-card-title { font-size: 15px; font-weight: 700; margin: 0; }
+        .exam-countdown { font-size: 12px; color: #ff3b30; font-weight: 700; }
+        .exam-card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: #8e8e93; }
+        .exam-card-detail { display: flex; align-items: center; gap: 4px; }
+        
+        .study-session-card {
+            background: #f2f2f7;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        body.dark-mode .study-session-card { background: #3a3a3c; }
+        .study-session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .study-session-subject { font-size: 15px; font-weight: 700; margin: 0; }
+        .study-session-duration { background: var(--primary); color: white; border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+        .study-session-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; font-size: 11px; text-align: center; }
+        .study-session-stat { background: rgba(0, 122, 255, 0.1); border-radius: 8px; padding: 8px; }
+        .study-session-stat-value { font-weight: 700; font-size: 14px; color: var(--primary); }
+        .study-session-stat-label { color: #8e8e93; font-size: 10px; }
+        
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.selected { border-color: #1c1c1e; box-shadow: 0 0 0 2px white, 0 0 0 3px #1c1c1e; }
+        body.dark-mode .color-swatch.selected { box-shadow: 0 0 0 2px #000, 0 0 0 3px #fff; }
+        
+        .exam-progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e5ea;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        body.dark-mode .exam-progress-bar { background: #3a3a3c; }
+        .exam-progress-fill {
+            height: 100%;
+            background: var(--progress-color, #34c759);
+            transition: width 0.3s ease;
+        }
+
     </style>
 </head>
 <body>
@@ -1434,12 +1516,62 @@
         </div>
     </div>
 
+    <!-- Student Mode Page -->
+    <div id="page-student" class="page-section">
+        <div class="app-container" style="margin: auto;">
+            <div class="header-actions">
+                <button class="icon-btn-small" onclick="openModal('addSubjectModal')" style="background:#e3f2fd;">➕</button>
+            </div>
+            <h2 style="margin-top: 0; margin-bottom: 20px; font-size:22px;">📚 Student Mode</h2>
+            
+            <!-- Tabs: Subjects | Exams | Study Sessions -->
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-btn active" onclick="switchStudentTab('subjects')">📖 Subjects</button>
+                <button class="tab-btn" onclick="switchStudentTab('exams')">📝 Exams</button>
+                <button class="tab-btn" onclick="switchStudentTab('study-sessions')">⏱️ Study</button>
+            </div>
+
+            <!-- Subjects Tab -->
+            <div id="student-subjects-tab" class="student-tab active">
+                <div id="subjectsList" style="display: grid; gap: 12px;"></div>
+                <div id="noSubjectsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No subjects yet</p>
+                    <p style="font-size:12px;">Tap ➕ to add a subject</p>
+                </div>
+            </div>
+
+            <!-- Exams Tab -->
+            <div id="student-exams-tab" class="student-tab" style="display:none;">
+                <div id="examsList" style="display: grid; gap: 12px;"></div>
+                <div id="noExamsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No exams scheduled</p>
+                    <button class="add-btn" onclick="openModal('addExamModal')" style="margin-top:10px;">Schedule Exam</button>
+                </div>
+            </div>
+
+            <!-- Study Sessions Tab -->
+            <div id="student-study-sessions-tab" class="student-tab" style="display:none;">
+                <div style="display:grid; gap:12px;">
+                    <button class="add-btn" onclick="startStudySession()" style="width:100%; margin-bottom:10px;">▶️ Start Study Session</button>
+                </div>
+                <div id="studySessionsList" style="display: grid; gap: 12px; margin-top: 15px;"></div>
+                <div id="noStudySessionsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No study sessions yet</p>
+                    <p style="font-size:12px;">Track your study time here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
             <span class="icon">🏠</span>Home
         </div>
         <div class="nav-item" id="nav-add" onclick="switchPage('add')">
             <span class="icon">➕</span>Add
+        </div>
+        <div class="nav-item" id="nav-student" onclick="switchPage('student')">
+            <span class="icon">📚</span>Student
         </div>
         <div class="nav-item" id="nav-settings" onclick="switchPage('settings')">
              <span class="icon">⚙️</span>Settings
@@ -1792,6 +1924,150 @@
         </div>
     </div>
 
+    <!-- Student Mode: Add Subject Modal -->
+    <div class="modal-overlay" id="addSubjectModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addSubjectModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">📖 Add Subject</h2>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Subject Name</label>
+            <input type="text" id="subjectNameInput" placeholder="e.g., Mathematics, Physics" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Teacher/Code</label>
+            <input type="text" id="subjectCodeInput" placeholder="e.g., CS101" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Color</label>
+            <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+                <div class="color-swatch" data-color="#007AFF" style="background:#007AFF;" onclick="selectSubjectColor('#007AFF')"></div>
+                <div class="color-swatch" data-color="#ff2d55" style="background:#ff2d55;" onclick="selectSubjectColor('#ff2d55')"></div>
+                <div class="color-swatch" data-color="#34c759" style="background:#34c759;" onclick="selectSubjectColor('#34c759')"></div>
+                <div class="color-swatch" data-color="#ff9500" style="background:#ff9500;" onclick="selectSubjectColor('#ff9500')"></div>
+                <div class="color-swatch" data-color="#af52de" style="background:#af52de;" onclick="selectSubjectColor('#af52de')"></div>
+                <div class="color-swatch" data-color="#00c7be" style="background:#00c7be;" onclick="selectSubjectColor('#00c7be')"></div>
+            </div>
+            <input type="hidden" id="selectedSubjectColor" value="#007AFF">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Target Grade</label>
+            <input type="text" id="subjectTargetGradeInput" placeholder="e.g., A+" style="margin-bottom:12px;">
+            
+            <button class="add-btn" onclick="saveSubject();" style="width:100%;">Save Subject</button>
+        </div>
+    </div>
+
+    <!-- Student Mode: Add Exam Modal -->
+    <div class="modal-overlay" id="addExamModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addExamModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">📝 Schedule Exam</h2>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Subject</label>
+            <select id="examSubjectSelect" style="margin-bottom:12px; width:100%;">
+                <option value="">Select Subject...</option>
+            </select>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Exam Name</label>
+            <input type="text" id="examNameInput" placeholder="e.g., Midterm Exam" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Exam Date & Time</label>
+            <input type="datetime-local" id="examDateInput" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Total Marks</label>
+            <input type="number" id="examTotalMarksInput" placeholder="e.g., 100" min="1" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Exam Location/Room</label>
+            <input type="text" id="examLocationInput" placeholder="e.g., Room 101" style="margin-bottom:12px;">
+            
+            <button class="add-btn" onclick="saveExam();" style="width:100%;">Schedule Exam</button>
+        </div>
+    </div>
+
+    <!-- Student Mode: Edit Subject Modal -->
+    <div class="modal-overlay" id="editSubjectModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('editSubjectModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">📖 Edit Subject</h2>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Subject Name</label>
+            <input type="text" id="editSubjectNameInput" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Current Marks</label>
+            <input type="number" id="editSubjectCurrentMarksInput" placeholder="e.g., 85" min="0" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Total Marks</label>
+            <input type="number" id="editSubjectTotalMarksInput" placeholder="e.g., 100" min="1" style="margin-bottom:12px;">
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Grade</label>
+            <input type="text" id="editSubjectGradeInput" placeholder="e.g., A" style="margin-bottom:12px;">
+            
+            <div style="display:flex; gap:10px;">
+                <button class="add-btn" onclick="updateSubject();" style="flex:1;">Update</button>
+                <button class="add-btn" onclick="deleteSubject();" style="flex:1; background:#ff3b30;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Mode: Subject Progress Modal -->
+    <div class="modal-overlay" id="subjectProgressModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('subjectProgressModal')">✖</span>
+            <h2 id="subjectProgressTitle" style="margin-top:0; margin-bottom:15px; font-size:20px;">📊 Subject Progress</h2>
+            
+            <div style="background:#f2f2f7; border-radius:14px; padding:15px; margin-bottom:15px;">
+                <h4 style="margin:0 0 12px; font-size:13px; color:#8e8e93; font-weight:600; text-transform:uppercase;">Current Performance</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div>
+                        <p style="margin:0 0 4px; font-size:11px; color:#8e8e93;">Marks Obtained</p>
+                        <h3 id="subjectProgressMarks" style="margin:0; font-size:24px; font-weight:700;">0/100</h3>
+                    </div>
+                    <div>
+                        <p style="margin:0 0 4px; font-size:11px; color:#8e8e93;">Percentage</p>
+                        <h3 id="subjectProgressPercent" style="margin:0; font-size:24px; font-weight:700; color:#34c759;">0%</h3>
+                    </div>
+                </div>
+            </div>
+            
+            <h4 style="margin:0 0 10px; font-size:13px; color:#8e8e93; font-weight:600; text-transform:uppercase;">Upcoming Exams</h4>
+            <div id="subjectExamsContainer" style="display:grid; gap:10px; margin-bottom:15px;"></div>
+            
+            <h4 style="margin:0 0 10px; font-size:13px; color:#8e8e93; font-weight:600; text-transform:uppercase;">Study Sessions</h4>
+            <div id="subjectStudySessionsContainer" style="display:grid; gap:10px;"></div>
+        </div>
+    </div>
+
+    <!-- Student Mode: Study Session Timer Modal -->
+    <div class="modal-overlay" id="studyTimerModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('studyTimerModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">⏱️ Study Session</h2>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Select Subject</label>
+            <select id="studySessionSubjectSelect" style="margin-bottom:15px; width:100%;">
+                <option value="">Choose Subject...</option>
+            </select>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Duration (minutes)</label>
+            <div style="display:flex; gap:8px; margin-bottom:15px; justify-content:center;">
+                <button onclick="setStudyDuration(15)" style="background:#e5f1ff; border:none; border-radius:10px; padding:10px 14px; font-weight:700; color:var(--primary); cursor:pointer;">15 min</button>
+                <button onclick="setStudyDuration(30)" style="background:#e5f1ff; border:none; border-radius:10px; padding:10px 14px; font-weight:700; color:var(--primary); cursor:pointer;">30 min</button>
+                <button onclick="setStudyDuration(45)" style="background:#e5f1ff; border:none; border-radius:10px; padding:10px 14px; font-weight:700; color:var(--primary); cursor:pointer;">45 min</button>
+                <button onclick="setStudyDuration(60)" style="background:#e5f1ff; border:none; border-radius:10px; padding:10px 14px; font-weight:700; color:var(--primary); cursor:pointer;">60 min</button>
+            </div>
+            
+            <div id="studyTimerDisplay" style="font-size:48px; font-weight:700; margin:20px 0; font-family:monospace; color:var(--primary);">00:00</div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button id="startStudyBtn" class="add-btn" onclick="startStudyTimer();" style="flex:1;">▶️ Start</button>
+                <button id="pauseStudyBtn" class="add-btn" onclick="pauseStudyTimer();" style="flex:1; display:none;">⏸️ Pause</button>
+                <button id="stopStudyBtn" class="add-btn" onclick="stopStudyTimer();" style="flex:1; background:#ff3b30; display:none;">⏹️ Stop</button>
+            </div>
+            
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Notes</label>
+            <textarea id="studyNotesInput" placeholder="What did you study?..." style="margin-bottom:12px; width:100%; resize:vertical; min-height:80px; border:1px solid #e5e5ea; border-radius:10px; padding:10px; font-family:inherit; font-size:14px;"></textarea>
+            
+            <button class="add-btn" onclick="completeStudySession();" style="width:100%;">✅ Complete Session</button>
+        </div>
+    </div>
+
 </div><!-- end #mainApp -->
 
 <script type="text/javascript">
@@ -1919,6 +2195,7 @@ function googleTranslateElementInit() {
         renderProjectDropdown();
         renderMoodTracker();
         renderSleepTracker();
+        initStudentMode();
         setFontSize(localStorage.getItem("appFontSize") || "medium", false);
         document.getElementById("webhookUrlInput").value = localStorage.getItem("webhookUrl") || "";
         document.getElementById("gcalClientIdInput").value = localStorage.getItem("gcalClientId") || "";
@@ -5320,6 +5597,539 @@ function googleTranslateElementInit() {
             renderWorkspaceTasks(tasks);
         } catch(e) { showToast('Error: ' + e.message, 'error'); }
     }
+
+    // ===== STUDENT MODE FUNCTIONS =====
+
+    function switchStudentTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('.student-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Show selected tab
+        document.getElementById(`student-${tabName}-tab`).classList.add('active');
+        event.target.classList.add('active');
+        
+        // Load data for tab
+        if (tabName === 'subjects') loadSubjects();
+        if (tabName === 'exams') loadExams();
+        if (tabName === 'study-sessions') loadStudySessions();
+    }
+
+    function selectSubjectColor(color) {
+        document.getElementById('selectedSubjectColor').value = color;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        event.target.classList.add('selected');
+    }
+
+    async function saveSubject() {
+        if (!currentUser) return showToast('Login required!', 'error');
+        
+        const name = document.getElementById('subjectNameInput').value.trim();
+        const code = document.getElementById('subjectCodeInput').value.trim();
+        const color = document.getElementById('selectedSubjectColor').value;
+        const targetGrade = document.getElementById('subjectTargetGradeInput').value.trim();
+        
+        if (!name) return showToast('Enter subject name!', 'error');
+        
+        try {
+            const uid = currentUser.uid;
+            const docRef = db.collection('users').doc(uid).collection('subjects').doc();
+            
+            await docRef.set({
+                name,
+                code,
+                color,
+                targetGrade,
+                currentMarks: 0,
+                totalMarks: 0,
+                grade: '',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+            
+            showToast('Subject added! 📚', 'success');
+            closeModal('addSubjectModal');
+            document.getElementById('subjectNameInput').value = '';
+            document.getElementById('subjectCodeInput').value = '';
+            document.getElementById('subjectTargetGradeInput').value = '';
+            document.getElementById('selectedSubjectColor').value = '#007AFF';
+            loadSubjects();
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadSubjects() {
+        if (!currentUser) return;
+        
+        try {
+            const uid = currentUser.uid;
+            const snapshot = await db.collection('users').doc(uid).collection('subjects').get();
+            const subjects = [];
+            snapshot.forEach(doc => {
+                subjects.push({ id: doc.id, ...doc.data() });
+            });
+            
+            const list = document.getElementById('subjectsList');
+            const noMsg = document.getElementById('noSubjectsMsg');
+            
+            if (subjects.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+            
+            noMsg.style.display = 'none';
+            list.innerHTML = subjects.map(subject => {
+                const percentage = subject.totalMarks > 0 ? Math.round((subject.currentMarks / subject.totalMarks) * 100) : 0;
+                const percentageColor = percentage >= 80 ? '#34c759' : percentage >= 60 ? '#ff9500' : '#ff3b30';
+                
+                return `
+                    <div class="subject-card" style="--subject-color: ${subject.color};" onclick="viewSubjectProgress('${subject.id}')">
+                        <div class="subject-card-header">
+                            <div>
+                                <h3 class="subject-card-title">${subject.name}</h3>
+                                <p class="subject-card-code">${subject.code || ''}</p>
+                            </div>
+                            <button class="subject-card-menu" onclick="event.stopPropagation(); openEditSubjectModal('${subject.id}')" title="Edit">⋯</button>
+                        </div>
+                        <div class="subject-card-stats">
+                            <div class="subject-card-stat">
+                                <span class="subject-card-stat-label">Marks</span>
+                                <span class="subject-card-stat-value">${subject.currentMarks}/${subject.totalMarks}</span>
+                            </div>
+                            <div class="subject-card-stat">
+                                <span class="subject-card-stat-label">Percentage</span>
+                                <span class="subject-card-stat-value" style="color: ${percentageColor};">${percentage}%</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update exam dropdown
+            const select = document.getElementById('examSubjectSelect');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">Select Subject...</option>' + 
+                subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            select.value = currentValue;
+            
+            // Update study session dropdown
+            const studySelect = document.getElementById('studySessionSubjectSelect');
+            const studyCurrentValue = studySelect.value;
+            studySelect.innerHTML = '<option value="">Choose Subject...</option>' + 
+                subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            studySelect.value = studyCurrentValue;
+        } catch(e) {
+            showToast('Error loading subjects: ' + e.message, 'error');
+        }
+    }
+
+    async function openEditSubjectModal(subjectId) {
+        if (!currentUser) return;
+        
+        try {
+            const doc = await db.collection('users').doc(currentUser.uid).collection('subjects').doc(subjectId).get();
+            if (!doc.exists) return showToast('Subject not found', 'error');
+            
+            const subject = doc.data();
+            document.getElementById('editSubjectNameInput').value = subject.name;
+            document.getElementById('editSubjectCurrentMarksInput').value = subject.currentMarks || 0;
+            document.getElementById('editSubjectTotalMarksInput').value = subject.totalMarks || 0;
+            document.getElementById('editSubjectGradeInput').value = subject.grade || '';
+            document.getElementById('editSubjectModal').dataset.subjectId = subjectId;
+            
+            openModal('editSubjectModal');
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function updateSubject() {
+        const subjectId = document.getElementById('editSubjectModal').dataset.subjectId;
+        if (!subjectId || !currentUser) return;
+        
+        const name = document.getElementById('editSubjectNameInput').value.trim();
+        const currentMarks = parseInt(document.getElementById('editSubjectCurrentMarksInput').value) || 0;
+        const totalMarks = parseInt(document.getElementById('editSubjectTotalMarksInput').value) || 0;
+        const grade = document.getElementById('editSubjectGradeInput').value.trim();
+        
+        if (!name) return showToast('Enter subject name!', 'error');
+        
+        try {
+            await db.collection('users').doc(currentUser.uid).collection('subjects').doc(subjectId).update({
+                name,
+                currentMarks,
+                totalMarks,
+                grade,
+                updatedAt: new Date()
+            });
+            
+            showToast('Subject updated! ✅', 'success');
+            closeModal('editSubjectModal');
+            loadSubjects();
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function deleteSubject() {
+        const subjectId = document.getElementById('editSubjectModal').dataset.subjectId;
+        if (!subjectId || !currentUser) return;
+        
+        if (!confirm('Delete this subject? This action cannot be undone.')) return;
+        
+        try {
+            await db.collection('users').doc(currentUser.uid).collection('subjects').doc(subjectId).delete();
+            showToast('Subject deleted! 🗑️', 'success');
+            closeModal('editSubjectModal');
+            loadSubjects();
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function saveExam() {
+        if (!currentUser) return showToast('Login required!', 'error');
+        
+        const subjectId = document.getElementById('examSubjectSelect').value;
+        const examName = document.getElementById('examNameInput').value.trim();
+        const examDate = document.getElementById('examDateInput').value;
+        const totalMarks = parseInt(document.getElementById('examTotalMarksInput').value) || 0;
+        const location = document.getElementById('examLocationInput').value.trim();
+        
+        if (!subjectId) return showToast('Select a subject!', 'error');
+        if (!examName) return showToast('Enter exam name!', 'error');
+        if (!examDate) return showToast('Select exam date!', 'error');
+        
+        try {
+            const uid = currentUser.uid;
+            const docRef = db.collection('users').doc(uid).collection('exams').doc();
+            
+            await docRef.set({
+                subjectId,
+                examName,
+                examDate: new Date(examDate),
+                totalMarks,
+                marksObtained: 0,
+                location,
+                status: 'scheduled',
+                createdAt: new Date()
+            });
+            
+            showToast('Exam scheduled! 📝', 'success');
+            closeModal('addExamModal');
+            document.getElementById('examNameInput').value = '';
+            document.getElementById('examDateInput').value = '';
+            document.getElementById('examTotalMarksInput').value = '';
+            document.getElementById('examLocationInput').value = '';
+            loadExams();
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadExams() {
+        if (!currentUser) return;
+        
+        try {
+            const uid = currentUser.uid;
+            
+            // Get subjects map
+            const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
+            const subjectsMap = {};
+            subjectsSnapshot.forEach(doc => {
+                const data = doc.data();
+                subjectsMap[doc.id] = { name: data.name, color: data.color };
+            });
+            
+            // Get exams
+            const examsSnapshot = await db.collection('users').doc(uid).collection('exams').get();
+            const exams = [];
+            examsSnapshot.forEach(doc => {
+                exams.push({ id: doc.id, ...doc.data() });
+            });
+            
+            // Sort by exam date
+            exams.sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+            
+            const list = document.getElementById('examsList');
+            const noMsg = document.getElementById('noExamsMsg');
+            
+            if (exams.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+            
+            noMsg.style.display = 'none';
+            list.innerHTML = exams.map(exam => {
+                const subject = subjectsMap[exam.subjectId] || { name: 'Unknown', color: '#007AFF' };
+                const examDateTime = new Date(exam.examDate.seconds ? exam.examDate.seconds * 1000 : exam.examDate);
+                const now = new Date();
+                const timeLeft = examDateTime - now;
+                const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+                
+                let countdownText = '';
+                if (daysLeft < 0) {
+                    countdownText = 'Exam completed';
+                } else if (daysLeft === 0) {
+                    countdownText = 'Today! ⏰';
+                } else if (daysLeft === 1) {
+                    countdownText = 'Tomorrow!';
+                } else {
+                    countdownText = `${daysLeft} days left`;
+                }
+                
+                const dateStr = examDateTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                
+                return `
+                    <div class="exam-card" style="border-left-color: ${subject.color};">
+                        <div class="exam-card-header">
+                            <div>
+                                <h3 class="exam-card-title">${exam.examName}</h3>
+                                <p style="margin:4px 0; font-size:12px; color:#8e8e93;">${subject.name}</p>
+                            </div>
+                            <span class="exam-countdown">${countdownText}</span>
+                        </div>
+                        <div class="exam-card-details">
+                            <div class="exam-card-detail">📅 ${dateStr}</div>
+                            <div class="exam-card-detail">📍 ${exam.location || 'TBD'}</div>
+                            <div class="exam-card-detail">📊 ${exam.totalMarks} marks</div>
+                            <div class="exam-card-detail">✏️ ${exam.marksObtained || 0}/${exam.totalMarks}</div>
+                        </div>
+                        <div class="exam-progress-bar" style="--progress-color: ${subject.color};">
+                            <div class="exam-progress-fill" style="width: ${exam.totalMarks > 0 ? (exam.marksObtained / exam.totalMarks) * 100 : 0}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch(e) {
+            showToast('Error loading exams: ' + e.message, 'error');
+        }
+    }
+
+    async function viewSubjectProgress(subjectId) {
+        if (!currentUser) return;
+        
+        try {
+            const uid = currentUser.uid;
+            const subjectDoc = await db.collection('users').doc(uid).collection('subjects').doc(subjectId).get();
+            
+            if (!subjectDoc.exists) return showToast('Subject not found', 'error');
+            
+            const subject = subjectDoc.data();
+            document.getElementById('subjectProgressTitle').textContent = `📊 ${subject.name}`;
+            
+            // Update marks
+            const percentage = subject.totalMarks > 0 ? Math.round((subject.currentMarks / subject.totalMarks) * 100) : 0;
+            document.getElementById('subjectProgressMarks').textContent = `${subject.currentMarks}/${subject.totalMarks}`;
+            document.getElementById('subjectProgressPercent').textContent = `${percentage}%`;
+            
+            // Load related exams
+            const examsSnapshot = await db.collection('users').doc(uid).collection('exams')
+                .where('subjectId', '==', subjectId).get();
+            const examsContainer = document.getElementById('subjectExamsContainer');
+            
+            if (examsSnapshot.empty) {
+                examsContainer.innerHTML = '<p style="font-size:12px; color:#8e8e93; text-align:center; padding:15px;">No exams scheduled</p>';
+            } else {
+                examsContainer.innerHTML = examsSnapshot.docs.map(doc => {
+                    const exam = doc.data();
+                    return `<div style="background:#e5f1ff; border-radius:10px; padding:10px; font-size:12px;"><strong>${exam.examName}</strong><br/>${new Date(exam.examDate.seconds * 1000).toLocaleDateString()}</div>`;
+                }).join('');
+            }
+            
+            // Load study sessions
+            const sessionsSnapshot = await db.collection('users').doc(uid).collection('studySessions')
+                .where('subjectId', '==', subjectId).limit(5).get();
+            const sessionsContainer = document.getElementById('subjectStudySessionsContainer');
+            
+            if (sessionsSnapshot.empty) {
+                sessionsContainer.innerHTML = '<p style="font-size:12px; color:#8e8e93; text-align:center; padding:15px;">No study sessions yet</p>';
+            } else {
+                sessionsContainer.innerHTML = sessionsSnapshot.docs.map(doc => {
+                    const session = doc.data();
+                    return `<div style="background:#f2f2f7; border-radius:10px; padding:10px; font-size:12px;"><strong>⏱️ ${session.duration} min</strong><br/>${new Date(session.date.seconds * 1000).toLocaleDateString()}</div>`;
+                }).join('');
+            }
+            
+            openModal('subjectProgressModal');
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    // Study Session Functions
+    let currentStudyDuration = 0;
+    let studyTimerInterval = null;
+    let studyTimeRemaining = 0;
+
+    function startStudySession() {
+        const subjects = document.getElementById('studySessionSubjectSelect');
+        if (subjects.children.length <= 1) {
+            return showToast('Add subjects first!', 'error');
+        }
+        openModal('studyTimerModal');
+    }
+
+    function setStudyDuration(minutes) {
+        currentStudyDuration = minutes;
+        studyTimeRemaining = minutes * 60;
+        updateStudyTimerDisplay();
+    }
+
+    function updateStudyTimerDisplay() {
+        const mins = Math.floor(studyTimeRemaining / 60);
+        const secs = studyTimeRemaining % 60;
+        document.getElementById('studyTimerDisplay').textContent = 
+            `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function startStudyTimer() {
+        if (currentStudyDuration === 0) return showToast('Set duration first!', 'error');
+        if (!document.getElementById('studySessionSubjectSelect').value) {
+            return showToast('Select a subject!', 'error');
+        }
+        
+        document.getElementById('startStudyBtn').style.display = 'none';
+        document.getElementById('pauseStudyBtn').style.display = 'inline-block';
+        document.getElementById('stopStudyBtn').style.display = 'inline-block';
+        
+        studyTimerInterval = setInterval(() => {
+            studyTimeRemaining--;
+            updateStudyTimerDisplay();
+            
+            if (studyTimeRemaining <= 0) {
+                clearInterval(studyTimerInterval);
+                showToast('Study session complete! 🎉', 'success');
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Study Session Complete', { body: `Great job! Study time's up.` });
+                }
+            }
+        }, 1000);
+    }
+
+    function pauseStudyTimer() {
+        clearInterval(studyTimerInterval);
+        document.getElementById('pauseStudyBtn').style.display = 'none';
+        document.getElementById('startStudyBtn').style.display = 'inline-block';
+    }
+
+    function stopStudyTimer() {
+        clearInterval(studyTimerInterval);
+        studyTimeRemaining = 0;
+        updateStudyTimerDisplay();
+        document.getElementById('startStudyBtn').style.display = 'inline-block';
+        document.getElementById('pauseStudyBtn').style.display = 'none';
+        document.getElementById('stopStudyBtn').style.display = 'none';
+    }
+
+    async function completeStudySession() {
+        if (!currentUser) return showToast('Login required!', 'error');
+        
+        const subjectId = document.getElementById('studySessionSubjectSelect').value;
+        const notes = document.getElementById('studyNotesInput').value.trim();
+        const duration = currentStudyDuration - Math.ceil(studyTimeRemaining / 60);
+        
+        if (!subjectId) return showToast('Select a subject!', 'error');
+        if (duration <= 0) return showToast('Start the timer first!', 'error');
+        
+        try {
+            const uid = currentUser.uid;
+            await db.collection('users').doc(uid).collection('studySessions').add({
+                subjectId,
+                duration,
+                notes,
+                date: new Date(),
+                createdAt: new Date()
+            });
+            
+            showToast('Study session saved! 📚', 'success');
+            closeModal('studyTimerModal');
+            stopStudyTimer();
+            document.getElementById('studyNotesInput').value = '';
+            document.getElementById('studySessionSubjectSelect').value = '';
+            loadStudySessions();
+        } catch(e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadStudySessions() {
+        if (!currentUser) return;
+        
+        try {
+            const uid = currentUser.uid;
+            
+            // Get subjects map
+            const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
+            const subjectsMap = {};
+            subjectsSnapshot.forEach(doc => {
+                const data = doc.data();
+                subjectsMap[doc.id] = { name: data.name, color: data.color };
+            });
+            
+            // Get study sessions
+            const sessionsSnapshot = await db.collection('users').doc(uid).collection('studySessions')
+                .orderBy('date', 'desc').limit(50).get();
+            const sessions = [];
+            sessionsSnapshot.forEach(doc => {
+                sessions.push({ id: doc.id, ...doc.data() });
+            });
+            
+            const list = document.getElementById('studySessionsList');
+            const noMsg = document.getElementById('noStudySessionsMsg');
+            
+            if (sessions.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+            
+            noMsg.style.display = 'none';
+            
+            // Group by date
+            const grouped = {};
+            sessions.forEach(session => {
+                const dateKey = new Date(session.date.seconds ? session.date.seconds * 1000 : session.date).toLocaleDateString();
+                if (!grouped[dateKey]) grouped[dateKey] = [];
+                grouped[dateKey].push(session);
+            });
+            
+            list.innerHTML = Object.entries(grouped).map(([dateKey, daySessions]) => {
+                const totalDuration = daySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                
+                return `
+                    <div>
+                        <h5 style="font-size:12px; color:#8e8e93; font-weight:700; margin:8px 0 6px;">📅 ${dateKey}</h5>
+                        ${daySessions.map(session => {
+                            const subject = subjectsMap[session.subjectId] || { name: 'Unknown', color: '#007AFF' };
+                            return `
+                                <div class="study-session-card">
+                                    <div class="study-session-header">
+                                        <h4 class="study-session-subject">${subject.name}</h4>
+                                        <span class="study-session-duration">${session.duration} min</span>
+                                    </div>
+                                    ${session.notes ? `<p style="font-size:12px; color:#8e8e93; margin:6px 0 0;">${session.notes}</p>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }).join('');
+        } catch(e) {
+            showToast('Error loading sessions: ' + e.message, 'error');
+        }
+    }
+
+    // Initialize Student Mode on page switch
+    function initStudentMode() {
+        if (document.getElementById('page-student')) {
+            switchStudentTab('subjects');
+        }
+    }
+
 </script>
 
 </body>
