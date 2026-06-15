@@ -1588,6 +1588,12 @@
             </div>
             <h2 style="margin-top: 0; margin-bottom: 20px; font-size:22px;">💰 Finance Hub</h2>
 
+            <div class="finance-summary-row" style="margin-bottom: 16px;">
+                <div class="finance-summary-card" id="financeMonthlySpendCard">Monthly spend<br><strong>₹0</strong></div>
+                <div class="finance-summary-card" id="financeBudgetCountCard">Budgets set<br><strong>0</strong></div>
+                <div class="finance-summary-card" id="financeUpcomingBillsCard">Upcoming bills<br><strong>0</strong></div>
+            </div>
+
             <div class="tabs" style="margin-bottom: 20px;">
                 <button class="tab-btn active" data-tab="expenses" onclick="switchFinanceTab('expenses', event)">🧾 Expenses</button>
                 <button class="tab-btn" data-tab="budget" onclick="switchFinanceTab('budget', event)">📊 Budget</button>
@@ -6345,6 +6351,36 @@ function googleTranslateElementInit() {
         loadBudgets();
         loadBills();
         loadGoals();
+        updateFinanceOverview();
+    }
+
+    async function updateFinanceOverview() {
+        if (!currentUser) return;
+
+        try {
+            const uid = currentUser.uid;
+            const [expensesSnapshot, budgetsSnapshot, billsSnapshot] = await Promise.all([
+                db.collection('users').doc(uid).collection('expenses').get(),
+                db.collection('users').doc(uid).collection('budgets').get(),
+                db.collection('users').doc(uid).collection('bills').get(),
+            ]);
+
+            const expenses = [];
+            expensesSnapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
+            const totalMonthly = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            const upcomingBills = [];
+            billsSnapshot.forEach(doc => {
+                const bill = { id: doc.id, ...doc.data() };
+                const dueDate = bill.dueDate && bill.dueDate.seconds ? new Date(bill.dueDate.seconds * 1000) : new Date(bill.dueDate);
+                if (dueDate >= new Date()) upcomingBills.push(bill);
+            });
+
+            document.getElementById('financeMonthlySpendCard').innerHTML = `Monthly spend<br><strong>${formatCurrency(totalMonthly)}</strong>`;
+            document.getElementById('financeBudgetCountCard').innerHTML = `Budgets set<br><strong>${budgetsSnapshot.size}</strong>`;
+            document.getElementById('financeUpcomingBillsCard').innerHTML = `Upcoming bills<br><strong>${upcomingBills.length}</strong>`;
+        } catch (e) {
+            console.warn('Finance overview update failed:', e.message);
+        }
     }
 
     function formatCurrency(amount) {
@@ -6380,6 +6416,7 @@ function googleTranslateElementInit() {
             document.getElementById('expenseNotesInput').value = '';
             loadExpenses();
             loadBudgets();
+            updateFinanceOverview();
         } catch (e) {
             showToast('Error: ' + e.message, 'error');
         }
@@ -6450,6 +6487,7 @@ function googleTranslateElementInit() {
             document.getElementById('budgetLimitInput').value = '';
             document.getElementById('budgetNotesInput').value = '';
             loadBudgets();
+            updateFinanceOverview();
         } catch (e) {
             showToast('Error: ' + e.message, 'error');
         }
@@ -6546,6 +6584,7 @@ function googleTranslateElementInit() {
             document.getElementById('billAmountInput').value = '';
             document.getElementById('billDueDateInput').value = '';
             loadBills();
+            updateFinanceOverview();
         } catch (e) {
             showToast('Error: ' + e.message, 'error');
         }
@@ -6619,6 +6658,7 @@ function googleTranslateElementInit() {
             document.getElementById('goalDueDateInput').value = '';
             document.getElementById('goalNotesInput').value = '';
             loadGoals();
+            updateFinanceOverview();
         } catch (e) {
             showToast('Error: ' + e.message, 'error');
         }
