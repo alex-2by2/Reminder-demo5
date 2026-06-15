@@ -2351,11 +2351,20 @@ function googleTranslateElementInit() {
             splash.style.opacity = '0';
             setTimeout(() => { 
                 splash.style.display = 'none'; 
-                if(appPinCode && localStorage.getItem("loggedIn") === "true") { 
-                    document.getElementById("pinScreen").style.display = "flex"; 
-                } else { 
-                    checkMorningBriefing(); 
-                }
+                // Failsafe: Show UI after auth check times out
+                setTimeout(() => {
+                    if (document.getElementById('authScreen').style.display === 'none' && 
+                        document.getElementById('mainApp').style.display === 'none' &&
+                        document.getElementById('pinScreen').style.display === 'none') {
+                        // Auth state hasn't been set - show based on logged-in status
+                        if (localStorage.getItem("loggedIn") === "true") {
+                            document.getElementById('mainApp').style.display = 'flex';
+                            switchPage('home');
+                        } else {
+                            document.getElementById('authScreen').style.display = 'block';
+                        }
+                    }
+                }, 3000);
             }, 500);
         }, 1500);
     });
@@ -2386,6 +2395,9 @@ function googleTranslateElementInit() {
         setFontSize(localStorage.getItem("appFontSize") || "medium", false);
         document.getElementById("webhookUrlInput").value = localStorage.getItem("webhookUrl") || "";
         document.getElementById("gcalClientIdInput").value = localStorage.getItem("gcalClientId") || "";
+        
+        // Trigger morning briefing after UI is ready
+        setTimeout(() => checkMorningBriefing(), 2500);
     });
 
     // --- App Lock ---
@@ -2472,9 +2484,9 @@ function googleTranslateElementInit() {
 
     // --- Morning Briefing ---
     function checkMorningBriefing() {
-        // Bug Fix 5: Retry if Firebase auth hasn't resolved yet
-        if(!currentUser) {
-            setTimeout(checkMorningBriefing, 1000);
+        // Only show briefing if app is visible and user data is loaded
+        if(document.getElementById('mainApp').style.display === 'none' || 
+           document.getElementById('splashScreen').style.display !== 'none') {
             return;
         }
         const today = getTodayStr();
@@ -2497,15 +2509,23 @@ function googleTranslateElementInit() {
             localStorage.setItem("loggedIn", "true");
             document.getElementById('authScreen').style.display = 'none'; 
             document.getElementById('mainApp').style.display = 'flex';
-            switchPage('home');
-            if(!appPinCode) showToast("Logged in! Ready.", "success"); 
-            startCloudSync();
-            loadSharedWithMe();
+            if(appPinCode && document.getElementById('splashScreen').style.display !== 'none') {
+                // Wait for splash to hide before showing PIN
+                setTimeout(() => {
+                    if(appPinCode) document.getElementById("pinScreen").style.display = "flex";
+                }, 2100);
+            } else if(document.getElementById('splashScreen').style.display === 'none') {
+                switchPage('home');
+                if(!appPinCode) showToast("Logged in! Ready.", "success"); 
+                startCloudSync();
+                loadSharedWithMe();
+            }
         } else {
             currentUser = null; 
             localStorage.setItem("loggedIn", "false");
             document.getElementById('authScreen').style.display = 'block'; 
             document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('pinScreen').style.display = 'none';
         }
     });
 
