@@ -962,6 +962,23 @@
         .student-tab.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+        /* Finance Module Styles */
+        .finance-tab { display: none; animation: fadeIn 0.3s ease-in; }
+        .finance-tab.active { display: block; }
+        .finance-summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .finance-summary-card, .finance-item-card, .budget-card, .bill-card, .goal-card { background: #f2f2f7; border-radius: 16px; padding: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+        body.dark-mode .finance-summary-card, body.dark-mode .finance-item-card, body.dark-mode .budget-card, body.dark-mode .bill-card, body.dark-mode .goal-card { background: #1c1c1e; }
+        .finance-summary-card strong { display: block; margin-top: 8px; font-size: 22px; }
+        .finance-item-title, .budget-title, .bill-title, .goal-title { font-size: 15px; font-weight: 700; margin: 0 0 8px; }
+        .finance-item-detail, .budget-detail, .bill-detail, .goal-detail { font-size: 12px; color: #8e8e93; margin-bottom: 10px; }
+        .finance-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,0,0,0.05); color: #1c1c1e; border-radius: 999px; padding: 6px 10px; font-size: 11px; }
+        body.dark-mode .finance-pill { background: rgba(255,255,255,0.08); color: #f8fafc; }
+        .finance-amount { font-size: 20px; font-weight: 700; margin-top: 6px; display: inline-block; }
+        .progress-bar { width: 100%; height: 8px; background: #e5e5ea; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { width: 0; height: 100%; background: var(--primary); transition: width 0.3s ease; }
+        .action-button { background: none; border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 8px 12px; cursor: pointer; font-size: 12px; color: #1c1c1e; }
+        body.dark-mode .action-button { border-color: rgba(255,255,255,0.15); color: #ffffff; }
+
         .subject-card { 
             background: linear-gradient(135deg, var(--subject-color, #007AFF) 0%, rgba(0, 122, 255, 0.6) 100%);
             color: white;
@@ -1526,9 +1543,9 @@
             
             <!-- Tabs: Subjects | Exams | Study Sessions -->
             <div class="tabs" style="margin-bottom: 20px;">
-                <button class="tab-btn active" onclick="switchStudentTab('subjects')">📖 Subjects</button>
-                <button class="tab-btn" onclick="switchStudentTab('exams')">📝 Exams</button>
-                <button class="tab-btn" onclick="switchStudentTab('study-sessions')">⏱️ Study</button>
+                <button class="tab-btn active" onclick="switchStudentTab('subjects', event)">📖 Subjects</button>
+                <button class="tab-btn" onclick="switchStudentTab('exams', event)">📝 Exams</button>
+                <button class="tab-btn" onclick="switchStudentTab('study-sessions', event)">⏱️ Study</button>
             </div>
 
             <!-- Subjects Tab -->
@@ -1563,12 +1580,83 @@
         </div>
     </div>
 
+    <!-- Finance Module Page -->
+    <div id="page-finance" class="page-section">
+        <div class="app-container" style="margin: auto;">
+            <div class="header-actions">
+                <button class="icon-btn-small" onclick="openModal('addExpenseModal')" style="background:#e3f2fd;">➕</button>
+            </div>
+            <h2 style="margin-top: 0; margin-bottom: 20px; font-size:22px;">💰 Finance Hub</h2>
+
+            <div class="tabs" style="margin-bottom: 20px;">
+                <button class="tab-btn active" data-tab="expenses" onclick="switchFinanceTab('expenses', event)">🧾 Expenses</button>
+                <button class="tab-btn" data-tab="budget" onclick="switchFinanceTab('budget', event)">📊 Budget</button>
+                <button class="tab-btn" data-tab="bills" onclick="switchFinanceTab('bills', event)">💳 Bills</button>
+                <button class="tab-btn" data-tab="goals" onclick="switchFinanceTab('goals', event)">🎯 Goals</button>
+            </div>
+
+            <div id="finance-expenses-tab" class="finance-tab active">
+                <div class="finance-summary-row" style="margin-bottom: 16px;">
+                    <div class="finance-summary-card" id="expenseTotalCard">Total this month<br><strong>₹0</strong></div>
+                    <div class="finance-summary-card" id="expenseCountCard">Transactions<br><strong>0</strong></div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <button class="add-btn" onclick="openModal('addExpenseModal')" style="flex:1; min-width:140px;">Add Expense</button>
+                    <button class="add-btn" onclick="openModal('addBudgetModal')" style="flex:1; min-width:140px;">Set Budget</button>
+                </div>
+                <div id="expensesList" style="display:grid; gap:12px;"></div>
+                <div id="noExpensesMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No expenses recorded</p>
+                    <p style="font-size:12px;">Tap Add Expense to log your spendings</p>
+                </div>
+            </div>
+
+            <div id="finance-budget-tab" class="finance-tab" style="display:none;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <button class="add-btn" onclick="openModal('addBudgetModal')" style="flex:1; min-width:140px;">Create Budget</button>
+                    <button class="add-btn" onclick="openModal('addExpenseModal')" style="flex:1; min-width:140px;">Add Expense</button>
+                </div>
+                <div id="budgetsSummary" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:16px;"></div>
+                <div id="budgetsList" style="display:grid; gap:12px;"></div>
+                <div id="noBudgetsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No budgets set</p>
+                    <p style="font-size:12px;">Set a monthly budget to track your spending</p>
+                </div>
+            </div>
+
+            <div id="finance-bills-tab" class="finance-tab" style="display:none;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <button class="add-btn" onclick="openModal('addBillModal')" style="flex:1; min-width:140px;">Add Bill</button>
+                </div>
+                <div id="billsList" style="display:grid; gap:12px;"></div>
+                <div id="noBillsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No bills saved</p>
+                    <p style="font-size:12px;">Create payment reminders to stay ahead</p>
+                </div>
+            </div>
+
+            <div id="finance-goals-tab" class="finance-tab" style="display:none;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                    <button class="add-btn" onclick="openModal('addGoalModal')" style="flex:1; min-width:140px;">Add Goal</button>
+                </div>
+                <div id="goalsList" style="display:grid; gap:12px;"></div>
+                <div id="noGoalsMsg" style="text-align:center; color:#8e8e93; padding:40px 20px; display:none;">
+                    <p style="font-size:16px; margin:0;">No savings goals yet</p>
+                    <p style="font-size:12px;">Create a goal and track progress</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-item active" id="nav-home" onclick="switchPage('home')">
             <span class="icon">🏠</span>Home
         </div>
         <div class="nav-item" id="nav-add" onclick="switchPage('add')">
             <span class="icon">➕</span>Add
+        </div>
+        <div class="nav-item" id="nav-finance" onclick="switchPage('finance')">
+            <span class="icon">💰</span>Finance
         </div>
         <div class="nav-item" id="nav-student" onclick="switchPage('student')">
             <span class="icon">📚</span>Student
@@ -2068,6 +2156,97 @@
         </div>
     </div>
 
+    <!-- Finance Module Modals -->
+    <div class="modal-overlay" id="addExpenseModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addExpenseModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">🧾 Add Expense</h2>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Category</label>
+            <select id="expenseCategoryInput" style="margin-bottom:12px; width:100%;">
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Health">Health</option>
+                <option value="Other">Other</option>
+            </select>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Amount</label>
+            <input type="number" id="expenseAmountInput" placeholder="₹0" min="0" style="margin-bottom:12px;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Date</label>
+            <input type="date" id="expenseDateInput" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Notes</label>
+            <textarea id="expenseNotesInput" placeholder="Details" style="margin-bottom:12px; width:100%; resize:vertical; min-height:80px;"></textarea>
+            <button class="add-btn" onclick="saveExpense()" style="width:100%;">Save Expense</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addBudgetModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addBudgetModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">📊 Set Budget</h2>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Category</label>
+            <select id="budgetCategoryInput" style="margin-bottom:12px; width:100%;">
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Health">Health</option>
+                <option value="Savings">Savings</option>
+            </select>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Monthly Limit</label>
+            <input type="number" id="budgetLimitInput" placeholder="₹5000" min="0" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Notes</label>
+            <textarea id="budgetNotesInput" placeholder="Optional notes" style="margin-bottom:12px; width:100%; resize:vertical; min-height:80px;"></textarea>
+            <button class="add-btn" onclick="saveBudget()" style="width:100%;">Save Budget</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addBillModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addBillModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">💳 Add Bill</h2>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Bill Title</label>
+            <input type="text" id="billTitleInput" placeholder="Electricity Bill" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Type</label>
+            <select id="billTypeInput" style="margin-bottom:12px; width:100%;">
+                <option value="EMI">EMI</option>
+                <option value="Electricity">Electricity</option>
+                <option value="Credit Card">Credit Card</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Other">Other</option>
+            </select>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Amount</label>
+            <input type="number" id="billAmountInput" placeholder="₹0" min="0" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Due Date</label>
+            <input type="date" id="billDueDateInput" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Frequency</label>
+            <select id="billFrequencyInput" style="margin-bottom:12px; width:100%;">
+                <option value="Monthly">Monthly</option>
+                <option value="Quarterly">Quarterly</option>
+                <option value="Yearly">Yearly</option>
+                <option value="One-time">One-time</option>
+            </select>
+            <button class="add-btn" onclick="saveBill()" style="width:100%;">Save Bill</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addGoalModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('addGoalModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">🎯 Add Savings Goal</h2>
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Goal Name</label>
+            <input type="text" id="goalTitleInput" placeholder="Emergency Fund" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Target Amount</label>
+            <input type="number" id="goalTargetInput" placeholder="₹10000" min="0" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Saved So Far</label>
+            <input type="number" id="goalSavedInput" placeholder="₹0" min="0" style="margin-bottom:12px; width:100%;">
+            <label style="font-size:12px; font-weight:700; color:#8e8e93; margin-bottom:4px; display:block;">Target Date</label>
+            <input type="date" id="goalDueDateInput" style="margin-bottom:12px; width:100%;">
+            <textarea id="goalNotesInput" placeholder="Optional notes" style="margin-bottom:12px; width:100%; resize:vertical; min-height:80px;"></textarea>
+            <button class="add-btn" onclick="saveGoal()" style="width:100%;">Save Goal</button>
+        </div>
+    </div>
+
 </div><!-- end #mainApp -->
 
 <script type="text/javascript">
@@ -2132,6 +2311,7 @@ function googleTranslateElementInit() {
     function switchPage(pageId) {
         document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + pageId).classList.add('active');
         document.getElementById('nav-' + pageId).classList.add('active');
 
@@ -2155,6 +2335,7 @@ function googleTranslateElementInit() {
             document.getElementById("categoryOverrideInput").value = "";
             updateCategoryPreview();
         }
+        if(pageId === 'finance') initFinanceMode();
     }
 
     // --- Initialization ---
@@ -5600,14 +5781,19 @@ function googleTranslateElementInit() {
 
     // ===== STUDENT MODE FUNCTIONS =====
 
-    function switchStudentTab(tabName) {
-        // Hide all tabs
-        document.querySelectorAll('.student-tab').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    function switchStudentTab(tabName, evt) {
+        evt = evt || window.event;
+        // Hide all student tabs only
+        document.querySelectorAll('#page-student .student-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('#page-student .tab-btn').forEach(btn => btn.classList.remove('active'));
         
         // Show selected tab
         document.getElementById(`student-${tabName}-tab`).classList.add('active');
-        event.target.classList.add('active');
+        if (evt && evt.currentTarget) {
+            evt.currentTarget.classList.add('active');
+        } else if (evt && evt.target && evt.target.classList.contains('tab-btn')) {
+            evt.target.classList.add('active');
+        }
         
         // Load data for tab
         if (tabName === 'subjects') loadSubjects();
@@ -6127,6 +6313,351 @@ function googleTranslateElementInit() {
     function initStudentMode() {
         if (document.getElementById('page-student')) {
             switchStudentTab('subjects');
+        }
+    }
+
+    // Finance Module Functions
+    function switchFinanceTab(tabName) {
+        document.querySelectorAll('#page-finance .finance-tab').forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.display = 'none';
+        });
+        document.querySelectorAll('#page-finance .tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        const selectedTab = document.getElementById(`finance-${tabName}-tab`);
+        if (!selectedTab) return;
+        selectedTab.classList.add('active');
+        selectedTab.style.display = 'block';
+
+        const selectedButton = document.querySelector(`#page-finance .tab-btn[data-tab="${tabName}"]`);
+        if (selectedButton) selectedButton.classList.add('active');
+
+        if (tabName === 'expenses') loadExpenses();
+        if (tabName === 'budget') loadBudgets();
+        if (tabName === 'bills') loadBills();
+        if (tabName === 'goals') loadGoals();
+    }
+
+    function initFinanceMode() {
+        if (!document.getElementById('page-finance')) return;
+        switchFinanceTab('expenses');
+        loadExpenses();
+        loadBudgets();
+        loadBills();
+        loadGoals();
+    }
+
+    function formatCurrency(amount) {
+        return '₹' + Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    }
+
+    async function saveExpense() {
+        if (!currentUser) return showToast('Login required!', 'error');
+
+        const category = document.getElementById('expenseCategoryInput').value.trim();
+        const amount = parseFloat(document.getElementById('expenseAmountInput').value) || 0;
+        const dateValue = document.getElementById('expenseDateInput').value;
+        const notes = document.getElementById('expenseNotesInput').value.trim();
+
+        if (!category) return showToast('Select a category!', 'error');
+        if (amount <= 0) return showToast('Enter a valid amount!', 'error');
+        if (!dateValue) return showToast('Select a date!', 'error');
+
+        try {
+            const uid = currentUser.uid;
+            await db.collection('users').doc(uid).collection('expenses').add({
+                category,
+                amount,
+                date: new Date(dateValue),
+                notes,
+                createdAt: new Date()
+            });
+
+            showToast('Expense saved! 💸', 'success');
+            closeModal('addExpenseModal');
+            document.getElementById('expenseAmountInput').value = '';
+            document.getElementById('expenseDateInput').value = '';
+            document.getElementById('expenseNotesInput').value = '';
+            loadExpenses();
+            loadBudgets();
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadExpenses() {
+        if (!currentUser) return;
+
+        try {
+            const uid = currentUser.uid;
+            const snapshot = await db.collection('users').doc(uid).collection('expenses').orderBy('date', 'desc').get();
+            const expenses = [];
+            snapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
+
+            const list = document.getElementById('expensesList');
+            const noMsg = document.getElementById('noExpensesMsg');
+
+            if (expenses.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                document.getElementById('expenseTotalCard').innerHTML = 'Total this month<br><strong>₹0</strong>';
+                document.getElementById('expenseCountCard').innerHTML = 'Transactions<br><strong>0</strong>';
+                return;
+            }
+
+            noMsg.style.display = 'none';
+            const total = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+            document.getElementById('expenseTotalCard').innerHTML = `Total this month<br><strong>${formatCurrency(total)}</strong>`;
+            document.getElementById('expenseCountCard').innerHTML = `Transactions<br><strong>${expenses.length}</strong>`;
+
+            list.innerHTML = expenses.map(expense => {
+                const expenseDate = expense.date && expense.date.seconds ? new Date(expense.date.seconds * 1000) : new Date(expense.date);
+                return `
+                    <div class="finance-item-card">
+                        <div class="finance-item-title">${expense.category}</div>
+                        <div class="finance-item-detail">${expenseDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</div>
+                        <div class="finance-amount">${formatCurrency(expense.amount)}</div>
+                        ${expense.notes ? `<div class="finance-item-meta"><span class="finance-pill">${expense.notes}</span></div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            showToast('Error loading expenses: ' + e.message, 'error');
+        }
+    }
+
+    async function saveBudget() {
+        if (!currentUser) return showToast('Login required!', 'error');
+
+        const category = document.getElementById('budgetCategoryInput').value.trim();
+        const limit = parseFloat(document.getElementById('budgetLimitInput').value) || 0;
+        const notes = document.getElementById('budgetNotesInput').value.trim();
+
+        if (!category) return showToast('Select a category!', 'error');
+        if (limit <= 0) return showToast('Enter a valid monthly limit!', 'error');
+
+        try {
+            const uid = currentUser.uid;
+            await db.collection('users').doc(uid).collection('budgets').add({
+                category,
+                limit,
+                notes,
+                createdAt: new Date()
+            });
+
+            showToast('Budget saved! 📈', 'success');
+            closeModal('addBudgetModal');
+            document.getElementById('budgetLimitInput').value = '';
+            document.getElementById('budgetNotesInput').value = '';
+            loadBudgets();
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadBudgets() {
+        if (!currentUser) return;
+
+        try {
+            const uid = currentUser.uid;
+            const budgetsSnapshot = await db.collection('users').doc(uid).collection('budgets').get();
+            const expensesSnapshot = await db.collection('users').doc(uid).collection('expenses').get();
+            const budgets = [];
+            budgetsSnapshot.forEach(doc => budgets.push({ id: doc.id, ...doc.data() }));
+            const allExpenses = [];
+            expensesSnapshot.forEach(doc => allExpenses.push({ id: doc.id, ...doc.data() }));
+
+            const list = document.getElementById('budgetsList');
+            const summary = document.getElementById('budgetsSummary');
+            const noMsg = document.getElementById('noBudgetsMsg');
+
+            if (budgets.length === 0) {
+                list.innerHTML = '';
+                summary.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+
+            noMsg.style.display = 'none';
+            const now = new Date();
+            const monthKey = `${now.getFullYear()}-${now.getMonth()}`;
+
+            summary.innerHTML = budgets.map(budget => {
+                const spent = allExpenses
+                    .filter(exp => exp.category === budget.category)
+                    .filter(exp => {
+                        const expenseDate = exp.date && exp.date.seconds ? new Date(exp.date.seconds * 1000) : new Date(exp.date);
+                        return `${expenseDate.getFullYear()}-${expenseDate.getMonth()}` === monthKey;
+                    })
+                    .reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+                const percent = budget.limit > 0 ? Math.min(100, Math.round((spent / budget.limit) * 100)) : 0;
+                return `
+                    <div class="finance-summary-card">
+                        <div>${budget.category}</div>
+                        <strong>${formatCurrency(spent)}</strong>
+                        <div class="finance-item-detail">of ${formatCurrency(budget.limit)} used</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${percent}%;"></div></div>
+                        <div class="finance-item-detail">${percent}% used</div>
+                    </div>
+                `;
+            }).join('');
+
+            list.innerHTML = budgets.map(budget => {
+                return `
+                    <div class="budget-card">
+                        <div class="budget-title">${budget.category}</div>
+                        <div class="budget-detail">Limit: ${formatCurrency(budget.limit)}</div>
+                        ${budget.notes ? `<div class="budget-detail">${budget.notes}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            showToast('Error loading budgets: ' + e.message, 'error');
+        }
+    }
+
+    async function saveBill() {
+        if (!currentUser) return showToast('Login required!', 'error');
+
+        const title = document.getElementById('billTitleInput').value.trim();
+        const type = document.getElementById('billTypeInput').value.trim();
+        const amount = parseFloat(document.getElementById('billAmountInput').value) || 0;
+        const dueDate = document.getElementById('billDueDateInput').value;
+        const frequency = document.getElementById('billFrequencyInput').value;
+
+        if (!title) return showToast('Enter bill title!', 'error');
+        if (amount <= 0) return showToast('Enter a valid amount!', 'error');
+        if (!dueDate) return showToast('Select a due date!', 'error');
+
+        try {
+            const uid = currentUser.uid;
+            await db.collection('users').doc(uid).collection('bills').add({
+                title,
+                type,
+                amount,
+                dueDate: new Date(dueDate),
+                frequency,
+                createdAt: new Date()
+            });
+
+            showToast('Bill added! 🧾', 'success');
+            closeModal('addBillModal');
+            document.getElementById('billTitleInput').value = '';
+            document.getElementById('billAmountInput').value = '';
+            document.getElementById('billDueDateInput').value = '';
+            loadBills();
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadBills() {
+        if (!currentUser) return;
+
+        try {
+            const uid = currentUser.uid;
+            const snapshot = await db.collection('users').doc(uid).collection('bills').orderBy('dueDate').get();
+            const bills = [];
+            snapshot.forEach(doc => bills.push({ id: doc.id, ...doc.data() }));
+
+            const list = document.getElementById('billsList');
+            const noMsg = document.getElementById('noBillsMsg');
+
+            if (bills.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+
+            noMsg.style.display = 'none';
+            list.innerHTML = bills.map(bill => {
+                const dueDate = bill.dueDate && bill.dueDate.seconds ? new Date(bill.dueDate.seconds * 1000) : new Date(bill.dueDate);
+                return `
+                    <div class="bill-card">
+                        <div class="bill-title">${bill.title}</div>
+                        <div class="bill-detail">${bill.type} • ${formatCurrency(bill.amount)}</div>
+                        <div class="bill-detail">Due ${dueDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</div>
+                        <div class="finance-pill">${bill.frequency}</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            showToast('Error loading bills: ' + e.message, 'error');
+        }
+    }
+
+    async function saveGoal() {
+        if (!currentUser) return showToast('Login required!', 'error');
+
+        const title = document.getElementById('goalTitleInput').value.trim();
+        const target = parseFloat(document.getElementById('goalTargetInput').value) || 0;
+        const saved = parseFloat(document.getElementById('goalSavedInput').value) || 0;
+        const dueDate = document.getElementById('goalDueDateInput').value;
+        const notes = document.getElementById('goalNotesInput').value.trim();
+
+        if (!title) return showToast('Enter goal name!', 'error');
+        if (target <= 0) return showToast('Enter a valid target amount!', 'error');
+        if (saved < 0) return showToast('Enter saved amount!', 'error');
+        if (!dueDate) return showToast('Select target date!', 'error');
+
+        try {
+            const uid = currentUser.uid;
+            await db.collection('users').doc(uid).collection('goals').add({
+                title,
+                target,
+                saved,
+                targetDate: new Date(dueDate),
+                notes,
+                createdAt: new Date()
+            });
+
+            showToast('Goal saved! 🎯', 'success');
+            closeModal('addGoalModal');
+            document.getElementById('goalTitleInput').value = '';
+            document.getElementById('goalTargetInput').value = '';
+            document.getElementById('goalSavedInput').value = '';
+            document.getElementById('goalDueDateInput').value = '';
+            document.getElementById('goalNotesInput').value = '';
+            loadGoals();
+        } catch (e) {
+            showToast('Error: ' + e.message, 'error');
+        }
+    }
+
+    async function loadGoals() {
+        if (!currentUser) return;
+
+        try {
+            const uid = currentUser.uid;
+            const snapshot = await db.collection('users').doc(uid).collection('goals').orderBy('targetDate').get();
+            const goals = [];
+            snapshot.forEach(doc => goals.push({ id: doc.id, ...doc.data() }));
+
+            const list = document.getElementById('goalsList');
+            const noMsg = document.getElementById('noGoalsMsg');
+
+            if (goals.length === 0) {
+                list.innerHTML = '';
+                noMsg.style.display = 'block';
+                return;
+            }
+
+            noMsg.style.display = 'none';
+            list.innerHTML = goals.map(goal => {
+                const targetDate = goal.targetDate && goal.targetDate.seconds ? new Date(goal.targetDate.seconds * 1000) : new Date(goal.targetDate);
+                const progress = goal.target > 0 ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0;
+                return `
+                    <div class="goal-card">
+                        <div class="goal-title">${goal.title}</div>
+                        <div class="goal-detail">Saved ${formatCurrency(goal.saved)} of ${formatCurrency(goal.target)}</div>
+                        <div class="goal-detail">Target ${targetDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;"></div></div>
+                        <div class="finance-item-detail">${progress}% progress</div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            showToast('Error loading goals: ' + e.message, 'error');
         }
     }
 
