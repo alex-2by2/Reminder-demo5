@@ -5814,8 +5814,6 @@ function googleTranslateElementInit() {
     }
 
     async function saveSubject() {
-        if (!currentUser) return showToast('Login required!', 'error');
-        
         const name = document.getElementById('subjectNameInput').value.trim();
         const code = document.getElementById('subjectCodeInput').value.trim();
         const color = document.getElementById('selectedSubjectColor').value;
@@ -5824,10 +5822,8 @@ function googleTranslateElementInit() {
         if (!name) return showToast('Enter subject name!', 'error');
         
         try {
-            const uid = currentUser.uid;
-            const docRef = db.collection('users').doc(uid).collection('subjects').doc();
-            
-            await docRef.set({
+            const record = {
+                id: Date.now().toString(),
                 name,
                 code,
                 color,
@@ -5835,9 +5831,35 @@ function googleTranslateElementInit() {
                 currentMarks: 0,
                 totalMarks: 0,
                 grade: '',
-                createdAt: new Date(),
-                updatedAt: new Date()
-            });
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const docRef = db.collection('users').doc(uid).collection('subjects').doc();
+                    await docRef.set({
+                        name,
+                        code,
+                        color,
+                        targetGrade,
+                        currentMarks: 0,
+                        totalMarks: 0,
+                        grade: '',
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('student_subjects', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('student_subjects', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
             
             showToast('Subject added! 📚', 'success');
             closeModal('addSubjectModal');
@@ -5852,15 +5874,28 @@ function googleTranslateElementInit() {
     }
 
     async function loadSubjects() {
-        if (!currentUser) return;
-        
+        let subjects = [];
+
         try {
-            const uid = currentUser.uid;
-            const snapshot = await db.collection('users').doc(uid).collection('subjects').get();
-            const subjects = [];
-            snapshot.forEach(doc => {
-                subjects.push({ id: doc.id, ...doc.data() });
-            });
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const snapshot = await db.collection('users').doc(uid).collection('subjects').get();
+                    snapshot.forEach(doc => {
+                        subjects.push({ id: doc.id, ...doc.data() });
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        subjects = getLocalData('student_subjects');
+                        showToast('Unable to load online subjects. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                subjects = getLocalData('student_subjects');
+            }
+        } catch(e) {
+            showToast('Error loading subjects: ' + e.message, 'error');
+        }
             
             const list = document.getElementById('subjectsList');
             const noMsg = document.getElementById('noSubjectsMsg');
@@ -5982,8 +6017,6 @@ function googleTranslateElementInit() {
     }
 
     async function saveExam() {
-        if (!currentUser) return showToast('Login required!', 'error');
-        
         const subjectId = document.getElementById('examSubjectSelect').value;
         const examName = document.getElementById('examNameInput').value.trim();
         const examDate = document.getElementById('examDateInput').value;
@@ -5995,19 +6028,42 @@ function googleTranslateElementInit() {
         if (!examDate) return showToast('Select exam date!', 'error');
         
         try {
-            const uid = currentUser.uid;
-            const docRef = db.collection('users').doc(uid).collection('exams').doc();
-            
-            await docRef.set({
+            const record = {
+                id: Date.now().toString(),
                 subjectId,
                 examName,
-                examDate: new Date(examDate),
+                examDate: new Date(examDate).toISOString(),
                 totalMarks,
                 marksObtained: 0,
                 location,
                 status: 'scheduled',
-                createdAt: new Date()
-            });
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const docRef = db.collection('users').doc(uid).collection('exams').doc();
+                    await docRef.set({
+                        subjectId,
+                        examName,
+                        examDate: new Date(examDate),
+                        totalMarks,
+                        marksObtained: 0,
+                        location,
+                        status: 'scheduled',
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('student_exams', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('student_exams', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
             
             showToast('Exam scheduled! 📝', 'success');
             closeModal('addExamModal');
@@ -6022,38 +6078,47 @@ function googleTranslateElementInit() {
     }
 
     async function loadExams() {
-        if (!currentUser) return;
-        
+        let exams = [];
+        let subjectsMap = {};
+
         try {
-            const uid = currentUser.uid;
-            
-            // Get subjects map
-            const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
-            const subjectsMap = {};
-            subjectsSnapshot.forEach(doc => {
-                const data = doc.data();
-                subjectsMap[doc.id] = { name: data.name, color: data.color };
-            });
-            
-            // Get exams
-            const examsSnapshot = await db.collection('users').doc(uid).collection('exams').get();
-            const exams = [];
-            examsSnapshot.forEach(doc => {
-                exams.push({ id: doc.id, ...doc.data() });
-            });
-            
-            // Sort by exam date
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
+                    subjectsSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        subjectsMap[doc.id] = { name: data.name, color: data.color };
+                    });
+                    const examsSnapshot = await db.collection('users').doc(uid).collection('exams').get();
+                    examsSnapshot.forEach(doc => {
+                        exams.push({ id: doc.id, ...doc.data() });
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        exams = getLocalData('student_exams');
+                        const subjects = getLocalData('student_subjects');
+                        subjects.forEach(s => subjectsMap[s.id] = { name: s.name, color: s.color });
+                        showToast('Unable to load online exams. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                exams = getLocalData('student_exams');
+                const subjects = getLocalData('student_subjects');
+                subjects.forEach(s => subjectsMap[s.id] = { name: s.name, color: s.color });
+            }
+
             exams.sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
-            
+
             const list = document.getElementById('examsList');
             const noMsg = document.getElementById('noExamsMsg');
-            
+
             if (exams.length === 0) {
                 list.innerHTML = '';
                 noMsg.style.display = 'block';
                 return;
             }
-            
+
             noMsg.style.display = 'none';
             list.innerHTML = exams.map(exam => {
                 const subject = subjectsMap[exam.subjectId] || { name: 'Unknown', color: '#007AFF' };
@@ -6061,7 +6126,7 @@ function googleTranslateElementInit() {
                 const now = new Date();
                 const timeLeft = examDateTime - now;
                 const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
-                
+
                 let countdownText = '';
                 if (daysLeft < 0) {
                     countdownText = 'Exam completed';
@@ -6072,9 +6137,9 @@ function googleTranslateElementInit() {
                 } else {
                     countdownText = `${daysLeft} days left`;
                 }
-                
+
                 const dateStr = examDateTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                
+
                 return `
                     <div class="exam-card" style="border-left-color: ${subject.color};">
                         <div class="exam-card-header">
@@ -6218,8 +6283,6 @@ function googleTranslateElementInit() {
     }
 
     async function completeStudySession() {
-        if (!currentUser) return showToast('Login required!', 'error');
-        
         const subjectId = document.getElementById('studySessionSubjectSelect').value;
         const notes = document.getElementById('studyNotesInput').value.trim();
         const duration = currentStudyDuration - Math.ceil(studyTimeRemaining / 60);
@@ -6228,14 +6291,35 @@ function googleTranslateElementInit() {
         if (duration <= 0) return showToast('Start the timer first!', 'error');
         
         try {
-            const uid = currentUser.uid;
-            await db.collection('users').doc(uid).collection('studySessions').add({
+            const record = {
+                id: Date.now().toString(),
                 subjectId,
                 duration,
                 notes,
-                date: new Date(),
-                createdAt: new Date()
-            });
+                date: new Date().toISOString(),
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    await db.collection('users').doc(uid).collection('studySessions').add({
+                        subjectId,
+                        duration,
+                        notes,
+                        date: new Date(),
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('student_studySessions', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('student_studySessions', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
             
             showToast('Study session saved! 📚', 'success');
             closeModal('studyTimerModal');
@@ -6249,38 +6333,46 @@ function googleTranslateElementInit() {
     }
 
     async function loadStudySessions() {
-        if (!currentUser) return;
-        
+        let subjectsMap = {};
+        let sessions = [];
+
         try {
-            const uid = currentUser.uid;
-            
-            // Get subjects map
-            const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
-            const subjectsMap = {};
-            subjectsSnapshot.forEach(doc => {
-                const data = doc.data();
-                subjectsMap[doc.id] = { name: data.name, color: data.color };
-            });
-            
-            // Get study sessions
-            const sessionsSnapshot = await db.collection('users').doc(uid).collection('studySessions')
-                .orderBy('date', 'desc').limit(50).get();
-            const sessions = [];
-            sessionsSnapshot.forEach(doc => {
-                sessions.push({ id: doc.id, ...doc.data() });
-            });
-            
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const subjectsSnapshot = await db.collection('users').doc(uid).collection('subjects').get();
+                    subjectsSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        subjectsMap[doc.id] = { name: data.name, color: data.color };
+                    });
+                    const sessionsSnapshot = await db.collection('users').doc(uid).collection('studySessions')
+                        .orderBy('date', 'desc').limit(50).get();
+                    sessionsSnapshot.forEach(doc => sessions.push({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        sessions = getLocalData('student_studySessions');
+                        const subjects = getLocalData('student_subjects');
+                        subjects.forEach(s => subjectsMap[s.id] = { name: s.name, color: s.color });
+                        showToast('Unable to load online study sessions. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                sessions = getLocalData('student_studySessions');
+                const subjects = getLocalData('student_subjects');
+                subjects.forEach(s => subjectsMap[s.id] = { name: s.name, color: s.color });
+            }
+
             const list = document.getElementById('studySessionsList');
             const noMsg = document.getElementById('noStudySessionsMsg');
-            
+
             if (sessions.length === 0) {
                 list.innerHTML = '';
                 noMsg.style.display = 'block';
                 return;
             }
-            
+
             noMsg.style.display = 'none';
-            
+
             // Group by date
             const grouped = {};
             sessions.forEach(session => {
@@ -6288,10 +6380,8 @@ function googleTranslateElementInit() {
                 if (!grouped[dateKey]) grouped[dateKey] = [];
                 grouped[dateKey].push(session);
             });
-            
+
             list.innerHTML = Object.entries(grouped).map(([dateKey, daySessions]) => {
-                const totalDuration = daySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-                
                 return `
                     <div>
                         <h5 style="font-size:12px; color:#8e8e93; font-weight:700; margin:8px 0 6px;">📅 ${dateKey}</h5>
@@ -6383,6 +6473,28 @@ function googleTranslateElementInit() {
         }
     }
 
+    function getLocalData(key) {
+        try {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function setLocalData(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function saveLocalRecord(key, record) {
+        const list = getLocalData(key);
+        list.unshift(record);
+        setLocalData(key, list);
+    }
+
+    function isPermissionError(err) {
+        return err && (err.code === 'permission-denied' || err.message && err.message.toLowerCase().includes('permission'));
+    }
+
     function formatCurrency(amount) {
         return '₹' + Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     }
@@ -6400,14 +6512,34 @@ function googleTranslateElementInit() {
         if (!dateValue) return showToast('Select a date!', 'error');
 
         try {
-            const uid = currentUser.uid;
-            await db.collection('users').doc(uid).collection('expenses').add({
+            const record = {
+                id: Date.now().toString(),
                 category,
                 amount,
-                date: new Date(dateValue),
+                date: new Date(dateValue).toISOString(),
                 notes,
-                createdAt: new Date()
-            });
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('expenses').add({
+                        category,
+                        amount,
+                        date: new Date(dateValue),
+                        notes,
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('finance_expenses', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('finance_expenses', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
 
             showToast('Expense saved! 💸', 'success');
             closeModal('addExpenseModal');
@@ -6423,24 +6555,37 @@ function googleTranslateElementInit() {
     }
 
     async function loadExpenses() {
-        if (!currentUser) return;
+        let expenses = [];
 
         try {
-            const uid = currentUser.uid;
-            const snapshot = await db.collection('users').doc(uid).collection('expenses').orderBy('date', 'desc').get();
-            const expenses = [];
-            snapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
-
-            const list = document.getElementById('expensesList');
-            const noMsg = document.getElementById('noExpensesMsg');
-
-            if (expenses.length === 0) {
-                list.innerHTML = '';
-                noMsg.style.display = 'block';
-                document.getElementById('expenseTotalCard').innerHTML = 'Total this month<br><strong>₹0</strong>';
-                document.getElementById('expenseCountCard').innerHTML = 'Transactions<br><strong>0</strong>';
-                return;
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const snapshot = await db.collection('users').doc(uid).collection('expenses').orderBy('date', 'desc').get();
+                    snapshot.forEach(doc => expenses.push({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        expenses = getLocalData('finance_expenses');
+                        showToast('Unable to load online expenses. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                expenses = getLocalData('finance_expenses');
             }
+        } catch (e) {
+            showToast('Error loading expenses: ' + e.message, 'error');
+        }
+
+        const list = document.getElementById('expensesList');
+        const noMsg = document.getElementById('noExpensesMsg');
+
+        if (expenses.length === 0) {
+            list.innerHTML = '';
+            noMsg.style.display = 'block';
+            document.getElementById('expenseTotalCard').innerHTML = 'Total this month<br><strong>₹0</strong>';
+            document.getElementById('expenseCountCard').innerHTML = 'Transactions<br><strong>0</strong>';
+            return;
+        }
 
             noMsg.style.display = 'none';
             const total = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -6464,8 +6609,6 @@ function googleTranslateElementInit() {
     }
 
     async function saveBudget() {
-        if (!currentUser) return showToast('Login required!', 'error');
-
         const category = document.getElementById('budgetCategoryInput').value.trim();
         const limit = parseFloat(document.getElementById('budgetLimitInput').value) || 0;
         const notes = document.getElementById('budgetNotesInput').value.trim();
@@ -6474,13 +6617,32 @@ function googleTranslateElementInit() {
         if (limit <= 0) return showToast('Enter a valid monthly limit!', 'error');
 
         try {
-            const uid = currentUser.uid;
-            await db.collection('users').doc(uid).collection('budgets').add({
+            const record = {
+                id: Date.now().toString(),
                 category,
                 limit,
                 notes,
-                createdAt: new Date()
-            });
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('budgets').add({
+                        category,
+                        limit,
+                        notes,
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('finance_budgets', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('finance_budgets', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
 
             showToast('Budget saved! 📈', 'success');
             closeModal('addBudgetModal');
@@ -6494,16 +6656,28 @@ function googleTranslateElementInit() {
     }
 
     async function loadBudgets() {
-        if (!currentUser) return;
+        let budgets = [];
+        let allExpenses = [];
 
         try {
-            const uid = currentUser.uid;
-            const budgetsSnapshot = await db.collection('users').doc(uid).collection('budgets').get();
-            const expensesSnapshot = await db.collection('users').doc(uid).collection('expenses').get();
-            const budgets = [];
-            budgetsSnapshot.forEach(doc => budgets.push({ id: doc.id, ...doc.data() }));
-            const allExpenses = [];
-            expensesSnapshot.forEach(doc => allExpenses.push({ id: doc.id, ...doc.data() }));
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const budgetsSnapshot = await db.collection('users').doc(uid).collection('budgets').get();
+                    const expensesSnapshot = await db.collection('users').doc(uid).collection('expenses').get();
+                    budgetsSnapshot.forEach(doc => budgets.push({ id: doc.id, ...doc.data() }));
+                    expensesSnapshot.forEach(doc => allExpenses.push({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        budgets = getLocalData('finance_budgets');
+                        allExpenses = getLocalData('finance_expenses');
+                        showToast('Unable to load online budgets. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                budgets = getLocalData('finance_budgets');
+                allExpenses = getLocalData('finance_expenses');
+            }
 
             const list = document.getElementById('budgetsList');
             const summary = document.getElementById('budgetsSummary');
@@ -6555,8 +6729,6 @@ function googleTranslateElementInit() {
     }
 
     async function saveBill() {
-        if (!currentUser) return showToast('Login required!', 'error');
-
         const title = document.getElementById('billTitleInput').value.trim();
         const type = document.getElementById('billTypeInput').value.trim();
         const amount = parseFloat(document.getElementById('billAmountInput').value) || 0;
@@ -6568,15 +6740,36 @@ function googleTranslateElementInit() {
         if (!dueDate) return showToast('Select a due date!', 'error');
 
         try {
-            const uid = currentUser.uid;
-            await db.collection('users').doc(uid).collection('bills').add({
+            const record = {
+                id: Date.now().toString(),
                 title,
                 type,
                 amount,
-                dueDate: new Date(dueDate),
+                dueDate: new Date(dueDate).toISOString(),
                 frequency,
-                createdAt: new Date()
-            });
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('bills').add({
+                        title,
+                        type,
+                        amount,
+                        dueDate: new Date(dueDate),
+                        frequency,
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('finance_bills', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('finance_bills', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
 
             showToast('Bill added! 🧾', 'success');
             closeModal('addBillModal');
@@ -6591,13 +6784,23 @@ function googleTranslateElementInit() {
     }
 
     async function loadBills() {
-        if (!currentUser) return;
+        let bills = [];
 
         try {
-            const uid = currentUser.uid;
-            const snapshot = await db.collection('users').doc(uid).collection('bills').orderBy('dueDate').get();
-            const bills = [];
-            snapshot.forEach(doc => bills.push({ id: doc.id, ...doc.data() }));
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const snapshot = await db.collection('users').doc(uid).collection('bills').orderBy('dueDate').get();
+                    snapshot.forEach(doc => bills.push({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        bills = getLocalData('finance_bills');
+                        showToast('Unable to load online bills. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                bills = getLocalData('finance_bills');
+            }
 
             const list = document.getElementById('billsList');
             const noMsg = document.getElementById('noBillsMsg');
@@ -6626,8 +6829,6 @@ function googleTranslateElementInit() {
     }
 
     async function saveGoal() {
-        if (!currentUser) return showToast('Login required!', 'error');
-
         const title = document.getElementById('goalTitleInput').value.trim();
         const target = parseFloat(document.getElementById('goalTargetInput').value) || 0;
         const saved = parseFloat(document.getElementById('goalSavedInput').value) || 0;
@@ -6640,15 +6841,36 @@ function googleTranslateElementInit() {
         if (!dueDate) return showToast('Select target date!', 'error');
 
         try {
-            const uid = currentUser.uid;
-            await db.collection('users').doc(uid).collection('goals').add({
+            const record = {
+                id: Date.now().toString(),
                 title,
                 target,
                 saved,
-                targetDate: new Date(dueDate),
+                targetDate: new Date(dueDate).toISOString(),
                 notes,
-                createdAt: new Date()
-            });
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).collection('goals').add({
+                        title,
+                        target,
+                        saved,
+                        targetDate: new Date(dueDate),
+                        notes,
+                        createdAt: new Date()
+                    });
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        saveLocalRecord('finance_goals', record);
+                        showToast('Saved locally. Sign in / fix permissions to sync online.', 'info');
+                    } else throw e;
+                }
+            } else {
+                saveLocalRecord('finance_goals', record);
+                showToast('Saved locally. Sign in to sync online.', 'info');
+            }
 
             showToast('Goal saved! 🎯', 'success');
             closeModal('addGoalModal');
@@ -6665,13 +6887,23 @@ function googleTranslateElementInit() {
     }
 
     async function loadGoals() {
-        if (!currentUser) return;
+        let goals = [];
 
         try {
-            const uid = currentUser.uid;
-            const snapshot = await db.collection('users').doc(uid).collection('goals').orderBy('targetDate').get();
-            const goals = [];
-            snapshot.forEach(doc => goals.push({ id: doc.id, ...doc.data() }));
+            if (currentUser) {
+                try {
+                    const uid = currentUser.uid;
+                    const snapshot = await db.collection('users').doc(uid).collection('goals').orderBy('targetDate').get();
+                    snapshot.forEach(doc => goals.push({ id: doc.id, ...doc.data() }));
+                } catch (e) {
+                    if (isPermissionError(e)) {
+                        goals = getLocalData('finance_goals');
+                        showToast('Unable to load online goals. Using local data.', 'info');
+                    } else throw e;
+                }
+            } else {
+                goals = getLocalData('finance_goals');
+            }
 
             const list = document.getElementById('goalsList');
             const noMsg = document.getElementById('noGoalsMsg');
