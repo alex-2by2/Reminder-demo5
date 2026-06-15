@@ -12,10 +12,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.8/dist/es5/rrule.min.js"></script>
 
-      <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#007AFF">
+    <link rel="manifest" href="manifest.json">
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').catch(console.error);
+            navigator.serviceWorker.register('sw.js').catch(console.error);
         }
     </script>
 
@@ -1134,9 +1135,9 @@
                 </div>
             </div>
 
-            <div class="tools-panel" style="background:#f2f2f7; padding:8px; border-radius:16px; align-items:center; display:flex; gap:8px;">
-                <span style="font-size:14px; padding-left:8px;">⏱️</span>
-                <select id="sortInput" onchange="loadReminders()" style="margin:0; padding:8px; background:transparent; border:none; box-shadow:none; flex:1;">
+            <div class="tools-panel" style="background:#f2f2f7; padding:8px; border-radius:16px; align-items:center; display:flex; gap:8px; flex-wrap:wrap;">
+                <input id="searchInput" class="search-box" placeholder="Search reminders..." oninput="searchReminders()" style="flex:1; min-width:160px; margin-bottom:0;">
+                <select id="sortInput" onchange="loadReminders()" style="margin:0; padding:8px; background:transparent; border:none; box-shadow:none; min-width:145px;">
                     <option value="date">Sort by Time</option>
                     <option value="priority-high">High Priority</option>
                     <option value="priority-low">Low Priority</option>
