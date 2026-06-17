@@ -793,3 +793,419 @@
              <span class="icon">⚙️</span>Settings
         </div>
     </div>
+          
+
+    <!-- AI Chat Assistant FAB -->
+    <button class="ai-fab" onclick="openAIChat()" title="AI Assistant">🤖</button>
+
+    <div class="modal-overlay" id="matrixModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('matrixModal')">✖</span>
+            <h2 style="margin-top: 0; text-align: center; font-size:20px;">🔲 Eisenhower Matrix</h2>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px;">
+                <div style="background:#fff0f0; padding:12px; border-radius:14px;">
+                    <h4 style="margin:0 0 10px; font-size:12px; color:#ff3b30;">🔴 Do First</h4>
+                    <div id="q1Tasks"></div>
+                </div>
+                <div style="background:#fff8e5; padding:12px; border-radius:14px;">
+                    <h4 style="margin:0 0 10px; font-size:12px; color:#ff9500;">🟡 Schedule</h4>
+                    <div id="q2Tasks"></div>
+                </div>
+                <div style="background:#e5f9e9; padding:12px; border-radius:14px;">
+                    <h4 style="margin:0 0 10px; font-size:12px; color:#34c759;">🟢 Delegate</h4>
+                    <div id="q3Tasks"></div>
+                </div>
+                <div style="background:#e5f1ff; padding:12px; border-radius:14px;">
+                    <h4 style="margin:0 0 10px; font-size:12px; color:#007aff;">🔵 Eliminate</h4>
+                    <div id="q4Tasks"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="briefingModal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close-modal-btn" onclick="closeModal('briefingModal')">✖</span>
+            <h1 style="margin-top: 0; font-size: 50px; margin-bottom: 10px;">🌅</h1>
+            <h2 style="color: var(--primary); margin-top:0;">Good Morning!</h2>
+            <div style="background: #f2f2f7; padding: 20px; border-radius: 16px; margin: 20px 0; text-align: left;">
+                <h4 style="margin: 0 0 10px 0; font-size:15px;">🎯 Tasks Scheduled: <span id="briefingTaskCount" style="color: var(--primary);">0</span></h4>
+                <h4 style="margin: 0; font-size:15px;">🔥 Habits Pending: <span id="briefingHabitCount" style="color: #ff9500;">0</span></h4>
+            </div>
+            <button class="add-btn" onclick="closeModal('briefingModal')">Start My Day</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="proModal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close-modal-btn" onclick="closeModal('proModal')">✖</span>
+            <h1 style="margin-top: 0; font-size: 50px; margin-bottom: 10px;">👑</h1>
+            <h2 style="color: #ff9500; margin-top:0;">Master PRO</h2>
+            <ul style="text-align: left; font-size: 15px; line-height: 2; margin-bottom: 25px; padding-left: 20px; font-weight:600; color:#666;">
+                <li>✨ Exclusive Gold Theme</li>
+                <li>👑 PRO Badge on profile</li>
+                <li>🪄 Unlimited AI Assistant</li>
+                <li>☁️ Advanced Backup</li>
+            </ul>
+            <button class="add-btn" onclick="activatePro()" style="background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: white;">Upgrade for $4.99/mo</button>
+            <p style="font-size: 11px; color: #8e8e93; margin-top: 10px;">(This is a demo. Clicking upgrades for free!)</p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="analyticsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('analyticsModal')">✖</span>
+            <h2 style="margin-top: 0; margin-bottom: 15px; font-size:20px;">📊 Report</h2>
+            <div class="report-toggle">
+                <button id="reportBtn-week" class="active" onclick="setReportPeriod('week')">📅 Weekly</button>
+                <button id="reportBtn-month" onclick="setReportPeriod('month')">🗓️ Monthly</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="background:#f2f2f7; padding:15px; border-radius:14px; text-align:center;">
+                    <h5 style="margin:0 0 5px; color:#8e8e93; font-size:11px;">Total Tasks</h5>
+                    <h2 id="statTotalTasks" style="margin:0; font-size:22px;">0</h2>
+                </div>
+                <div style="background:#e5f9e9; padding:15px; border-radius:14px; text-align:center;">
+                    <h5 style="margin:0 0 5px; color:#34c759; font-size:11px;">Completed</h5>
+                    <h2 id="statCompletedTasks" style="margin:0; color:#34c759; font-size:22px;">0</h2>
+                </div>
+            </div>
+            <div style="background: #f2f2f7; padding: 15px; border-radius: 16px; margin-bottom: 20px;">
+                <canvas id="productivityChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Extended Report Stats -->
+            <div id="extendedReportStats" style="background:#f2f2f7; padding:15px; border-radius:16px; margin-bottom:20px;"></div>
+
+            <!-- Productivity Heatmap -->
+            <div style="background:#f2f2f7; padding:15px; border-radius:16px; margin-bottom:20px;">
+                <h5 style="margin:0 0 10px; font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">🔥 Productivity Heatmap (12 Weeks)</h5>
+                <div class="heatmap-wrap">
+                    <div class="heatmap-grid" id="productivityHeatmap"></div>
+                </div>
+                <div class="heatmap-legend">
+                    Less
+                    <span class="heatmap-cell" style="background:#ebedf0;"></span>
+                    <span class="heatmap-cell" style="background:#9be9a8;"></span>
+                    <span class="heatmap-cell" style="background:#40c463;"></span>
+                    <span class="heatmap-cell" style="background:#216e39;"></span>
+                    More
+                </div>
+            </div>
+
+            <!-- Goal Prediction -->
+            <div style="background:#f2f2f7; padding:15px; border-radius:16px; margin-bottom:20px;">
+                <h5 style="margin:0 0 10px; font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">🔮 Goal Prediction</h5>
+                <div id="goalPredictionContainer"></div>
+            </div>
+
+            <button onclick="generateAIReview()" class="add-btn" style="background:#5e5ce6; margin-bottom:15px; font-size:14px; padding:12px;">🪄 AI Performance Review</button>
+            <div id="aiReviewOutput" style="font-size:13px; font-weight:600; color:var(--primary); text-align:center;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="leaderboardModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('leaderboardModal')">✖</span>
+            <h2 style="margin-top: 0; margin-bottom: 15px; font-size:20px;">🏆 Leaderboard</h2>
+            <div id="leaderboardContainer" style="background: #f2f2f7; border-radius: 16px; padding: 15px; min-height: 100px;">
+                <p style="text-align:center; color:#8e8e93; font-size:13px;">Loading Top Users...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="fullCalendarModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('fullCalendarModal')">✖</span>
+            <h2 style="margin-top: 0; margin-bottom: 20px; text-align: center; font-size:20px;">🗓️ Calendar</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <button onclick="changeMonth(-1)" style="background:#f2f2f7; border:none; padding:8px 12px; border-radius:10px; font-weight:600; cursor:pointer;">Prev</button>
+                <h3 id="calMonthDisplay" style="margin:0; font-size:16px;">Month</h3>
+                <button onclick="changeMonth(1)" style="background:#f2f2f7; border:none; padding:8px 12px; border-radius:10px; font-weight:600; cursor:pointer;">Next</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align:center; font-weight: 700; color: #8e8e93; font-size:13px; margin-bottom:10px;">
+                <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;" id="fullCalendarGrid"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pomodoroModal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close-modal-btn" onclick="closeModal('pomodoroModal'); if(document.body.classList.contains('zen-mode')) toggleZenMode();">✖</span>
+            <h2 style="margin-top: 0; font-size:22px;">🍅 Focus Timer</h2>
+            <select id="pomoTaskSelect" style="margin-top: 15px; padding: 12px; border-radius:12px;">
+                <option value="">🎯 Select Task (Optional)</option>
+            </select>
+            <select id="pomoTimeSelect" style="margin-top: 10px; padding: 12px; border-radius:12px;" onchange="resetPomo()">
+                <option value="1500">⏳ 25 Min</option>
+                <option value="3000">⏳ 50 Min</option>
+                <option value="300">☕ 5 Min Break</option>
+            </select>
+            <div id="pomodoroDisplay" style="font-size: 60px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 25px 0; color:#ff3b30;">25:00</div>
+            <div style="display:flex; gap:10px;">
+                <button class="add-btn" style="flex:1; background:#34c759; margin:0;" onclick="startPomo()">Start</button>
+                <button class="add-btn" style="flex:1; background:#ff9500; margin:0;" onclick="pausePomo()">Pause</button>
+                <button class="add-btn" style="flex:1; background:#e5e5ea; color:#1c1c1e; margin:0; box-shadow:none;" onclick="resetPomo()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature 2: Projects Modal -->
+    <div class="modal-overlay" id="projectsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('projectsModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">📁 Projects / Folders</h2>
+            <div style="display:flex; gap:8px; margin-bottom:15px; align-items:center;">
+                <input type="text" id="newProjectName" placeholder="Project name..." style="flex:1; margin:0; padding:10px 14px;">
+                <input type="text" id="newProjectEmoji" placeholder="📁" style="width:50px; margin:0; padding:10px; text-align:center;">
+                <input type="color" id="newProjectColor" value="#007aff" style="width:42px; height:42px; border:none; border-radius:10px; padding:2px; cursor:pointer; margin:0;">
+                <button onclick="addProject()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; white-space:nowrap;">Add</button>
+            </div>
+            <div id="projectsListContainer">
+                <p style="text-align:center; color:#8e8e93; font-size:13px;">No projects yet</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature 5: Share Task Modal -->
+    <div class="modal-overlay" id="shareTaskModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('shareTaskModal')">✖</span>
+            <h3 id="shareTaskTitle" style="margin-top:0; font-size:18px;">📤 Share Task</h3>
+            <p style="color:#8e8e93; font-size:13px; margin-bottom:20px;">Enter the email of the family member or friend</p>
+            <input type="email" id="shareEmailInput" placeholder="friend@email.com" style="text-align:center;">
+            <button class="add-btn" onclick="shareTaskWithFamily()" style="background:#5e5ce6;">📤 Share Task</button>
+        </div>
+    </div>
+
+    <!-- Feature 5: Shared With Me Modal -->
+    <div class="modal-overlay" id="sharedWithMeModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('sharedWithMeModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">📥 Shared With Me</h2>
+            <div id="sharedTasksContainer">
+                <p style="text-align:center; color:#8e8e93; font-size:13px; padding:20px;">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Assistant Modal -->
+    <div class="modal-overlay" id="aiChatModal">
+        <div class="modal-content" style="display:flex; flex-direction:column; height:80vh; max-height:600px;">
+            <span class="close-modal-btn" onclick="closeModal('aiChatModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:10px; font-size:18px;">🤖 AI Assistant</h2>
+            <div id="aiChatMessages" style="flex:1; overflow-y:auto; padding:5px 2px; display:flex; flex-direction:column;">
+                <div class="chat-bubble ai">Hi! I can plan your day, fix overdue tasks, or answer questions about your reminders & habits. 🪄</div>
+            </div>
+            <div style="display:flex; gap:6px; margin:10px 0; overflow-x:auto; padding-bottom:2px;">
+                <button onclick="aiQuickAction('plan')" style="background:#e5f1ff; color:var(--primary); border:none; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">🪄 Plan My Day</button>
+                <button onclick="aiQuickAction('reschedule')" style="background:#fff8e8; color:#ff9500; border:none; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">🔄 Fix Overdue</button>
+                <button onclick="aiQuickAction('summary')" style="background:#e5f9e9; color:#34c759; border:none; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">📊 Summary</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="aiChatInput" placeholder="Ask anything about your tasks..." style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') sendAIChatMessage();">
+                <button onclick="sendAIChatMessage()" style="background:var(--primary); color:white; border:none; border-radius:12px; padding:0 18px; font-weight:700; cursor:pointer; font-size:16px;">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Family Calendar Modal -->
+    <div class="modal-overlay" id="familyModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('familyModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:5px; font-size:20px;">👨‍👩‍👧 Family Calendar</h2>
+            <p style="font-size:12px; color:#8e8e93; margin:0 0 15px;">Tasks shared between you & family members</p>
+            <div id="familyContainer">
+                <p style="text-align:center; color:#8e8e93; font-size:13px; padding:20px;">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Habit Detail Modal -->
+    <div class="modal-overlay" id="habitDetailModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('habitDetailModal')">✖</span>
+            <h2 id="habitDetailTitle" style="margin-top:0; margin-bottom:15px; font-size:20px;">📈 Habit</h2>
+
+            <div id="habitScoreCircle" class="habit-score-circle" style="background:#e5f1ff; color:var(--primary);">0</div>
+            <p style="text-align:center; font-size:11px; color:#8e8e93; margin:-8px 0 15px; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Habit Score</p>
+
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px;">
+                <div style="background:#f2f2f7; padding:10px; border-radius:12px; text-align:center;">
+                    <h5 style="margin:0 0 4px; font-size:10px; color:#8e8e93;">Streak</h5>
+                    <h3 id="habitDetailStreak" style="margin:0; font-size:18px;">0</h3>
+                </div>
+                <div style="background:#f2f2f7; padding:10px; border-radius:12px; text-align:center;">
+                    <h5 style="margin:0 0 4px; font-size:10px; color:#8e8e93;">Best</h5>
+                    <h3 id="habitDetailBest" style="margin:0; font-size:18px;">0</h3>
+                </div>
+                <div style="background:#f2f2f7; padding:10px; border-radius:12px; text-align:center;">
+                    <h5 style="margin:0 0 4px; font-size:10px; color:#8e8e93;">30d Rate</h5>
+                    <h3 id="habitDetailRate" style="margin:0; font-size:18px;">0%</h3>
+                </div>
+            </div>
+
+            <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 8px;">📅 This Month — Habit Calendar</h5>
+            <div class="cal-weekdays"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+            <div class="cal-grid" id="habitCalGrid" style="margin-bottom:20px;"></div>
+
+            <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 8px;">📊 Habit Graph — Last 8 Weeks</h5>
+            <div style="background:#f2f2f7; padding:12px; border-radius:14px; margin-bottom:20px;">
+                <canvas id="habitGraphChart" height="120"></canvas>
+            </div>
+
+            <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 8px;">⚠️ Missed Habit Analysis (30 days)</h5>
+            <div id="habitMissedAnalysis" style="background:#fff8e8; border-radius:14px; padding:12px; font-size:12px; line-height:1.6;"></div>
+        </div>
+    </div>
+
+    <!-- Kanban Board Modal -->
+    <div class="modal-overlay" id="kanbanModal">
+        <div class="modal-content" style="max-width:96%; width:96%;">
+            <span class="close-modal-btn" onclick="closeModal('kanbanModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">🗂️ Kanban Board</h2>
+            <p style="font-size:11px; color:#8e8e93; margin:-10px 0 12px;">Drag cards between columns ↔️</p>
+            <div class="kanban-board">
+                <div class="kanban-column">
+                    <div class="kanban-column-header"><span>📋 To Do</span><span id="kanbanCountTodo">0</span></div>
+                    <div id="kanbanColTodo" class="kanban-col-list" data-col="todo"></div>
+                </div>
+                <div class="kanban-column">
+                    <div class="kanban-column-header"><span>⚡ In Progress</span><span id="kanbanCountInprogress">0</span></div>
+                    <div id="kanbanColInprogress" class="kanban-col-list" data-col="inprogress"></div>
+                </div>
+                <div class="kanban-column">
+                    <div class="kanban-column-header"><span>✅ Done</span><span id="kanbanCountDone">0</span></div>
+                    <div id="kanbanColDone" class="kanban-col-list" data-col="done"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Detail Modal (Progress / Milestones / Timeline) -->
+    <div class="modal-overlay" id="projectDetailModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('projectDetailModal')">✖</span>
+            <h2 id="projectDetailTitle" style="margin-top:0; margin-bottom:10px; font-size:20px;">📁 Project</h2>
+            <div id="projectDetailProgress" style="margin-bottom:15px;"></div>
+
+            <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 4px;">📈 Timeline</h5>
+            <div class="timeline-wrap"><div class="timeline-track" id="projectTimeline"></div></div>
+
+            <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:15px 0 8px;">🏁 Milestones</h5>
+            <div style="display:flex; gap:8px; margin-bottom:12px;">
+                <input type="text" id="milestoneNameInput" placeholder="Milestone name" style="margin:0; flex:1.5;">
+                <input type="date" id="milestoneDateInput" style="margin:0; flex:1;">
+                <button onclick="addMilestone()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="milestonesContainer"></div>
+        </div>
+    </div>
+
+    <!-- Shared Workspace Modal -->
+    <div class="modal-overlay" id="workspaceModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('workspaceModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:5px; font-size:20px;">👥 Shared Workspace</h2>
+            <p style="font-size:12px; color:#8e8e93; margin:0 0 15px;">A shared task list for family or team — anyone with the code can add & check off items.</p>
+
+            <div id="workspaceSetup">
+                <label style="font-size:12px; font-weight:700; color:#8e8e93;">Create New</label>
+                <div style="display:flex; gap:8px; margin:8px 0 16px;">
+                    <input type="text" id="workspaceNameInput" placeholder="e.g. Home, Team Alpha" style="margin:0; flex:1;">
+                    <button onclick="createWorkspace()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Create</button>
+                </div>
+                <label style="font-size:12px; font-weight:700; color:#8e8e93;">Join Existing</label>
+                <div style="display:flex; gap:8px; margin:8px 0;">
+                    <input type="text" id="workspaceJoinCode" placeholder="Enter 6-letter code" style="margin:0; flex:1; text-transform:uppercase;">
+                    <button onclick="joinWorkspace()" style="background:#5e5ce6; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Join</button>
+                </div>
+            </div>
+
+            <div id="workspaceActive" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <h3 id="workspaceActiveName" style="margin:0; font-size:17px;"></h3>
+                        <p style="margin:2px 0 0; font-size:11px; color:#8e8e93;">Code: <b id="workspaceActiveCode"></b> · <span id="workspaceMemberCount"></span> members</p>
+                    </div>
+                    <button onclick="leaveWorkspace()" style="background:#ffe5e5; color:#ff3b30; border:none; border-radius:10px; padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer;">Leave</button>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <input type="text" id="workspaceTaskInput" placeholder="Add shared task..." style="margin:0; flex:1;" onkeypress="if(event.key==='Enter') addWorkspaceTask();">
+                    <button onclick="addWorkspaceTask()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
+                </div>
+                <div id="workspaceTasksContainer"></div>
+                <button onclick="syncWorkspace()" style="margin-top:10px; background:#f2f2f7; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; color:var(--primary); cursor:pointer;">🔄 Refresh</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shift Schedule Modal -->
+    <div class="modal-overlay" id="shiftModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('shiftModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:15px; font-size:20px;">🔄 Shift Schedule</h2>
+
+            <div class="cal-view-toggle">
+                <button class="cal-view-btn shift-view-btn active" id="shifttab-setup" onclick="setShiftTab('setup')">⚙️ Setup</button>
+                <button class="cal-view-btn shift-view-btn" id="shifttab-calendar" onclick="setShiftTab('calendar')">📅 Calendar</button>
+            </div>
+
+            <!-- SETUP TAB -->
+            <div id="shiftTabSetup">
+                <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 8px;">Shift Types</h5>
+                <div id="shiftTypesContainer" style="margin-bottom:10px;"></div>
+                <div style="display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
+                    <input type="text" id="newShiftName" placeholder="Name (e.g. Morning)" style="flex:2; min-width:110px; margin:0;">
+                    <input type="text" id="newShiftEmoji" placeholder="🌅" style="width:46px; margin:0; text-align:center;">
+                    <input type="color" id="newShiftColor" value="#ff9500" style="width:42px; height:38px; padding:2px; border:none; border-radius:8px; margin:0; cursor:pointer;">
+                </div>
+                <div style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="time" id="newShiftStart" style="flex:1; margin:0;">
+                    <input type="time" id="newShiftEnd" style="flex:1; margin:0;">
+                    <button onclick="addShiftType()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
+                </div>
+                <p style="font-size:11px; color:#8e8e93; margin:0 0 20px;">💡 "Off day" માટે time fields blank રાખો</p>
+
+                <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 6px;">Rotation Pattern</h5>
+                <p style="font-size:11px; color:#8e8e93; margin:0 0 8px;">Tap shift chips below to build your repeating cycle (e.g. Morning, Morning, Evening, Off)</p>
+                <div id="shiftPatternBuilder" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;"></div>
+                <div id="shiftPatternSequence" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; min-height:40px; background:#f2f2f7; border-radius:12px; padding:8px; margin-bottom:10px;"></div>
+
+                <label style="font-size:12px; font-weight:700; color:#8e8e93;">Cycle Day 1 starts on:</label>
+                <input type="date" id="shiftPatternStartDate" onchange="saveShiftPattern()" style="margin-bottom:15px;">
+
+                <div style="background:#f2f2f7; border-radius:14px; padding:5px 15px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; ${''}">
+                        <span style="font-size:14px; font-weight:600;">🔔 Auto Shift Reminders</span>
+                        <input type="checkbox" id="shiftReminderToggle" onchange="saveShiftReminderSettings()" style="width:20px; height:20px; margin:0;">
+                    </div>
+                    <div id="shiftReminderMinutesWrap" style="padding-bottom:12px; display:none;">
+                        <label style="font-size:12px; color:#8e8e93;">Remind me before shift starts:</label>
+                        <select id="shiftReminderMinutes" onchange="saveShiftReminderSettings()" style="margin-bottom:0;">
+                            <option value="30">30 min</option>
+                            <option value="60" selected>1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CALENDAR TAB -->
+            <div id="shiftTabCalendar" style="display:none;">
+                <div class="cal-header">
+                    <button class="cal-nav-btn" onclick="changeShiftCalMonth(-1)">◀</button>
+                    <h3 id="shiftCalMonthDisplay">Month Year</h3>
+                    <button class="cal-nav-btn" onclick="changeShiftCalMonth(1)">▶</button>
+                </div>
+                <div class="cal-weekdays">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+                <div class="cal-grid" id="shiftCalGrid"></div>
+                <div id="shiftCalLegend" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;"></div>
+                <p style="font-size:11px; color:#8e8e93; margin-top:10px; text-align:center;">Tap any day to override its shift 👆 (📌 = manually set)</p>
+            </div>
+        </div>
+    </div>
