@@ -1209,3 +1209,346 @@
             </div>
         </div>
     </div>
+
+    <!-- Shift Override Modal -->
+    <div class="modal-overlay" id="shiftOverrideModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('shiftOverrideModal')">✖</span>
+            <h3 id="shiftOverrideDateLabel" style="margin-top:0; margin-bottom:15px;">Set Shift</h3>
+            <div id="shiftOverrideOptions" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+    <!-- Medicine Scheduler Modal -->
+    <div class="modal-overlay" id="medicineModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('medicineModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">💊 Medicine Scheduler</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <input type="text" id="medNameInput" placeholder="Medicine name" style="flex:2; margin:0; min-width:120px;">
+                <input type="text" id="medDoseInput" placeholder="Dose (e.g. 1 tab)" style="flex:1; margin:0; min-width:80px;">
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:15px;">
+                <input type="time" id="medTimeInput" style="flex:1; margin:0;">
+                <select id="medFreqInput" style="flex:1; margin:0;">
+                    <option value="daily">Daily</option>
+                    <option value="morning">Morning Only</option>
+                    <option value="evening">Evening Only</option>
+                    <option value="sos">SOS (as needed)</option>
+                </select>
+                <button onclick="addMedicine()" style="background:#5e5ce6; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="medicineList"></div>
+        </div>
+    </div>
+
+    <!-- Vehicle Reminder Modal -->
+    <div class="modal-overlay" id="vehicleModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('vehicleModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🚗 Vehicle Reminder</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <input type="text" id="vehNameInput" placeholder="Vehicle (e.g. My Car)" style="flex:2; margin:0;">
+                <input type="text" id="vehReminderInput" placeholder="Reminder (e.g. PUC, Oil Change)" style="flex:2; margin:0;">
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="date" id="vehDueInput" style="flex:1; margin:0;">
+                <select id="vehTypeInput" style="flex:1; margin:0;">
+                    <option>🛢️ Oil Change</option><option>🔧 Service</option><option>📋 PUC</option>
+                    <option>📄 Insurance</option><option>🪪 RC Renewal</option><option>⛽ Fuel</option><option>📦 Other</option>
+                </select>
+                <button onclick="addVehicleReminder()" style="background:#ff9500; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="vehicleReminderList"></div>
+        </div>
+    </div>
+
+    <!-- Shopping Modal -->
+    <div class="modal-overlay" id="shoppingModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('shoppingModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🛒 Shopping List</h2>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="shopNameInput" placeholder="Select list name" style="flex:1; margin:0;">
+                <button onclick="addShopList()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">+ List</button>
+            </div>
+            <select id="shopListSelect" onchange="renderShoppingItems()" style="margin-bottom:10px;"></select>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="text" id="shopItemInput" placeholder="Add item..." style="flex:1; margin:0;" onkeypress="if(event.key==='Enter') addShopItem();">
+                <input type="number" id="shopQtyInput" placeholder="Qty" style="width:60px; margin:0;">
+                <button onclick="addShopItem()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="shoppingItems"></div>
+            <div id="shoppingTotal" style="text-align:right; font-weight:800; font-size:14px; margin-top:10px; color:var(--primary);"></div>
+        </div>
+    </div>
+
+    <!-- Travel Modal -->
+    <div class="modal-overlay" id="travelModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('travelModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">✈️ Travel Planner</h2>
+            <div class="cal-view-toggle">
+                <button class="cal-view-btn active" id="traveltab-trips" onclick="setTravelTab('trips')">🗺️ Trips</button>
+                <button class="cal-view-btn" id="traveltab-packing" onclick="setTravelTab('packing')">🧳 Packing</button>
+            </div>
+            <div id="travelTabTrips">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                    <input type="text" id="tripNameInput" placeholder="Trip name" style="flex:2; margin:0;">
+                    <input type="text" id="tripDestInput" placeholder="Destination" style="flex:2; margin:0;">
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:15px;">
+                    <input type="date" id="tripFromInput" style="flex:1; margin:0;">
+                    <input type="date" id="tripToInput" style="flex:1; margin:0;">
+                    <button onclick="addTrip()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+                </div>
+                <div id="tripsList"></div>
+            </div>
+            <div id="travelTabPacking" style="display:none;">
+                <div style="display:flex; gap:8px; margin-bottom:15px;">
+                    <input type="text" id="packItemInput" placeholder="Add packing item..." style="flex:1; margin:0;" onkeypress="if(event.key==='Enter') addPackingItem();">
+                    <select id="packCatInput" style="flex:1; margin:0;">
+                        <option>👕 Clothes</option><option>🪥 Toiletries</option><option>💊 Medicine</option>
+                        <option>📱 Electronics</option><option>📄 Documents</option><option>📦 Other</option>
+                    </select>
+                    <button onclick="addPackingItem()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+                </div>
+                <div id="packingList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Tracker Modal -->
+    <div class="modal-overlay" id="attendanceModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('attendanceModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">📋 Attendance Tracker</h2>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="text" id="attSubjectInput" placeholder="Subject / Course" style="flex:1; margin:0;">
+                <button onclick="addAttSubject()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="attSubjectList"></div>
+        </div>
+    </div>
+
+    <!-- Life Events Timeline Modal -->
+    <div class="modal-overlay" id="lifeEventsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('lifeEventsModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🌟 Life Events Timeline</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <input type="text" id="lifeEventNameInput" placeholder="Event (e.g. Graduation)" style="flex:2; margin:0;">
+                <input type="text" id="lifeEventEmojiInput" placeholder="🎓" style="width:48px; text-align:center; margin:0;">
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="date" id="lifeEventDateInput" style="flex:1; margin:0;">
+                <input type="color" id="lifeEventColorInput" value="#007aff" style="width:42px; height:42px; padding:2px; border:none; border-radius:8px; cursor:pointer; margin:0;">
+                <button onclick="addLifeEvent()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="lifeEventsContainer"></div>
+        </div>
+    </div>
+
+    <!-- Subscription Tracker Modal -->
+    <div class="modal-overlay" id="subModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('subModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🔄 Subscriptions</h2>
+            <div id="subSummary" style="background:#f2f2f7; border-radius:14px; padding:12px; margin-bottom:12px; text-align:center;"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <input type="text" id="subNameInput" placeholder="Netflix, Spotify..." style="flex:2; margin:0; min-width:120px;">
+                <input type="number" id="subAmtInput" placeholder="₹/month" style="flex:1; margin:0; min-width:70px;">
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="date" id="subRenewInput" style="flex:1; margin:0;">
+                <select id="subFreqInput" style="flex:1; margin:0;">
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+                <button onclick="addSubscription()" style="background:#af52de; color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="subList"></div>
+        </div>
+    </div>
+
+    <!-- Secret Space Modal -->
+    <div class="modal-overlay" id="secretModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('secretModal')">✖</span>
+            <div id="secretLockScreen">
+                <h2 style="margin-top:0; font-size:22px; text-align:center;">🔐 Secret Space</h2>
+                <p style="font-size:13px; color:#8e8e93; text-align:center; margin-bottom:20px;">Enter your secret PIN</p>
+                <input type="password" id="secretPinInput" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" style="text-align:center; font-size:24px; letter-spacing:8px; margin-bottom:10px;" onkeypress="if(event.key==='Enter') unlockSecret();">
+                <button onclick="unlockSecret()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer;">Unlock 🔓</button>
+                <button onclick="setupSecretPin()" style="background:#f2f2f7; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; cursor:pointer; margin-top:8px; color:#8e8e93;">Set/Change PIN</button>
+            </div>
+            <div id="secretUnlocked" style="display:none;">
+                <h2 style="margin-top:0; font-size:20px;">🔐 Secret Space</h2>
+                <textarea id="secretNoteInput" placeholder="Your private notes here... 🤫" style="width:100%; min-height:150px; border:1px solid #e5e5ea; border-radius:12px; padding:12px; font-size:13px; resize:vertical; font-family:inherit; margin-bottom:10px;"></textarea>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="saveSecretNote()" style="flex:1; background:var(--primary); color:white; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer;">Save 🔒</button>
+                    <button onclick="lockSecret()" style="flex:1; background:#f2f2f7; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer; color:#8e8e93;">Lock</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Modal -->
+    <div class="modal-overlay" id="weatherModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('weatherModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🌤️ Weather</h2>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="text" id="weatherCityInput" placeholder="City name (e.g. Surat)" style="flex:1; margin:0;">
+                <button onclick="fetchWeather()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Get</button>
+            </div>
+            <p style="font-size:11px; color:#8e8e93; margin:-8px 0 15px;">Free API: openweathermap.org → get key → Settings → add below</p>
+            <input type="text" id="weatherApiKeyInput" placeholder="OpenWeatherMap API Key" style="margin-bottom:10px;">
+            <button onclick="saveWeatherKey()" style="background:#f2f2f7; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; cursor:pointer; color:#8e8e93; margin-bottom:15px;">Save API Key</button>
+            <div id="weatherResult"></div>
+        </div>
+    </div>
+
+    <!-- Birthday Tracker Modal -->
+    <div class="modal-overlay" id="birthdayModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('birthdayModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">🎂 Birthday Tracker</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <input type="text" id="bdayNameInput" placeholder="Name" style="flex:2;margin:0;min-width:120px;">
+                <input type="date" id="bdayDateInput" style="flex:1;margin:0;">
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:15px;">
+                <select id="bdayRelInput" style="flex:1;margin:0;">
+                    <option>👨‍👩‍👧 Family</option><option>👫 Friend</option><option>💼 Colleague</option><option>💕 Partner</option><option>📦 Other</option>
+                </select>
+                <input type="text" id="bdayEmojiInput" placeholder="🎂" style="width:50px;text-align:center;margin:0;">
+                <button onclick="addBirthday()" style="background:#ff2d55;color:white;border:none;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;">Add</button>
+            </div>
+            <div id="birthdayList"></div>
+        </div>
+    </div>
+
+    <!-- Home Management Modal -->
+    <div class="modal-overlay" id="homeManagementModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('homeManagementModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">🏠 Home Management</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <input type="text" id="choreNameInput" placeholder="Task (e.g. Vacuum living room)" style="flex:2;margin:0;min-width:130px;">
+                <select id="choreFreqInput" style="flex:1;margin:0;">
+                    <option value="daily">Daily</option><option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option><option value="once">One-time</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:15px;">
+                <select id="choreAreaInput" style="flex:1;margin:0;">
+                    <option>🛋️ Living Room</option><option>🍳 Kitchen</option><option>🛏️ Bedroom</option>
+                    <option>🚿 Bathroom</option><option>🌿 Garden</option><option>🏠 General</option>
+                </select>
+                <button onclick="addChore()" style="background:#34c759;color:white;border:none;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;">Add</button>
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:12px;">
+                <button onclick="filterChores('all')" class="fin-tab-btn active" id="choreTab-all">All</button>
+                <button onclick="filterChores('daily')" class="fin-tab-btn" id="choreTab-daily">Daily</button>
+                <button onclick="filterChores('weekly')" class="fin-tab-btn" id="choreTab-weekly">Weekly</button>
+                <button onclick="filterChores('monthly')" class="fin-tab-btn" id="choreTab-monthly">Monthly</button>
+            </div>
+            <div id="choreList"></div>
+        </div>
+    </div>
+
+    <!-- Quick Notes Modal -->
+    <div class="modal-overlay" id="quickNotesModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('quickNotesModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">📝 Quick Notes</h2>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="text" id="quickNoteInput" placeholder="Type a note..." style="flex:1;margin:0;" onkeypress="if(event.key==='Enter') addQuickNote();">
+                <select id="quickNoteColor" style="width:80px;margin:0;">
+                    <option value="#fffde7">🟡 Yellow</option><option value="#e8f5e9">🟢 Green</option>
+                    <option value="#e3f2fd">🔵 Blue</option><option value="#fce4ec">🔴 Pink</option>
+                    <option value="#f3e5f5">🟣 Purple</option>
+                </select>
+                <button onclick="addQuickNote()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;">Add</button>
+            </div>
+            <input type="text" id="noteSearchInput" placeholder="🔍 Search notes..." oninput="renderQuickNotes()" style="margin-bottom:12px;">
+            <div id="quickNotesList"></div>
+        </div>
+    </div>
+
+    <!-- Pomodoro History Modal -->
+    <div class="modal-overlay" id="pomoHistoryModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('pomoHistoryModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">🍅 Focus History</h2>
+            <div id="pomoHistSummary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px;"></div>
+            <div id="pomoHistList"></div>
+        </div>
+    </div>
+
+    <!-- QR Share Modal -->
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('qrModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">📱 QR Share</h2>
+            <p style="font-size:13px;color:#8e8e93;margin-bottom:10px;">Share a task or note via QR Code</p>
+            <select id="qrTaskSelect" onchange="generateQR()" style="margin-bottom:10px;"></select>
+            <div id="qrCodeDisplay" style="display:flex;justify-content:center;padding:20px 0;"></div>
+            <p id="qrTaskText" style="font-size:12px;color:#8e8e93;margin:0;"></p>
+            <button onclick="downloadQR()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer;margin-top:12px;">⬇️ Download QR</button>
+        </div>
+    </div>
+
+    <!-- Finance Charts Modal -->
+    <div class="modal-overlay" id="financeChartsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('financeChartsModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">📊 Finance Charts</h2>
+            <div class="fin-chart-wrap">
+                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Expenses by Category</h5>
+                <canvas id="expensePieChart" height="220"></canvas>
+            </div>
+            <div class="fin-chart-wrap">
+                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Monthly Income vs Expense (6 months)</h5>
+                <canvas id="incomeExpenseChart" height="160"></canvas>
+            </div>
+            <div id="finInsightsAI" style="background:#f2f2f7;border-radius:14px;padding:14px;margin-top:5px;font-size:13px;line-height:1.6;"></div>
+        </div>
+    </div>
+
+    <!-- AI Coach Modal -->
+    <div class="modal-overlay" id="aiCoachModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('aiCoachModal')">✖</span>
+            <h2 style="margin-top:0;font-size:20px;">🧠 AI Productivity Coach</h2>
+            <div id="aiCoachCard" class="ai-coach-card">
+                <p style="margin:0;font-size:13px;color:#8e8e93;">Loading your personal coaching report...</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <button onclick="getAICoachReport('productivity')" style="flex:1;background:#e5f1ff;color:var(--primary);border:none;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:12px;">📊 Productivity</button>
+                <button onclick="getAICoachReport('habits')" style="flex:1;background:#e5f9e9;color:#34c759;border:none;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:12px;">🔥 Habits</button>
+                <button onclick="getAICoachReport('finance')" style="flex:1;background:#fff8e8;color:#ff9500;border:none;border-radius:10px;padding:10px;font-weight:700;cursor:pointer;font-size:12px;">💰 Finance</button>
+            </div>
+            <div id="aiCoachDetail" style="background:#f2f2f7;border-radius:14px;padding:14px;font-size:13px;line-height:1.6;min-height:80px;"></div>
+        </div>
+    </div>
+
+    <!-- PWA Install Banner (injected by JS) -->
+    <div id="pwaBanner" class="pwa-banner" style="display:none;">
+        <div><b style="font-size:14px;">📱 Install App</b><br><span style="font-size:11px;opacity:0.85;">Add to home screen for best experience</span></div>
+        <div class="pwa-banner-btns">
+            <button onclick="installPWA()" style="background:white;color:var(--primary);border:none;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:13px;">Install</button>
+            <button onclick="document.getElementById('pwaBanner').style.display='none'" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;">✖</button>
+        </div>
+    </div>
+
+    <!-- Voice Command Overlay -->
+    <div id="voiceOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;flex-direction:column;align-items:center;justify-content:center;color:white;text-align:center;">
+        <div style="font-size:60px;margin-bottom:15px;" class="voice-recording">🎤</div>
+        <h2 style="margin:0 0 10px;">Listening...</h2>
+        <p id="voiceTranscript" style="font-size:14px;color:rgba(255,255,255,0.8);max-width:300px;min-height:40px;"></p>
+        <button onclick="stopVoiceCommand()" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:12px;padding:12px 24px;font-weight:700;cursor:pointer;margin-top:15px;">Cancel</button>
+    </div>
+
+</div><!-- end #mainApp -->
