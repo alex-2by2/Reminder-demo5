@@ -4468,6 +4468,3 @@ function googleTranslateElementInit() {
     });
 
 </script>
-
-</body>
-</html>
