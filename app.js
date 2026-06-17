@@ -5,8 +5,6 @@ function googleTranslateElementInit() {
 }
 </script>
 <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-<script>
     // --- FIREBASE INITIALIZATION & OFFLINE PERSISTENCE ---
     const firebaseConfig = {
       apiKey: "AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY",
@@ -4467,4 +4465,4 @@ function googleTranslateElementInit() {
         applyWidgetPrefs();
     });
 
-</script>
+
