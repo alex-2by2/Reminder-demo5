@@ -327,7 +327,7 @@
         if(localStorage.getItem('lastBriefingDate') !== today) {
             const reminders = safeStorage("reminders", []); 
             const habits = safeStorage("habits", []);
-            let todayPendingTasks = reminders.filter(r => r.status !== 'completed' && r.time.split('T')[0] === today).length;
+            let todayPendingTasks = reminders.filter(r => r.status !== 'completed' && r.time && r.time.split('T')[0] === today).length;
             let pendingHabits = habits.filter(h => h.lastCheckIn !== today).length;
             document.getElementById("briefingTaskCount").innerText = todayPendingTasks; 
             document.getElementById("briefingHabitCount").innerText = pendingHabits;
@@ -1513,18 +1513,20 @@
         const reminders = safeStorage("reminders", []);
         const habits = safeStorage("habits", []); 
         const todayStr = getTodayStr(); 
-        const tomorrow = new Date(); 
-        tomorrow.setHours(0,0,0,0); 
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const tomorrow = new Date(today); 
         tomorrow.setDate(tomorrow.getDate() + 1);
         
         let todayPendingTasks = 0; 
         let todayCompletedTasks = 0;
+        const completedReminders = reminders.filter(r => r.status === 'completed').length;
         
         reminders.forEach(r => { 
-            const rDate = new Date(r.time);
-            if (r.status !== "completed") { 
-                if (rDate < tomorrow) todayPendingTasks++; 
-            } else { 
+            if (r.status !== "completed" && r.time) {
+                const rDate = new Date(r.time);
+                if (rDate >= today && rDate < tomorrow) todayPendingTasks++; 
+            } else if (r.status === "completed" && r.time) { 
                 if(r.time.split('T')[0] === todayStr) todayCompletedTasks++; 
             }
         });
@@ -1954,10 +1956,10 @@
                 const now = new Date();
 
                 reminders = reminders.filter(r => {
-                    if (!r.time) return currentTab === 'all';
-                    const rDate = new Date(r.time);
                     if (currentTab === 'done') return r.status === 'completed'; 
-                    if (currentTab === 'all') return true; 
+                    if (currentTab === 'all') return true;
+                    if (!r.time) return false;
+                    const rDate = new Date(r.time);
                     if (r.status === 'completed') return false;
                     // Today: tasks due today (from midnight to midnight)
                     if (currentTab === 'today') return rDate >= today && rDate < tomorrow;
