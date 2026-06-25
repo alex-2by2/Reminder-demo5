@@ -135,3 +135,11 @@ self.addEventListener('message', event => {
     // placeholder hook for future background logic
   }
 });
+
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+    allClients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+  })());
+});

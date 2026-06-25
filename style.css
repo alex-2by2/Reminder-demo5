@@ -1197,3 +1197,25 @@
         body.dark-mode .shift-override-btn { background:#3a3a3c; color:#fff; }
         .clear-filter-btn { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); transition: 0.2s; }
         .clear-filter-btn:active { transform: scale(0.95); }
+
+/* ===== Phase 5 UI fallback ===== */
+.project-empty-state,
+.habit-empty-state {
+    text-align: center;
+    color: #8e8e93;
+    font-size: 13px;
+    padding: 14px;
+}
+
+
+/* ===== Phase 6 UI fallback ===== */
+.finance-summary-card .value,
+.widget-card .value {
+    word-break: break-word;
+}
+.shared-task-empty {
+    text-align: center;
+    color: #8e8e93;
+    padding: 12px;
+    font-size: 13px;
+}

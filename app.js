@@ -1,3 +1,11 @@
+
+// ===== PHASE MODULE INDEX =====
+// Phase 1-4: Reminder core + sync + fallback repair
+// Phase 5: Projects + Mood + Habits
+// Phase 6: Family + Finance + Widgets
+// Phase 7: Startup + duplicate cleanup
+// Phase 8: AppState + debounced mutation/render safety layer
+
 // Master Reminder App JS
 
 // --- FIREBASE INITIALIZATION & OFFLINE PERSISTENCE ---
@@ -7329,3 +7337,677 @@ function toggleOfflineBanner(show) {
 }
 window.addEventListener('online', () => toggleOfflineBanner(false));
 window.addEventListener('offline', () => toggleOfflineBanner(true));
+
+
+// ============================================================
+// PHASE 3 REMINDER WORKFLOW PATCHES
+// ============================================================
+function getReminderFormValues() {
+    const taskEl = document.getElementById("taskInput");
+    const timeEl = document.getElementById("taskTime");
+    const notesEl = document.getElementById("taskNotes");
+    const priorityEl = document.getElementById("taskPriority");
+    const repeatEl = document.getElementById("taskRepeat");
+    const preAlarmEl = document.getElementById("taskPreAlarm");
+
+    return {
+        task: taskEl ? taskEl.value.trim() : "",
+        time: timeEl ? timeEl.value : "",
+        notes: notesEl ? notesEl.value.trim() : "",
+        priority: priorityEl ? priorityEl.value : "medium",
+        repeat: repeatEl ? repeatEl.value : "none",
+        preAlarm: preAlarmEl ? Number(preAlarmEl.value || 0) : 0
+    };
+}
+
+function resetReminderForm() {
+    const ids = ["taskInput","taskTime","taskNotes"];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+    const taskPriority = document.getElementById("taskPriority");
+    const taskRepeat = document.getElementById("taskRepeat");
+    const taskPreAlarm = document.getElementById("taskPreAlarm");
+    if (taskPriority) taskPriority.value = "medium";
+    if (taskRepeat) taskRepeat.value = "none";
+    if (taskPreAlarm) taskPreAlarm.value = "0";
+}
+
+function patchReminderActions() {
+    if (window.__phase3ReminderPatched) return;
+    window.__phase3ReminderPatched = true;
+
+    const originalAdd = typeof window.addReminder === "function" ? window.addReminder : null;
+    if (originalAdd) {
+        window.addReminder = function(...args) {
+            try {
+                const data = getReminderFormValues();
+                const draft = normalizeReminder(data);
+                if (!validateReminderInput(draft)) return;
+                return originalAdd.apply(this, args);
+            } catch (e) {
+                console.error("addReminder patch failed", e);
+                showToast("Could not add task", "error");
+            }
+        };
+    }
+
+    const originalLoad = typeof window.loadReminders === "function" ? window.loadReminders : null;
+    if (originalLoad) {
+        window.loadReminders = function(...args) {
+            try {
+                const reminders = getReminderArray().map(normalizeReminder).filter(Boolean);
+                saveReminderArray(reminders, false);
+                const result = originalLoad.apply(this, args);
+                setTimeout(() => {
+                    try { if (typeof updateNextTaskWidget === 'function') updateNextTaskWidget(); } catch(e){}
+                }, 50);
+                return result;
+            } catch (e) {
+                console.error("loadReminders patch failed", e);
+                const list = document.getElementById("remindersList");
+                if (list) list.innerHTML = '<p style="text-align:center;color:#ff3b30;">Reminder list crashed. Data was auto-cleaned.</p>';
+            }
+        };
+    }
+
+    const originalDelete = typeof window.deleteReminder === "function" ? window.deleteReminder : null;
+    if (originalDelete) {
+        window.deleteReminder = function(id, ...args) {
+            const ok = confirm("Delete this reminder?");
+            if (!ok) return;
+            return originalDelete.call(this, id, ...args);
+        };
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.__phase3StartupOnce) return;
+    window.__phase3StartupOnce = true;
+    setTimeout(patchReminderActions, 500);
+});
+
+
+function refreshReminderUI() {
+    try {
+        if (typeof loadReminders === 'function') loadReminders();
+        if (typeof renderProjectFilter === 'function') renderProjectFilter();
+        if (typeof renderProjectDropdown === 'function') renderProjectDropdown();
+        if (typeof updateNextTaskWidget === 'function') updateNextTaskWidget();
+    } catch (e) {
+        console.error('refreshReminderUI failed', e);
+    }
+}
+
+
+// ============================================================
+// PHASE 4 CORE CLEANUP PATCHES
+// ============================================================
+(function(){
+    if (window.__phase4CoreCleanupApplied) return;
+    window.__phase4CoreCleanupApplied = true;
+
+    function getReminderById(reminders, id) {
+        return reminders.find(r => String(r.id) === String(id));
+    }
+
+    // Central safe save wrapper for reminder mutations
+    window.safeMutateReminders = function(mutator, opts = {}) {
+        try {
+            const reminders = getReminderArray().map(normalizeReminder).filter(Boolean);
+            const result = mutator(reminders) || reminders;
+            saveReminderArray(result, opts.sync !== false);
+            if (typeof refreshReminderUI === 'function') refreshReminderUI();
+            if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+            return true;
+        } catch (e) {
+            console.error('safeMutateReminders failed', e);
+            if (typeof showToast === 'function') showToast('Task update failed', 'error');
+            return false;
+        }
+    };
+
+    // Patch completeReminder if it exists
+    if (typeof window.completeReminder === 'function' && !window.__phase4CompletePatched) {
+        const originalCompleteReminder = window.completeReminder;
+        window.completeReminder = function(id, ...args) {
+            try {
+                return originalCompleteReminder.call(this, id, ...args);
+            } catch (e) {
+                console.error('completeReminder crashed, fallback path used', e);
+                return safeMutateReminders((reminders) => {
+                    const r = getReminderById(reminders, id);
+                    if (!r) return reminders;
+                    r.status = 'completed';
+                    r.updatedAt = Date.now();
+                    return reminders;
+                });
+            }
+        };
+        window.__phase4CompletePatched = true;
+    }
+
+    // Patch archiveReminder if it exists
+    if (typeof window.archiveReminder === 'function' && !window.__phase4ArchivePatched) {
+        const originalArchiveReminder = window.archiveReminder;
+        window.archiveReminder = function(id, ...args) {
+            try {
+                return originalArchiveReminder.call(this, id, ...args);
+            } catch (e) {
+                console.error('archiveReminder crashed, fallback path used', e);
+                return safeMutateReminders((reminders) => {
+                    const r = getReminderById(reminders, id);
+                    if (!r) return reminders;
+                    r.archived = true;
+                    r.updatedAt = Date.now();
+                    return reminders;
+                });
+            }
+        };
+        window.__phase4ArchivePatched = true;
+    }
+
+    // Patch deleteReminder again with storage fallback
+    if (typeof window.deleteReminder === 'function' && !window.__phase4DeletePatched) {
+        const originalDeleteReminder = window.deleteReminder;
+        window.deleteReminder = function(id, ...args) {
+            try {
+                return originalDeleteReminder.call(this, id, ...args);
+            } catch (e) {
+                console.error('deleteReminder crashed, fallback path used', e);
+                return safeMutateReminders((reminders) => reminders.filter(r => String(r.id) !== String(id)));
+            }
+        };
+        window.__phase4DeletePatched = true;
+    }
+
+    // Add explicit edit/save helpers if app calls them
+    if (typeof window.saveEditedReminder !== 'function') {
+        window.saveEditedReminder = function(id, patch) {
+            return safeMutateReminders((reminders) => {
+                const r = getReminderById(reminders, id);
+                if (!r) return reminders;
+                Object.assign(r, patch || {}, { updatedAt: Date.now() });
+                return reminders;
+            });
+        };
+    }
+
+    // Guard sync status element updates globally
+    const syncStatusEl = document.getElementById('syncStatusText');
+    if (!syncStatusEl) {
+        console.warn('syncStatusText element not found; sync UI updates will be silent.');
+    }
+})();
+
+
+// ============================================================
+// PHASE 5 PROJECTS + HABITS + MOOD CLEANUP
+// ============================================================
+
+// ---------- PROJECTS ----------
+function getProjectsSafe() {
+    const projects = safeStorage('projects', []);
+    return Array.isArray(projects) ? projects : [];
+}
+
+function saveProjectsSafe(projects, doSync = true) {
+    localStorage.setItem('projects', JSON.stringify(Array.isArray(projects) ? projects : []));
+    if (doSync && typeof syncToCloud === 'function') syncToCloud();
+}
+
+if (typeof window.addProject === 'function' && !window.__phase5AddProjectPatched) {
+    const originalAddProject = window.addProject;
+    window.addProject = function(...args) {
+        try {
+            const nameEl = document.getElementById('newProjectName');
+            const emojiEl = document.getElementById('newProjectEmoji');
+            const colorEl = document.getElementById('newProjectColor');
+
+            const name = nameEl ? nameEl.value.trim() : '';
+            const emoji = emojiEl ? emojiEl.value.trim() : '📁';
+            const color = colorEl ? colorEl.value : '#007aff';
+
+            if (!name) {
+                showToast('Project name required', 'error');
+                return;
+            }
+            const before = getProjectsSafe().length;
+            const result = originalAddProject.apply(this, args);
+            setTimeout(() => {
+                const after = getProjectsSafe().length;
+                if (after === before) {
+                    const projects = getProjectsSafe();
+                    projects.unshift({
+                        id: Date.now(),
+                        name,
+                        emoji: emoji || '📁',
+                        color: color || '#007aff',
+                        createdAt: Date.now()
+                    });
+                    saveProjectsSafe(projects, true);
+                    if (typeof renderProjectsList === 'function') renderProjectsList();
+                    if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+                    if (typeof renderProjectDropdown === 'function') renderProjectDropdown();
+                    if (typeof renderProjectFilter === 'function') renderProjectFilter();
+                    if (nameEl) nameEl.value = '';
+                    if (emojiEl) emojiEl.value = '';
+                    showToast('Project added', 'success');
+                }
+            }, 120);
+            return result;
+        } catch (e) {
+            console.error('addProject patch failed', e);
+            showToast('Could not add project', 'error');
+        }
+    };
+    window.__phase5AddProjectPatched = true;
+}
+
+if (typeof window.deleteProject === 'function' && !window.__phase5DeleteProjectPatched) {
+    const originalDeleteProject = window.deleteProject;
+    window.deleteProject = function(id, ...args) {
+        if (!confirm('Delete this project?')) return;
+        try {
+            return originalDeleteProject.call(this, id, ...args);
+        } catch (e) {
+            console.error('deleteProject fallback', e);
+            const projects = getProjectsSafe().filter(p => String(p.id) !== String(id));
+            saveProjectsSafe(projects, true);
+            if (typeof renderProjectsList === 'function') renderProjectsList();
+                    if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+            if (typeof renderProjectDropdown === 'function') renderProjectDropdown();
+            if (typeof renderProjectFilter === 'function') renderProjectFilter();
+        }
+    };
+    window.__phase5DeleteProjectPatched = true;
+}
+
+// ---------- MOOD ----------
+function getMoodLogSafe() {
+    const moodLog = safeStorage('moodLog', {});
+    return moodLog && typeof moodLog === 'object' ? moodLog : {};
+}
+
+if (typeof window.logMood === 'function' && !window.__phase5MoodPatched) {
+    const originalLogMood = window.logMood;
+    window.logMood = function(moodIndex, ...args) {
+        try {
+            if (typeof moodIndex !== 'number' || moodIndex < 0 || moodIndex > 4) {
+                showToast('Invalid mood', 'error');
+                return;
+            }
+            return originalLogMood.call(this, moodIndex, ...args);
+        } catch (e) {
+            console.error('logMood fallback', e);
+            const todayStr = typeof getTodayStr === 'function'
+                ? getTodayStr()
+                : new Date().toISOString().split('T')[0];
+            const moodLog = getMoodLogSafe();
+            moodLog[todayStr] = moodIndex;
+            localStorage.setItem('moodLog', JSON.stringify(moodLog));
+            if (typeof renderMoodTracker === 'function') renderMoodTracker();
+            if (typeof syncToCloud === 'function') syncToCloud();
+        }
+    };
+    window.__phase5MoodPatched = true;
+}
+
+// ---------- HABITS ----------
+function getHabitsSafe() {
+    const habits = safeStorage('habits', []);
+    return Array.isArray(habits) ? habits : [];
+}
+
+function saveHabitsSafe(habits, doSync = true) {
+    localStorage.setItem('habits', JSON.stringify(Array.isArray(habits) ? habits : []));
+    if (doSync && typeof syncToCloud === 'function') syncToCloud();
+}
+
+window.toggleHabitCompleteSafe = function(id) {
+    const habits = getHabitsSafe();
+    const habit = habits.find(h => String(h.id) === String(id));
+    if (!habit) return false;
+
+    const today = typeof getTodayStr === 'function'
+        ? getTodayStr()
+        : new Date().toISOString().split('T')[0];
+
+    if (!Array.isArray(habit.history)) habit.history = [];
+
+    const idx = habit.history.indexOf(today);
+    if (idx >= 0) {
+        habit.history.splice(idx, 1);
+    } else {
+        habit.history.push(today);
+    }
+
+    // recalc streak
+    const historySet = new Set(habit.history);
+    let streak = 0;
+    const d = new Date();
+    while (true) {
+        const ds = typeof formatDateLocal === 'function'
+            ? formatDateLocal(d)
+            : d.toISOString().split('T')[0];
+        if (historySet.has(ds)) {
+            streak++;
+            d.setDate(d.getDate() - 1);
+        } else {
+            break;
+        }
+    }
+    habit.streak = streak;
+    habit.maxStreak = Math.max(Number(habit.maxStreak || 0), streak);
+    habit.updatedAt = Date.now();
+
+    saveHabitsSafe(habits, true);
+    if (typeof renderHabits === 'function') renderHabits();
+    if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+    return true;
+};
+
+if (typeof window.openHabitDetail === 'function' && !window.__phase5HabitDetailPatched) {
+    const originalOpenHabitDetail = window.openHabitDetail;
+    window.openHabitDetail = function(id, ...args) {
+        try {
+            return originalOpenHabitDetail.call(this, id, ...args);
+        } catch (e) {
+            console.error('openHabitDetail fallback', e);
+            showToast('Could not open habit details', 'error');
+        }
+    };
+    window.__phase5HabitDetailPatched = true;
+}
+
+// ---------- REFRESH HOOK ----------
+window.refreshPhase5Modules = function() {
+    try { if (typeof renderProjectsList === 'function') renderProjectsList();
+                    if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation(); } catch(e){}
+    try { if (typeof renderProjectDropdown === 'function') renderProjectDropdown(); } catch(e){}
+    try { if (typeof renderProjectFilter === 'function') renderProjectFilter(); } catch(e){}
+    try { if (typeof renderMoodTracker === 'function') renderMoodTracker(); } catch(e){}
+    try { if (typeof renderHabits === 'function') renderHabits();
+    if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation(); } catch(e){}
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.__phase5StartupOnce) return;
+    window.__phase5StartupOnce = true;
+    setTimeout(() => {
+        try { refreshPhase5Modules(); } catch(e){}
+    }, 800);
+});
+
+
+// ============================================================
+// PHASE 6 FAMILY + FINANCE + WIDGETS CLEANUP
+// ============================================================
+
+// ---------- FAMILY / SHARED TASKS ----------
+function getSharedTasksSafe() {
+    const shared = safeStorage('sharedTasks', []);
+    return Array.isArray(shared) ? shared : [];
+}
+
+function saveSharedTasksSafe(tasks, doSync = true) {
+    localStorage.setItem('sharedTasks', JSON.stringify(Array.isArray(tasks) ? tasks : []));
+    if (doSync && typeof syncToCloud === 'function') syncToCloud();
+}
+
+window.addSharedTaskLocalFallback = function(task) {
+    const tasks = getSharedTasksSafe();
+    tasks.unshift({
+        id: task?.id || Date.now(),
+        title: task?.title || task?.task || 'Shared Task',
+        from: task?.from || 'Unknown',
+        status: task?.status || 'pending',
+        createdAt: task?.createdAt || Date.now()
+    });
+    saveSharedTasksSafe(tasks, true);
+    if (typeof renderSharedTasks === 'function') renderSharedTasks();
+};
+
+if (typeof window.shareTaskWithFamily === 'function' && !window.__phase6SharePatched) {
+    const originalShareTask = window.shareTaskWithFamily;
+    window.shareTaskWithFamily = async function(...args) {
+        try {
+            return await originalShareTask.apply(this, args);
+        } catch (e) {
+            console.error('shareTaskWithFamily fallback', e);
+            showToast('Share failed, saved locally only', 'warning');
+            addSharedTaskLocalFallback({ title: 'Pending shared task', from: 'You' });
+        }
+    };
+    window.__phase6SharePatched = true;
+}
+
+// ---------- FINANCE ----------
+function getFinanceEntriesSafe() {
+    const entries = safeStorage('financeEntries', []);
+    return Array.isArray(entries) ? entries : [];
+}
+
+function saveFinanceEntriesSafe(entries, doSync = true) {
+    localStorage.setItem('financeEntries', JSON.stringify(Array.isArray(entries) ? entries : []));
+    if (doSync && typeof syncToCloud === 'function') syncToCloud();
+}
+
+window.calculateFinanceSummarySafe = function() {
+    const entries = getFinanceEntriesSafe();
+    let income = 0, expense = 0;
+    entries.forEach(e => {
+        const amt = Number(e.amount || 0);
+        if (String(e.type).toLowerCase() === 'income') income += amt;
+        else expense += amt;
+    });
+    return {
+        income,
+        expense,
+        balance: income - expense
+    };
+};
+
+window.renderFinanceSummarySafe = function() {
+    const summary = calculateFinanceSummarySafe();
+    const incomeEl = document.getElementById('financeIncome');
+    const expenseEl = document.getElementById('financeExpense');
+    const balanceEl = document.getElementById('financeBalance');
+
+    if (incomeEl) incomeEl.innerText = '₹' + summary.income.toFixed(2);
+    if (expenseEl) expenseEl.innerText = '₹' + summary.expense.toFixed(2);
+    if (balanceEl) balanceEl.innerText = '₹' + summary.balance.toFixed(2);
+};
+
+if (typeof window.addFinanceEntry === 'function' && !window.__phase6FinancePatched) {
+    const originalAddFinanceEntry = window.addFinanceEntry;
+    window.addFinanceEntry = function(...args) {
+        try {
+            const result = originalAddFinanceEntry.apply(this, args);
+            setTimeout(() => {
+                try { renderFinanceSummarySafe(); } catch(e){}
+            }, 100);
+            return result;
+        } catch (e) {
+            console.error('addFinanceEntry fallback', e);
+            showToast('Finance entry failed', 'error');
+        }
+    };
+    window.__phase6FinancePatched = true;
+}
+
+// ---------- SHIFT / SLEEP / HOME WIDGETS ----------
+window.refreshWidgetCardsSafe = function() {
+    try {
+        if (typeof updateShiftWidget === 'function') updateShiftWidget();
+    } catch(e) { console.error('updateShiftWidget failed', e); }
+
+    try {
+        if (typeof renderSleepTracker === 'function') renderSleepTracker();
+    } catch(e) { console.error('renderSleepTracker failed', e); }
+
+    try {
+        if (typeof renderHomeManagement === 'function') renderHomeManagement();
+    } catch(e) { console.error('renderHomeManagement failed', e); }
+};
+
+// ---------- REFRESH PHASE 6 ----------
+window.refreshPhase6Modules = function() {
+    try { if (typeof renderSharedTasks === 'function') renderSharedTasks(); } catch(e){}
+    try { renderFinanceSummarySafe(); } catch(e){}
+    try { refreshWidgetCardsSafe(); } catch(e){}
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.__phase6StartupOnce) return;
+    window.__phase6StartupOnce = true;
+    setTimeout(() => {
+        try { refreshPhase6Modules(); } catch(e){}
+    }, 1000);
+});
+
+
+// ============================================================
+// PHASE 7 STARTUP + DUPLICATE CLEANUP
+// ============================================================
+
+(function(){
+    if (window.__phase7StartupCleanupApplied) return;
+    window.__phase7StartupCleanupApplied = true;
+
+    // ---- Unified startup scheduler ----
+    window.runSafeStartupTask = function(name, fn, delay = 0) {
+        setTimeout(() => {
+            try {
+                if (typeof fn === 'function') fn();
+            } catch (e) {
+                console.error('[Startup task failed]', name, e);
+            }
+        }, delay);
+    };
+
+    window.runPhaseStartup = function() {
+        runSafeStartupTask('phase5-modules', () => {
+            if (typeof refreshPhase5Modules === 'function') refreshPhase5Modules();
+        }, 150);
+
+        runSafeStartupTask('phase6-modules', () => {
+            if (typeof refreshPhase6Modules === 'function') refreshPhase6Modules();
+        }, 250);
+
+        runSafeStartupTask('reminder-ui', () => {
+            if (typeof refreshReminderUI === 'function') refreshReminderUI();
+            if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+        }, 350);
+
+        runSafeStartupTask('next-task-widget', () => {
+            if (typeof updateNextTaskWidget === 'function') updateNextTaskWidget();
+        }, 450);
+    };
+
+    // ---- Duplicate wrapper guard registry ----
+    window.__patchedFunctionRegistry = window.__patchedFunctionRegistry || {};
+    window.markFunctionPatched = function(key) {
+        if (window.__patchedFunctionRegistry[key]) return false;
+        window.__patchedFunctionRegistry[key] = true;
+        return true;
+    };
+
+    // ---- Safe one-time startup binding ----
+    if (!window.__phase7StartupBound) {
+        window.__phase7StartupBound = true;
+        document.addEventListener('DOMContentLoaded', () => {
+            runPhaseStartup();
+        });
+    }
+})();
+
+
+window.safePatchFunction = function(fnName, wrapperKey, patcher) {
+    try {
+        if (!markFunctionPatched(wrapperKey)) return false;
+        const original = window[fnName];
+        if (typeof original !== 'function') return false;
+        window[fnName] = patcher(original);
+        return true;
+    } catch (e) {
+        console.error('safePatchFunction failed for', fnName, e);
+        return false;
+    }
+};
+
+
+// ============================================================
+// PHASE 8 CODE RESTRUCTURE / DEAD-CODE SAFETY LAYER
+// ============================================================
+
+(function(){
+    if (window.__phase8RestructureApplied) return;
+    window.__phase8RestructureApplied = true;
+
+    // Central lightweight app state bucket for patched modules
+    window.AppState = window.AppState || {
+        reminderRefreshPending: false,
+        phaseStartupDone: false,
+        lastSyncAt: null,
+        patchedModules: {}
+    };
+
+    window.markModulePatched = function(moduleName) {
+        if (window.AppState.patchedModules[moduleName]) return false;
+        window.AppState.patchedModules[moduleName] = true;
+        return true;
+    };
+
+    // Safer debounce helper for UI refreshes
+    window.debounceTask = function(key, fn, wait = 150) {
+        window.__debounceMap = window.__debounceMap || {};
+        clearTimeout(window.__debounceMap[key]);
+        window.__debounceMap[key] = setTimeout(() => {
+            try { if (typeof fn === 'function') fn(); } catch(e){ console.error('debounceTask failed', key, e); }
+        }, wait);
+    };
+
+    // Unified "after mutation" refresh hook
+    window.afterAnyDataMutation = function() {
+        debounceTask('reminder-ui', () => {
+            if (typeof refreshReminderUI === 'function') refreshReminderUI();
+            if (typeof afterAnyDataMutation === 'function') afterAnyDataMutation();
+        }, 120);
+
+        debounceTask('phase5-ui', () => {
+            if (typeof refreshPhase5Modules === 'function') refreshPhase5Modules();
+        }, 160);
+
+        debounceTask('phase6-ui', () => {
+            if (typeof refreshPhase6Modules === 'function') refreshPhase6Modules();
+        }, 220);
+    };
+
+    // Safe sync wrapper to avoid noisy repeated syncs
+    if (typeof window.syncToCloud === 'function' && markModulePatched('syncToCloudWrapper')) {
+        const originalSyncToCloud = window.syncToCloud;
+        window.syncToCloud = function(...args) {
+            const now = Date.now();
+            if (window.AppState.lastSyncAt && now - window.AppState.lastSyncAt < 1200) {
+                return;
+            }
+            window.AppState.lastSyncAt = now;
+            try {
+                return originalSyncToCloud.apply(this, args);
+            } catch (e) {
+                console.error('syncToCloud wrapper failed', e);
+            }
+        };
+    }
+
+    // Generic safe render invoker for noisy sections
+    window.safeRenderSection = function(name, fn) {
+        try {
+            if (typeof fn === 'function') fn();
+        } catch (e) {
+            console.error('[Render section failed]', name, e);
+        }
+    };
+})();
