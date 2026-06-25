@@ -945,33 +945,6 @@
     }
 
     // --- AI Features (Gemini Integration) ---
-    async function aiGenerateSubtasks() {
-        const apiKey = document.getElementById("aiApiKeyInput").value.trim() || localStorage.getItem("geminiKey"); 
-        const taskName = document.getElementById("taskInput").value.trim();
-        if(!taskName) return showToast("Enter Task Title first!", "error"); 
-        if(!apiKey) { 
-            switchPage('settings'); 
-            return showToast("Paste Free API Key!", "error"); 
-        }
-        showToast("🪄 AI is planning...", "info");
-        try {
-            const prompt = `Break down the goal "${taskName}" into 3 to 4 short steps. Output ONLY a valid JSON array of strings. Example: ["Step 1", "Step 2"]`;
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
-            });
-            const data = await response.json(); 
-            if(data.error) throw new Error(data.error.message);
-            let text = data.candidates[0].content.parts[0].text; 
-            text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-            JSON.parse(text).forEach(sub => addSubtaskField(sub, false)); 
-            showToast("🪄 Auto-Plan Complete!", "success");
-        } catch(e) { 
-            showToast("AI Error.", "error"); 
-        }
-    }
-    
     async function aiSuggestTime() {
         const apiKey = document.getElementById("aiApiKeyInput").value.trim() || localStorage.getItem("geminiKey"); 
         const taskName = document.getElementById("taskInput").value.trim();
@@ -1437,21 +1410,6 @@
     }
 
     // --- Custom Templates ---
-    function saveCustomTemplate() {
-        const t = document.getElementById("taskInput").value.trim();
-        if(!t) return showToast("Enter title first!", "error");
-        let temps = safeStorage("customTemplates", []);
-        temps.push({ 
-            title: t, 
-            notes: document.getElementById("notesInput").innerText, 
-            rep: document.getElementById("repeatInput").value, 
-            pri: document.getElementById("priorityInput").value 
-        }); 
-        localStorage.setItem("customTemplates", JSON.stringify(temps)); 
-        renderCustomTemplates(); 
-        syncToCloud(); 
-        showToast("Saved!", "success");
-    }
     function renderCustomTemplates() {
         const group = document.getElementById("customSavedTemplatesGroup");
         if(!group) return;
@@ -2367,26 +2325,6 @@
         const data = encodeURIComponent(btoa(JSON.stringify({ t: "Master App", n: "Sync life." })));
         const url = window.location.origin + window.location.pathname + "?share=" + data; 
         navigator.clipboard.writeText(url).then(() => showToast("Link Copied!", "success"));
-    }
-
-    function exportToCSV() {
-        const reminders = safeStorage("reminders", []); 
-        if(reminders.length === 0) return showToast("No data", "error");
-        
-        let csvContent = "data:text/csv;charset=utf-8,Title,Notes,Date & Time,Priority,Status,Category,Repeat\n";
-        reminders.forEach(r => { 
-            const title = `"${(r.task || "").replace(/"/g, '""')}"`; 
-            const notes = `"${((r.notes||"").replace(/(<([^>]+)>)/gi, "")).replace(/\"/g, '""')}"`; 
-            csvContent += `${title},${notes},${r.time},${r.priority || "medium"},${r.status},${r.category ? r.category.name : "Task"},${r.repeat || "none"}\n`; 
-        });
-        
-        const link = document.createElement("a"); 
-        link.setAttribute("href", encodeURI(csvContent)); 
-        link.setAttribute("download", "My_Tasks.csv"); 
-        document.body.appendChild(link); 
-        link.click(); 
-        link.remove(); 
-        showToast("Exported!", "success");
     }
 
     function importDataFile(event) {
