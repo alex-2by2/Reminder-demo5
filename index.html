@@ -1,0 +1,4536 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Basic -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Security -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <meta http-equiv="Content-Security-Policy"
+        content="
+        default-src 'self' https: data: blob:;
+        script-src 'self' 'unsafe-inline'
+            https://www.gstatic.com
+            https://cdn.jsdelivr.net
+            https://cdnjs.cloudflare.com
+            https://translate.google.com
+            https://translate.googleapis.com;
+        style-src 'self' 'unsafe-inline'
+            https://fonts.googleapis.com;
+        font-src https://fonts.gstatic.com;
+        img-src 'self' data: https:;
+        connect-src 'self' https:;
+        frame-src
+            https://translate.google.com
+            https://translate.googleapis.com;
+    ">
+
+    <!-- App -->
+    <title>Master Reminder App</title>
+
+    <meta name="theme-color" content="#007AFF">
+
+    <!-- SEO -->
+    <meta name="description" content="Master Reminder App — All-in-one productivity PWA with habits, finance, calendar, notes, journal, kanban and more.">
+    <meta name="keywords" content="reminder, habits, finance, kanban, journal, productivity, PWA">
+    <meta name="author" content="Master App">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Master Reminder App">
+    <meta property="og:description" content="All-in-one productivity PWA — habits, finance, calendar, notes, kanban and more.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="icon-512.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Master Reminder App">
+    <meta name="twitter:description" content="All-in-one productivity PWA.">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="merged_style.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+    <!-- Libraries (pinned versions for reproducible builds) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.8/dist/es5/rrule.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+
+            window.addEventListener('load', () => {
+
+                navigator.serviceWorker.register('sw.js')
+                    .then((registration) => {
+
+                        // Check updates every 30 minutes
+                        setInterval(() => {
+                            registration.update();
+                        }, 30 * 60 * 1000);
+
+                        // Background Sync
+                        if ('sync' in registration) {
+                            window.requestBackgroundSync = (tag) => {
+                                registration.sync.register(tag).catch(() => {});
+                            };
+                        }
+
+                        // Periodic Sync
+                        if ('periodicSync' in registration) {
+                            registration.periodicSync.register(
+                                'check-reminders',
+                                {
+                                    minInterval: 15 * 60 * 1000
+                                }
+                            ).catch(() => {});
+                        }
+
+                    })
+                    .catch(console.error);
+
+            });
+
+            navigator.serviceWorker.addEventListener('message', (event) => {
+
+                const data = event.data;
+
+                if (!data) return;
+
+                switch (data.type) {
+
+                    case 'SYNC_NOW':
+
+                        if (typeof syncToCloud === 'function') {
+                            syncToCloud();
+                        }
+
+                        if (typeof showToast === 'function') {
+                            showToast('Data synced!', 'success');
+                        }
+
+                        break;
+
+                    case 'SW_UPDATED':
+
+                        if (confirm('New app update available.\nReload now?')) {
+                            location.reload();
+                        }
+
+                        break;
+                }
+            });
+        }
+    </script>
+
+</head>
+<body>
+  <!-- Splash Screen -->
+<div id="splashScreen" class="screen splash-screen">
+    <h1 class="app-logo">⏰ Master App</h1>
+    <div class="loader"></div>
+</div>
+
+<!-- PIN Screen -->
+<div id="pinScreen" class="screen pin-screen hidden">
+    <h2>🔒 Enter PIN</h2>
+
+    <div class="pin-dots">
+        <div class="pin-dot" id="dot1"></div>
+        <div class="pin-dot" id="dot2"></div>
+        <div class="pin-dot" id="dot3"></div>
+        <div class="pin-dot" id="dot4"></div>
+    </div>
+
+    <div class="numpad" id="pinPad">
+        <button class="num-btn" onclick="enterPin(1)">1</button>
+        <button class="num-btn" onclick="enterPin(2)">2</button>
+        <button class="num-btn" onclick="enterPin(3)">3</button>
+        <button class="num-btn" onclick="enterPin(4)">4</button>
+        <button class="num-btn" onclick="enterPin(5)">5</button>
+        <button class="num-btn" onclick="enterPin(6)">6</button>
+        <button class="num-btn" onclick="enterPin(7)">7</button>
+        <button class="num-btn" onclick="enterPin(8)">8</button>
+        <button class="num-btn" onclick="enterPin(9)">9</button>
+        <button class="num-btn" onclick="clearPin()">C</button>
+        <button class="num-btn" onclick="enterPin(0)">0</button>
+        <button class="num-btn" onclick="deletePin()">⌫</button>
+    </div>
+</div>
+
+<!-- Auth Screen -->
+<div id="authScreen" style="display:none; position:fixed; inset:0; z-index:99990; background:linear-gradient(135deg,#eef2f5,#e8f0f8); flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+    <div style="background:#ffffff; border-radius:24px; padding:32px 24px; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.1); box-sizing:border-box;">
+        <div style="text-align:center; margin-bottom:24px;">
+            <div style="font-size:48px; margin-bottom:8px;">⏰</div>
+            <h2 style="margin:0 0 4px; font-size:24px; color:#1c1c1e;">Master App</h2>
+            <p style="margin:0; font-size:13px; color:#8e8e93;">All-in-one productivity planner</p>
+        </div>
+
+        <button onclick="loginWithGoogle()" style="width:100%; padding:14px; border:1.5px solid #e5e5ea; border-radius:14px; background:#ffffff; display:flex; align-items:center; justify-content:center; gap:10px; font-size:15px; font-weight:600; cursor:pointer; margin-bottom:18px; color:#1c1c1e; box-shadow:0 2px 8px rgba(0,0,0,0.04); box-sizing:border-box;">
+            <span style="font-size:18px;">🔵</span> Continue with Google
+        </button>
+
+        <div style="text-align:center; color:#c7c7cc; font-size:12px; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+            <hr style="flex:1; border:none; border-top:1px solid #e5e5ea;">
+            or use email
+            <hr style="flex:1; border:none; border-top:1px solid #e5e5ea;">
+        </div>
+
+        <input type="email" id="emailInput" placeholder="📧 Email address" style="width:100%; padding:14px 16px; border-radius:14px; border:none; background:#f2f2f7; font-size:15px; margin-bottom:10px; box-sizing:border-box; color:#1c1c1e; outline:none; font-family:inherit;">
+        <input type="password" id="passwordInput" placeholder="🔒 Password (min 6 chars)" style="width:100%; padding:14px 16px; border-radius:14px; border:none; background:#f2f2f7; font-size:15px; margin-bottom:16px; box-sizing:border-box; color:#1c1c1e; outline:none; font-family:inherit;">
+
+        <button onclick="loginUser()" style="width:100%; padding:14px; background:#007AFF; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:8px; box-sizing:border-box;">
+            Login
+        </button>
+        <button onclick="registerUser()" style="width:100%; padding:14px; background:#34c759; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:8px; box-sizing:border-box;">
+            Create Account
+        </button>
+        <button onclick="resetPassword()" style="width:100%; padding:10px; background:transparent; color:#007AFF; border:none; font-size:13px; font-weight:600; cursor:pointer; box-sizing:border-box;">
+            Forgot Password?
+        </button>
+    </div>
+    <p id="authStatusText" style="margin-top:15px; font-size:12px; color:#8e8e93; text-align:center;"></p>
+</div>
+
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display:none; flex-direction:column; align-items:center; width:100%; position:relative;">
+
+
+
+<!-- ========================= page-home ========================= -->
+<div id="page-home" class="page-section active">
+<div class="app-container">
+
+  <!-- =========================
+     Next Task & Daily Challenge
+========================= -->
+
+<div class="dashboard-row">
+
+    <div id="nextTaskWidget"
+         class="next-task-card"
+         onclick="switchPage('home')">
+
+        <h5 class="widget-title">
+            NEXT TASK
+        </h5>
+
+        <p id="nextTaskName" class="next-task-name">
+            Loading...
+        </p>
+
+        <p id="nextTaskTime" class="next-task-time"></p>
+
+    </div>
+
+    <div id="dailyChallengeWidget"
+         class="daily-challenge-card"
+         onclick="openDailyChallengeModal()">
+
+        <h5 class="widget-title light">
+            DAILY CHALLENGE
+        </h5>
+
+        <p id="dailyChallengeText" class="challenge-text">
+            Tap to get today's challenge!
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Analytics
+========================= -->
+
+<div class="analytics-section" id="analyticsSection">
+
+    <div class="stats-header">
+
+        <div class="stats-info">
+
+            <span id="taskCountText">
+                0/0 Tasks Completed
+            </span>
+
+            <span class="stats-divider">|</span>
+
+            <span id="percentageText">
+                0%
+            </span>
+
+        </div>
+
+        <button class="view-report-btn"
+                onclick="openAnalyticsModal()">
+
+            📊 Report
+
+        </button>
+
+    </div>
+
+    <div class="progress-bar-bg">
+
+        <div id="progressFill"
+             class="progress-fill">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Reminder Calendar
+========================= -->
+
+<h3 class="section-title">
+    📅 Reminders
+</h3>
+
+<div id="homeCal"
+     class="home-calendar-card">
+
+    <div class="cal-header">
+
+        <button class="cal-nav-btn"
+                onclick="changeHomeMonth(-1)">
+            ◀
+        </button>
+
+        <h3 id="homeCalMonthDisplay">
+            Month Year
+        </h3>
+
+        <button class="cal-nav-btn"
+                onclick="changeHomeMonth(1)">
+            ▶
+        </button>
+
+    </div>
+
+    <div class="cal-view-toggle">
+
+        <button id="calview-month"
+                class="cal-view-btn active"
+                onclick="setCalView('month')">
+
+            📅 Month
+
+        </button>
+
+        <button id="calview-week"
+                class="cal-view-btn"
+                onclick="setCalView('week')">
+
+            🗓️ Week
+
+        </button>
+
+        <button id="calview-agenda"
+                class="cal-view-btn"
+                onclick="setCalView('agenda')">
+
+            📋 Agenda
+
+        </button>
+
+    </div>
+
+    <div id="calWeekdaysRow"
+         class="cal-weekdays">
+
+        <div>Sun</div>
+        <div>Mon</div>
+        <div>Tue</div>
+        <div>Wed</div>
+        <div>Thu</div>
+        <div>Fri</div>
+        <div>Sat</div>
+
+    </div>
+
+    <div id="homeCalendarGrid"
+         class="cal-grid">
+    </div>
+
+    <div id="agendaListContainer"
+         class="hidden">
+    </div>
+
+    <div id="clearFilterWrapper"
+         class="clear-filter-container hidden">
+
+        <button class="clear-filter-btn"
+                onclick="clearCalendarFilter()">
+
+            Clear Filter
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Sort Toolbar
+========================= -->
+
+<div class="tools-panel">
+
+    <span class="tool-icon">
+        ⏱️
+    </span>
+
+    <select id="sortInput"
+            class="sort-select"
+            onchange="loadReminders()">
+
+        <option value="date">
+            Sort by Time
+        </option>
+
+        <option value="priority-high">
+            High Priority
+        </option>
+
+        <option value="priority-low">
+            Low Priority
+        </option>
+
+        <option value="manual">
+            Custom Order
+        </option>
+
+    </select>
+
+</div>
+
+
+<!-- =========================
+     Quick Action Buttons
+========================= -->
+
+<div class="quick-actions">
+
+    <button class="print-btn"
+            onclick="openMatrixModal()">
+        🔲 Matrix
+    </button>
+
+    <button class="print-btn"
+            onclick="printTaskList()">
+        🖨️ Print
+    </button>
+
+    <button class="print-btn project-btn"
+            onclick="openProjectsModal()">
+        📁 Projects
+    </button>
+
+    <button class="print-btn shared-btn"
+            onclick="openSharedModal()">
+
+        📥 Shared
+
+        <span id="sharedBadge"
+              class="shared-badge hidden">
+            0
+        </span>
+
+    </button>
+
+    <button class="print-btn family-btn"
+            onclick="openFamilyModal()">
+        👨‍👩‍👧 Family
+    </button>
+
+    <button class="print-btn kanban-btn"
+            onclick="openKanbanModal()">
+        🗂️ Kanban
+    </button>
+
+    <button class="print-btn workspace-btn"
+            onclick="openWorkspaceModal()">
+        👥 Workspace
+    </button>
+
+    <button class="print-btn deps-btn"
+            onclick="openTaskDepsModal()">
+        🔗 Deps
+    </button>
+
+    <button id="bulkToggleBtn"
+            class="print-btn select-btn"
+            onclick="toggleBulkMode()">
+        ☑️ Select
+    </button>
+
+</div>
+<!-- =========================
+     Bulk Action Bar
+========================= -->
+
+<div id="bulkActionBar" class="bulk-action-bar hidden">
+
+    <span id="bulkCountText" class="bulk-count-text">
+        0 selected
+    </span>
+
+    <button class="bulk-btn bulk-done"
+            onclick="bulkComplete()">
+        ✅ Done
+    </button>
+
+    <button class="bulk-btn bulk-archive"
+            onclick="bulkArchive()">
+        📦 Archive
+    </button>
+
+    <button class="bulk-btn bulk-delete"
+            onclick="bulkDelete()">
+        🗑️ Delete
+    </button>
+
+    <button class="bulk-btn bulk-close"
+            onclick="toggleBulkMode()">
+        ✖
+    </button>
+
+</div>
+
+
+<!-- =========================
+     Filters
+========================= -->
+
+<div id="projectFilterContainer"
+     class="project-filter-wrap">
+</div>
+
+<div id="tagFilterContainer"
+     class="templates-list">
+</div>
+
+
+<!-- =========================
+     Tabs
+========================= -->
+
+<div id="tabContainer"
+     class="tabs top-gap">
+
+    <button id="tab-upcoming"
+            class="tab-btn active"
+            onclick="changeTab('upcoming')">
+        📅 Upcoming
+    </button>
+
+    <button id="tab-today"
+            class="tab-btn"
+            onclick="changeTab('today')">
+        Today
+    </button>
+
+    <button id="tab-done"
+            class="tab-btn"
+            onclick="changeTab('done')">
+        ✅ Done
+    </button>
+
+    <button id="tab-all"
+            class="tab-btn"
+            onclick="changeTab('all')">
+        All
+    </button>
+
+</div>
+
+
+<!-- =========================
+     Reminder List
+========================= -->
+
+<ul id="reminderList"
+    class="reminder-list">
+</ul>
+
+
+<div class="section-divider"></div>
+
+
+<!-- =========================
+     Habits
+========================= -->
+
+<section id="homeHabitsSection">
+
+    <h3 class="section-title">
+        🔥 Habits
+    </h3>
+
+    <div class="habit-input-container">
+
+        <input type="text"
+               id="habitInput"
+               placeholder="Enter new habit..."
+               maxlength="80">
+
+        <button class="habit-add-btn"
+                onclick="addHabit()">
+            Add
+        </button>
+
+    </div>
+
+    <ul id="habitList"
+        class="habit-list">
+    </ul>
+
+</section>
+
+
+<div class="section-divider"></div>
+
+
+<!-- =========================
+     Daily Check-In
+========================= -->
+
+<h3 class="section-title">
+    🌙 Daily Check-in
+</h3>
+
+
+<div id="todaySleepSection"
+     class="mood-tracker-card">
+
+    <div id="sleepTrackerCard">
+
+        <h5 class="sleep-title">
+            😴 Sleep Tracker
+        </h5>
+
+        <div class="sleep-input-row">
+
+            <input type="number"
+                   id="sleepHoursInput"
+                   min="0"
+                   max="16"
+                   step="0.5"
+                   placeholder="Hours"
+                   class="sleep-input">
+
+            <button class="sleep-log-btn"
+                    onclick="logSleep()">
+                Log
+            </button>
+
+        </div>
+
+        <div id="sleepHistoryBars"
+             class="sleep-history-bars">
+        </div>
+
+    </div>
+
+</div>
+
+
+<p id="syncStatusText"
+   class="sync-status-text">
+
+    ☁️ Syncing...
+
+</p>
+
+
+</div><!-- close app-container -->
+</div><!-- close page-home -->
+
+<!-- =========================
+     Add Task Page
+========================= -->
+
+<div id="page-add"
+     class="page-section">
+
+    <div class="app-container add-event-container center-container">
+
+        <h2 id="modalTitle"
+            class="page-title">
+
+            Add Task
+
+        </h2>
+
+<!-- =========================
+     Quick Template
+========================= -->
+
+<div class="form-group">
+
+    <div class="form-header">
+
+        <label class="form-label">
+            ⚡ Quick Template
+        </label>
+
+        <button class="save-template-btn"
+                onclick="saveCustomTemplate()">
+            💾 Save Current
+        </button>
+
+    </div>
+
+    <select id="quickTemplateSelect"
+            onchange="applyQuickTemplate()">
+
+        <option value="">
+            Select Template...
+        </option>
+
+        <optgroup label="📅 Events">
+            <option value="Birthday">🎂 Birthday</option>
+            <option value="Anniversary">💍 Anniversary</option>
+            <option value="Event">📅 Event</option>
+            <option value="Appointment">🏥 Appointment</option>
+        </optgroup>
+
+        <optgroup label="💪 Health & Fitness">
+            <option value="Water">💧 Water Reminder</option>
+            <option value="Food">🍽️ Meal</option>
+            <option value="Wakeup">⏰ Wake Up</option>
+            <option value="Sleeping">😴 Bedtime</option>
+            <option value="GYM">💪 GYM</option>
+            <option value="Walking">🚶 Walking</option>
+            <option value="Running">🏃 Running</option>
+            <option value="Reading">📖 Reading</option>
+        </optgroup>
+
+        <optgroup label="💰 Finance">
+            <option value="Bill">🧾 Bill</option>
+            <option value="Rent">🏠 Rent</option>
+            <option value="EMI">💳 EMI</option>
+        </optgroup>
+
+        <optgroup label="📁 My Templates"
+                  id="customSavedTemplatesGroup">
+        </optgroup>
+
+    </select>
+
+</div>
+
+
+<!-- =========================
+     Task Name
+========================= -->
+
+<div class="form-group">
+
+    <label>
+        📝 Task Name *
+    </label>
+
+    <div class="task-input-row">
+
+        <input
+            type="text"
+            id="taskInput"
+            class="task-input"
+            placeholder="What needs to be done?"
+            maxlength="200"
+            autocomplete="off"
+            required
+            oninput="updateCategoryPreview()">
+
+        <button class="ai-category-btn"
+                title="AI Auto-Categorize"
+                onclick="aiSuggestCategory()">
+            🪄
+        </button>
+
+    </div>
+
+    <div class="category-preview-row">
+
+        <span id="categoryPreviewBadge"
+              class="category-preview-badge">
+            📝 Task
+        </span>
+
+        <input type="hidden"
+               id="categoryOverrideInput"
+               value="">
+
+    </div>
+
+</div>
+<!-- =========================
+     Date, Time & Priority
+========================= -->
+
+<div class="date-time-row">
+
+    <div class="form-group date-group">
+
+        <label>
+            📅 Date & Time *
+        </label>
+
+        <div class="datetime-input-row">
+
+            <input
+                type="datetime-local"
+                id="timeInput"
+                class="datetime-input"
+                required>
+
+            <button
+                class="ai-time-btn"
+                onclick="aiSuggestTime()"
+                title="AI Auto Time">
+
+                🪄
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="form-group priority-group">
+
+        <label>
+            🚦 Priority
+        </label>
+
+        <select
+            id="priorityInput"
+            class="priority-select">
+
+            <option value="low">
+                🟢 Low
+            </option>
+
+            <option value="medium" selected>
+                🟡 Medium
+            </option>
+
+            <option value="high">
+                🔴 High
+            </option>
+
+        </select>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Repeat
+========================= -->
+
+<div class="form-group">
+
+    <label>
+        🔁 Repeat
+    </label>
+
+    <select
+        id="repeatInput"
+        onchange="toggleCustomRepeat()">
+
+        <option value="none">Once</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+        <option value="hourly">Custom Hours</option>
+        <option value="custom">Custom Days</option>
+
+    </select>
+
+</div>
+
+
+<!-- =========================
+     Custom Repeat
+========================= -->
+
+<div id="customRepeatUI"
+     class="custom-repeat-panel">
+
+    <div class="custom-repeat-row">
+
+        <span class="repeat-label">
+            Repeat every
+        </span>
+
+        <input
+            type="number"
+            id="customRepeatInterval"
+            class="repeat-number-input"
+            value="1"
+            min="1">
+
+        <select
+            id="customRepeatType"
+            class="repeat-type-select">
+
+            <option value="hours">
+                Hours
+            </option>
+
+            <option value="days">
+                Days
+            </option>
+
+            <option value="weeks">
+                Weeks
+            </option>
+
+            <option value="months">
+                Months
+            </option>
+        </select>
+    </div>
+</div>
+
+<!-- =========================
+     Advanced Options
+========================= -->
+
+<button id="advOptionsBtn"
+        class="advanced-options-btn"
+        onclick="toggleAdvancedOptions()">
+
+    <span>⚙️ Advanced Options</span>
+
+    <span id="advOptionsArrow"
+          class="advanced-options-arrow">
+        ▼
+    </span>
+
+</button>
+
+<div id="advancedOptionsPanel"
+     class="advanced-options-panel">
+
+    <div class="advanced-options-row">
+
+        <div class="form-group option-group">
+
+            <label>🏷️ Tags</label>
+
+            <input type="text"
+                   id="tagsInput"
+                   class="option-input"
+                   placeholder="#work #personal">
+
+        </div>
+
+        <div class="form-group option-group">
+
+            <label>👤 Assign To</label>
+
+            <input type="text"
+                   id="assigneeInput"
+                   class="option-input"
+                   placeholder="Name or ID">
+
+        </div>
+
+    </div>
+
+    <div class="form-group">
+
+        <label>📁 Project / Folder</label>
+
+        <select id="taskProjectInput"
+                class="project-select">
+
+            <option value="">
+                No Project
+            </option>
+
+        </select>
+
+    </div>
+
+    <div class="form-group">
+
+        <label>🔔 Pre-alarm Notification</label>
+
+        <select id="preAlarmInput">
+
+            <option value="0">At time of event</option>
+            <option value="5">5 min before</option>
+            <option value="10">10 min before</option>
+            <option value="15">15 min before</option>
+            <option value="30">30 min before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+
+        </select>
+
+    </div>
+
+    <!-- Sub Tasks -->
+
+    <div class="subtasks-card">
+
+        <div class="subtasks-header">
+
+            <label class="subtasks-title">
+                ✅ Sub-tasks
+            </label>
+
+            <button class="ai-plan-btn"
+                    onclick="aiGenerateSubtasks()">
+
+                🪄 AI Plan
+
+            </button>
+
+        </div>
+
+        <div id="subtasksContainer"></div>
+
+        <button class="add-subtask-btn"
+                onclick="addSubtaskField()">
+
+            + Add Sub-task
+
+        </button>
+
+    </div>
+
+</div>
+<!-- =========================
+     Notes
+========================= -->
+
+<div class="form-group">
+
+    <label>📄 Notes</label>
+
+    <div id="notesInput"
+         class="rich-editor notes-editor"
+         contenteditable="true"
+         data-placeholder="Add notes...">
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Attachments
+========================= -->
+
+<div class="attachments-section">
+
+    <label class="attachments-label">
+        📎 Attachments
+    </label>
+
+    <div class="attachments-actions">
+
+        <button class="print-btn custom-action-btn"
+                onclick="document.getElementById('imageUpload').click()">
+            📎 File
+        </button>
+
+        <button class="print-btn custom-action-btn"
+                onclick="attachLocation()">
+            📍 Location
+        </button>
+
+        <button id="recordBtn"
+                class="print-btn custom-action-btn voice-btn"
+                onclick="toggleVoiceMemo()">
+            🔴 Voice
+        </button>
+
+    </div>
+
+    <input type="file"
+           id="imageUpload"
+           accept="image/*,.pdf,.doc,.docx"
+           class="hidden-file-input"
+           onchange="handleImageUpload(event)">
+
+</div>
+
+
+<!-- Voice Preview -->
+
+<div id="voiceMemoPreviewContainer"
+     class="voice-preview-container">
+
+    <audio id="voiceMemoAudio"
+           class="voice-preview-audio"
+           controls>
+    </audio>
+
+    <button class="voice-remove-btn"
+            onclick="removeVoiceMemo()">
+        ✖
+    </button>
+
+</div>
+
+
+<!-- Image Preview -->
+
+<div id="imagePreviewContainer"
+     class="image-preview-container">
+
+    <img id="imagePreview"
+         class="image-preview"
+         src="">
+
+    <div id="docPreview"
+         class="document-preview">
+
+        📄 Document Attached
+
+    </div>
+
+    <button class="image-remove-btn"
+            onclick="removeImage()">
+        ✖
+    </button>
+
+</div>
+
+</div>
+
+<!-- ===== END ADVANCED OPTIONS ===== -->
+
+
+<div class="task-action-row">
+
+    <button id="submitBtn"
+            class="action-btn btn-success"
+            onclick="addOrUpdateReminder(); switchPage('home');">
+
+        💾 Save Task
+
+    </button>
+
+    <button class="action-btn btn-secondary"
+            onclick="switchPage('home')">
+
+        Cancel
+
+    </button>
+
+</div>
+
+</div>
+</div>
+
+
+<!-- =========================
+     Settings Page
+========================= -->
+
+<div id="page-settings"
+     class="page-section">
+
+    <div class="app-container settings-container">
+
+        <div class="header-actions">
+
+            <button class="icon-btn-small logout-btn logout-action-btn"
+                    onclick="logoutUser()">
+                🚪
+            </button>
+
+        </div>
+
+        <h2 class="settings-title">
+            Settings
+        </h2>
+
+        <div class="profile-card"
+             onclick="openProfileModal()">
+
+            <div class="profile-header">
+
+                <div class="profile-avatar">
+                    👤
+                </div>
+
+                <div class="profile-info">
+
+                    <h3 id="profileCardName">
+                        User
+                    </h3>
+
+                    <p id="profileCardId">
+                        ID: Loading...
+                    </p>
+
+                </div>
+
+                <span class="profile-arrow">
+                    ›
+                </span>
+
+            </div>
+
+            <div class="profile-footer">
+
+                <span id="profileCardLevel">
+                    ⭐ Level 1
+                </span>
+
+                <span id="profileCardXP">
+                    ✨ 0/50 XP
+                </span>
+
+            </div>
+
+            <div class="profile-progress-bg">
+
+                <div id="profileCardXPFill"
+                     class="profile-progress-fill">
+                </div>
+
+            </div>
+
+        </div>
+<!-- =========================
+     Profile Settings
+========================= -->
+
+<div class="profile-row">
+
+    <input
+        type="text"
+        id="profileNameInput"
+        class="profile-input"
+        placeholder="Your name">
+
+    <button
+        class="profile-save-btn"
+        onclick="saveProfileSettings()">
+        Save
+    </button>
+
+</div>
+
+
+<!-- =========================
+     Alarm Sound
+========================= -->
+
+<div class="form-group">
+
+    <label class="setting-label">
+        🔔 Alarm Ringtone
+    </label>
+
+    <div class="alarm-row">
+
+        <select
+            id="alarmSoundInput"
+            class="alarm-select">
+
+            <option value="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">🔔 Default Beep</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg">⌚ Digital Watch</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">⏰ Alarm Clock</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/beep_short_alt.ogg">📟 Soft Beep</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/bugle_tune.ogg">🎺 Bugle Tune</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/mechanical_clock_ring.ogg">🔧 Mechanical Bell</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg">🛎️ Bell Ring</option>
+            <option value="https://actions.google.com/sounds/v1/alarms/warning.ogg">🚨 Warning Siren</option>
+
+        </select>
+
+        <button
+            class="alarm-test-btn"
+            onclick="testAlarmSound()">
+            ▶️
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     Quick Toggles
+========================= -->
+
+<div class="settings-card">
+
+    <div class="widget-toggle-row">
+        <span class="toggle-title">🗣️ Voice Alarm</span>
+        <input type="checkbox" id="voiceAlarmToggle" class="toggle-checkbox">
+    </div>
+
+    <div class="widget-toggle-row">
+        <span class="toggle-title">🔒 App Lock (PIN)</span>
+        <input
+            type="checkbox"
+            id="appLockToggle"
+            class="toggle-checkbox"
+            onchange="toggleAppLockSetup()">
+    </div>
+
+    <div class="widget-toggle-row">
+        <span class="toggle-title">🔔 Push Notifications</span>
+
+        <button
+            id="notifBtn"
+            class="enable-btn"
+            onclick="requestPushNotification()">
+            Enable
+        </button>
+    </div>
+
+    <div class="widget-toggle-row">
+        <span class="toggle-title">🌙 Auto Dark Mode</span>
+
+        <input
+            type="checkbox"
+            id="autoDarkToggle"
+            class="toggle-checkbox"
+            onchange="saveAutoDarkSettings()">
+    </div>
+
+    <div id="autoDarkTimesWrap" class="auto-dark-times">
+
+        <div class="time-row">
+
+            <div class="time-group">
+
+                <label class="time-label">
+                    Dark from
+                </label>
+
+                <input
+                    type="time"
+                    id="autoDarkFrom"
+                    value="20:00"
+                    onchange="saveAutoDarkSettings()">
+
+            </div>
+
+            <div class="time-group">
+
+                <label class="time-label">
+                    Light from
+                </label>
+
+                <input
+                    type="time"
+                    id="autoDarkTo"
+                    value="07:00"
+                    onchange="saveAutoDarkSettings()">
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="widget-toggle-row no-border">
+
+        <span class="toggle-title">
+            📳 Haptic Feedback
+        </span>
+
+        <input
+            type="checkbox"
+            id="hapticToggle"
+            class="toggle-checkbox"
+            onchange="localStorage.setItem('haptic',this.checked)">
+
+    </div>
+
+</div>
+<button id="advSettingsBtn" class="adv-settings-btn" onclick="toggleAdvancedSettings()">
+<span>⚙️ Advanced Settings</span>
+<span id="advSettingsArrow" class="adv-settings-arrow">▼</span>
+</button>
+
+<div id="advancedSettingsPanel" class="adv-settings-panel">
+
+<h5 class="settings-heading">🎨 Appearance</h5>
+
+<div class="font-size-group">
+<button id="fontBtn-small" class="font-size-btn font-small" onclick="setFontSize('small')">Aa</button>
+<button id="fontBtn-medium" class="font-size-btn font-medium" onclick="setFontSize('medium')">Aa</button>
+<button id="fontBtn-large" class="font-size-btn font-large" onclick="setFontSize('large')">Aa</button>
+</div>
+
+<div class="theme-grid">
+<div class="theme-swatch theme-blue" onclick="setThemeColor('#007aff','#0051d4','#e5f1ff','#f0f7ff')"></div>
+<div class="theme-swatch theme-green" onclick="setThemeColor('#34c759','#248a3d','#e5f9e9','#f0fff4')"></div>
+<div class="theme-swatch theme-orange" onclick="setThemeColor('#ff9500','#c77700','#fff8e8','#fffdf0')"></div>
+<div class="theme-swatch theme-red" onclick="setThemeColor('#ff2d55','#c7002b','#ffe5ea','#fff0f3')"></div>
+<div class="theme-swatch theme-purple" onclick="setThemeColor('#af52de','#8944ab','#f3e5fa','#f9f0ff')"></div>
+<div class="theme-swatch theme-teal" onclick="setThemeColor('#00c7be','#009b94','#d0f5f3','#e8fbfa')"></div>
+</div>
+
+<label class="settings-label">📅 Calendar Colors</label>
+
+<div class="calendar-color-grid">
+
+<div class="color-card">
+<span class="color-title">🔴 Event</span>
+<input type="color" id="eventColorInput" value="#ff3b30" onchange="setCalendarColors()" class="color-picker">
+</div>
+
+<div class="color-card">
+<span class="color-title">🟠 Holiday</span>
+<input type="color" id="holidayColorInput" value="#ff9500" onchange="setCalendarColors()" class="color-picker">
+</div>
+
+</div>
+<h5 class="settings-title">🔑 API Keys</h5>
+
+<div class="settings-card">
+
+<label class="settings-label">🤖 Gemini AI API Key (Free)</label>
+
+<div class="api-input-row">
+<input type="password" id="aiApiKeyInput" class="flex-input" placeholder="From aistudio.google.com">
+<button class="eye-btn" onclick="const el=document.getElementById('aiApiKeyInput');el.type=el.type==='password'?'text':'password';">👁️</button>
+</div>
+
+<label class="settings-label">🔗 Webhook URL (Zapier/Make/IFTTT)</label>
+<input type="url" id="webhookUrlInput" class="mb12" placeholder="https://hooks.zapier.com/...">
+
+<p class="settings-note">Reminder fire થાય ત્યારે WhatsApp/SMS forward - Zapier/Make connect કરો</p>
+
+<label class="settings-label">📅 Google Calendar OAuth Client ID</label>
+
+<input type="text" id="gcalClientIdInput" class="mb8" placeholder="xxx.apps.googleusercontent.com">
+
+<div class="action-row">
+<button class="print-btn flex-center" onclick="connectGoogleCalendar()">🔗 Connect</button>
+<button class="print-btn flex-center" onclick="syncFromGoogleCalendar()">🔄 Sync</button>
+</div>
+
+<p id="gcalStatusText" class="status-text">Not connected.</p>
+
+</div>
+
+<h5 class="settings-title">🧩 Home Page Widgets</h5>
+
+<div class="settings-card">
+
+<div class="widget-toggle-row"><span class="widget-title">💡 AI Tips</span><input type="checkbox" id="w-aitip" checked onchange="toggleWidget('aitip',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row"><span class="widget-title">⚡ Next Task</span><input type="checkbox" id="w-nexttask" checked onchange="toggleWidget('nexttask',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row"><span class="widget-title">🎯 Daily Challenge</span><input type="checkbox" id="w-challenge" checked onchange="toggleWidget('challenge',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row"><span class="widget-title">📊 Analytics Bar</span><input type="checkbox" id="w-analytics" checked onchange="toggleWidget('analytics',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row"><span class="widget-title">📅 Home Calendar</span><input type="checkbox" id="w-calendar" checked onchange="toggleWidget('calendar',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row"><span class="widget-title">🔥 Habits</span><input type="checkbox" id="w-habits" checked onchange="toggleWidget('habits',this.checked)" class="toggle-input"></div>
+
+<div class="widget-toggle-row no-border"><span class="widget-title">😴 Sleep Tracker</span><input type="checkbox" id="w-sleep" checked onchange="toggleWidget('sleep',this.checked)" class="toggle-input"></div>
+
+</div>
+
+<h5 class="settings-title">💾 Data Backup</h5>
+
+<div class="action-row">
+
+<button class="print-btn flex-center" onclick="exportToCSV()">📥 Export CSV</button>
+
+<button class="print-btn flex-center" onclick="document.getElementById('importDataInput').click()">📤 Restore</button>
+
+<input type="file" id="importDataInput" accept=".csv,.json" hidden onchange="importDataFile(event)">
+
+</div>
+
+<button class="link-btn" onclick="showGcalInstructions()">ℹ️ How to get free Google Calendar Client ID?</button>
+
+</div>
+
+<button class="pro-btn" onclick="openModal('proModal')">👑 Upgrade to PRO</button>
+
+<button class="add-btn" onclick="saveProfileSettings();showToast('Settings saved!','success');">Save Settings</button>
+
+</div>
+</div>
+  <!-- More page -->
+
+<div id="page-more" class="page-section">
+
+<!-- Greeting -->
+<div class="profile-greeting">
+    <h2 class="user-greeting">
+        👋 Hello,
+        <span id="displayUserName">User</span>
+        <span id="proBadgeDisplay" class="pro-badge hidden">PRO</span>
+    </h2>
+
+    <p id="morePageDateLabel" class="greeting-date"></p>
+</div>
+
+<h2 class="features-header">⚡ Features</h2>
+
+    <input type="text" id="moreSearchInput" class="features-search" placeholder="🔍 Search features..." oninput="filterMoreFeatures()">
+
+    <div id="morePinnedRow" class="pinned-row-container"></div>
+
+    <div class="features-grid" id="moreFeaturesGrid">
+        
+        <div class="feature-tile" data-label="Finance Khata Khatabook Ledger" onclick="switchPage('finance')">
+            <span class="ft-icon">💰</span>
+            <span class="ft-label">Finance</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('finance', '💰', 'Finance', &quot;switchPage('finance')&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Student Mode Study" onclick="switchPage('student')">
+            <span class="ft-icon">📚</span>
+            <span class="ft-label">Student Mode</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('student', '📚', 'Student Mode', &quot;switchPage('student')&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Daily Journal Diary" onclick="switchPage('journal')">
+            <span class="ft-icon">📓</span>
+            <span class="ft-label">Daily Journal</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('journal', '📓', 'Daily Journal', &quot;switchPage('journal')&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Medicine Pills" onclick="openMedicineModal()">
+            <span class="ft-icon">💊</span>
+            <span class="ft-label">Medicine</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('medicine', '💊', 'Medicine', &quot;openMedicineModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Vehicle Car Log Fuel" onclick="openVehicleModal()">
+            <span class="ft-icon">🚗</span>
+            <span class="ft-label">Vehicle</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('vehicle', '🚗', 'Vehicle', &quot;openVehicleModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Shopping List" onclick="openShoppingModal()">
+            <span class="ft-icon">🛒</span>
+            <span class="ft-label">Shopping</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('shopping', '🛒', 'Shopping', &quot;openShoppingModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Travel Trip" onclick="openTravelModal()">
+            <span class="ft-icon">✈️</span>
+            <span class="ft-label">Travel</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('travel', '✈️', 'Travel', &quot;openTravelModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Life Events" onclick="openLifeEventsModal()">
+            <span class="ft-icon">🌟</span>
+            <span class="ft-label">Life Events</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('lifeevents', '🌟', 'Life Events', &quot;openLifeEventsModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Subscriptions" onclick="openSubModal()">
+            <span class="ft-icon">🔄</span>
+            <span class="ft-label">Subscriptions</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('subscriptions', '🔄', 'Subscriptions', &quot;openSubModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Secret Space" onclick="openSecretModal()">
+            <span class="ft-icon">🔐</span>
+            <span class="ft-label">Secret Space</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('secret', '🔐', 'Secret Space', &quot;openSecretModal()&quot;)">☆</span>
+        </div>
+
+        <div class="feature-tile" data-label="Health Tips AI Wellness" onclick="openHealthTipsModal()">
+            <span class="ft-icon">💪</span>
+            <span class="ft-label">Health Tips</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('health', '💪', 'Health Tips', &quot;openHealthTipsModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Family Members Share Tasks" onclick="openFamilyModal()">
+            <span class="ft-icon">👨‍👩‍👧</span>
+            <span class="ft-label">Family</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('family', '👨‍👩‍👧', 'Family', &quot;openFamilyModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Smart Reminders AI Intelligent Alert" onclick="openModal('smartReminderModal')">
+            <span class="ft-icon">🧠</span>
+            <span class="ft-label">Smart Alerts</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('smart', '🧠', 'Smart Alerts', &quot;openModal('smartReminderModal')&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Shift Schedule Rotation Work" onclick="openShiftModal()">
+            <span class="ft-icon">🔄</span>
+            <span class="ft-label">Shift Schedule</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('shift', '🔄', 'Shift Schedule', &quot;openShiftModal()&quot;)">☆</span>
+        </div>
+        
+        <div class="feature-tile" data-label="Focus Mode Concentrate Pomodoro Full Screen" onclick="openFocusModeFromHome()">
+            <span class="ft-icon">🎯</span>
+            <span class="ft-label">Focus Mode</span>
+            <span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('focus', '🎯', 'Focus Mode', &quot;openFocusModeFromHome()&quot;)">☆</span>
+        </div>
+
+        <div class="feature-tile" onclick="openHomeManagementModal()">
+            <span class="ft-icon">🏠</span>
+            <span class="ft-label">Home Mgmt</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openQuickNotesModal()">
+            <span class="ft-icon">📝</span>
+            <span class="ft-label">Quick Notes</span>
+        </div>
+        
+        <div class="feature-tile" onclick="exportAllData()">
+            <span class="ft-icon">📦</span>
+            <span class="ft-label">Backup</span>
+        </div>
+        
+        <div class="feature-tile" onclick="document.getElementById('restoreFileInput').click()">
+            <span class="ft-icon">♻️</span>
+            <span class="ft-label">Restore</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openQRModal()">
+            <span class="ft-icon">📱</span>
+            <span class="ft-label">QR Share</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openAICoachModal()">
+            <span class="ft-icon">🧠</span>
+            <span class="ft-label">AI Coach</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openAppStatsModal()">
+            <span class="ft-icon">📈</span>
+            <span class="ft-label">App Stats</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openAutomationModal()">
+            <span class="ft-icon">⚙️</span>
+            <span class="ft-label">Automation</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openNotifCentreModal()">
+            <span class="ft-icon">🔔</span>
+            <span class="ft-label">Notifications</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openStudyAnalyticsModal()">
+            <span class="ft-icon">📖</span>
+            <span class="ft-label">Study Charts</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openGlobalSearch()">
+            <span class="ft-icon">🔍</span>
+            <span class="ft-label">Search All</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openTaskDepsModal()">
+            <span class="ft-icon">🔗</span>
+            <span class="ft-label">Task Deps</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openModal('aiRecommendModal')">
+            <span class="ft-icon">✨</span>
+            <span class="ft-label">AI Ideas</span>
+        </div>
+        
+        <div class="feature-tile" onclick="shareAchievement()">
+            <span class="ft-icon">🏆</span>
+            <span class="ft-label">Share Win</span>
+        </div>
+        
+        <div class="feature-tile" onclick="openWarrantyModal()">
+            <span class="ft-icon">🛡️</span>
+            <span class="ft-label">Warranty</span>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+<input type="file" id="restoreFileInput" accept=".json" hidden onchange="restoreAllData(event)">
+
+<!-- ===== FINANCE PAGE ===== -->
+<div id="page-finance" class="page-section">
+
+    <div class="page-header">
+        <button class="back-btn" onclick="switchPage('more')">← Back</button>
+        <h2 class="page-title">💰 Finance</h2>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="finDashboard" class="finance-dashboard">
+
+        <div class="fin-stat-card fin-income">
+            <p class="fin-label">INCOME</p>
+            <h3 id="finIncome" class="fin-value income-text">₹0</h3>
+        </div>
+
+        <div class="fin-stat-card fin-expense">
+            <p class="fin-label">EXPENSES</p>
+            <h3 id="finExpense" class="fin-value expense-text">₹0</h3>
+        </div>
+
+        <div class="fin-stat-card fin-savings">
+            <p class="fin-label">SAVINGS</p>
+            <h3 id="finSavings" class="fin-value savings-text">₹0</h3>
+        </div>
+
+        <div class="fin-stat-card fin-budget">
+            <p class="fin-label">BUDGET LEFT</p>
+            <h3 id="finBudgetLeft" class="fin-value budget-text">₹0</h3>
+        </div>
+
+    </div>
+
+    <!-- Monthly Summary -->
+    <div class="finance-summary">
+
+        <span id="finMonthSummary" class="summary-text">
+            Loading...
+        </span>
+
+        <div class="summary-actions">
+            <button class="summary-btn" onclick="openFinanceChartsModal()">📊 Charts</button>
+
+            <button class="summary-btn recurring-btn" onclick="openRecurringExpModal()">
+                🔁 Recurring
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Finance Tabs -->
+    <div id="financeTabBar" class="finance-tab">
+
+        <button class="fin-tab-btn active" onclick="setFinTab('expenses')">💸 Expenses</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('income')">💵 Income</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('budget')">📊 Budget</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('bills')">🗓️ Bills</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('emi')">🏠 EMI</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('invest')">📈 Invest</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('tax')">🧾 Tax</button>
+
+        <button class="fin-tab-btn" onclick="setFinTab('khata')">🤝 Khata</button>
+
+    </div>
+<!-- Expenses -->
+<div id="finTab-expenses" class="finance-tab-content">
+
+    <div class="finance-row wrap">
+        <input type="text" id="expNameInput" class="flex-2 min-110" placeholder="Description">
+        <input type="number" id="expAmtInput" class="flex-1 min-80" placeholder="₹ Amount">
+    </div>
+
+    <div class="finance-row">
+        <select id="expCatInput" class="flex-1">
+            <option>🍔 Food</option>
+            <option>🚗 Transport</option>
+            <option>🏠 Rent</option>
+            <option>💊 Health</option>
+            <option>👕 Shopping</option>
+            <option>📚 Education</option>
+            <option>🎮 Entertainment</option>
+            <option>💡 Utilities</option>
+            <option>📦 Other</option>
+        </select>
+
+        <input type="date" id="expDateInput" class="flex-1">
+
+        <button class="fin-btn expense-btn" onclick="addExpense('expense')">
+            Add
+        </button>
+    </div>
+
+    <input type="text" id="expNoteInput" placeholder="Note (optional)" class="mb15">
+
+    <div id="expensesList"></div>
+
+</div>
+
+<!-- Income -->
+<div id="finTab-income" class="finance-tab-content hidden">
+
+    <div class="finance-row">
+        <input type="text" id="incNameInput" class="flex-2" placeholder="Source">
+        <input type="number" id="incAmtInput" class="flex-1" placeholder="₹ Amount">
+    </div>
+
+    <div class="finance-row">
+        <select id="incCatInput" class="flex-1">
+            <option>💼 Salary</option>
+            <option>💰 Business</option>
+            <option>📈 Investment</option>
+            <option>🎁 Gift</option>
+            <option>📦 Other</option>
+        </select>
+
+        <input type="date" id="incDateInput" class="flex-1">
+
+        <button class="fin-btn income-btn" onclick="addExpense('income')">
+            Add
+        </button>
+    </div>
+
+    <div id="incomeList"></div>
+
+</div>
+
+<!-- Budget -->
+<div id="finTab-budget" class="finance-tab-content hidden">
+
+    <div class="finance-row">
+        <input type="text" id="budgetCatInput" class="flex-2" placeholder="Category">
+        <input type="number" id="budgetAmtInput" class="flex-1" placeholder="₹ Limit">
+
+        <button class="fin-btn primary-btn" onclick="addBudget()">
+            Set
+        </button>
+    </div>
+
+    <div id="budgetList"></div>
+
+</div>
+
+<!-- Bills -->
+<div id="finTab-bills" class="finance-tab-content hidden">
+
+    <div class="finance-row wrap">
+        <input type="text" id="billNameInput" class="flex-2 min-110" placeholder="Bill name">
+        <input type="number" id="billAmtInput" class="flex-1 min-70" placeholder="₹">
+    </div>
+
+    <div class="finance-row">
+        <input type="date" id="billDueInput" class="flex-1">
+
+        <select id="billTypeInput" class="flex-1">
+            <option>💡 Electricity</option>
+            <option>💳 Credit Card</option>
+            <option>🛡️ Insurance</option>
+            <option>📱 Phone</option>
+            <option>🌐 Internet</option>
+            <option>📦 Other</option>
+        </select>
+
+        <button class="fin-btn bill-btn" onclick="addBill()">
+            Add
+        </button>
+    </div>
+
+    <div id="billsList"></div>
+
+</div>
+<!-- EMI -->
+<div id="finTab-emi" class="finance-tab-content hidden">
+<div class="finance-row wrap">
+<input type="text" id="emiNameInput" class="flex-2 min-110" placeholder="Loan name">
+<input type="number" id="emiAmtInput" class="flex-1 min-70" placeholder="₹ EMI">
+</div>
+
+<div class="finance-row">
+<input type="date" id="emiDueInput" class="flex-1" title="Monthly due date (use any month)">
+<input type="number" id="emiMonthsInput" class="flex-1" placeholder="Months left">
+<button class="fin-btn emi-btn" onclick="addEMI()">Add</button>
+</div>
+
+<div id="emiList"></div>
+</div>
+
+<!-- Investment -->
+<div id="finTab-invest" class="finance-tab-content hidden">
+<div class="finance-row wrap">
+<input type="text" id="invNameInput" class="flex-2 min-110" placeholder="Investment name">
+<input type="number" id="invAmtInput" class="flex-1 min-70" placeholder="₹ Amount">
+</div>
+
+<div class="finance-row">
+<select id="invTypeInput" class="flex-1">
+<option>📈 Stocks</option>
+<option>🏠 Real Estate</option>
+<option>💛 Gold</option>
+<option>🏦 FD</option>
+<option>📊 MF</option>
+<option>📦 Other</option>
+</select>
+
+<input type="number" id="invReturnInput" class="flex-1" placeholder="Return %">
+
+<button class="fin-btn income-btn" onclick="addInvestment()">Add</button>
+</div>
+
+<div id="investList"></div>
+</div>
+
+<!-- Tax -->
+<div id="finTab-tax" class="finance-tab-content hidden">
+<div class="tax-card">
+
+<h5 class="tax-title">🧾 Annual Tax Estimator</h5>
+
+<div class="regime-toggle">
+<button id="regime-new" class="active" onclick="setTaxRegime('new')">New Regime</button>
+<button id="regime-old" onclick="setTaxRegime('old')">Old Regime</button>
+</div>
+
+<label class="small-label">Annual Income (₹)</label>
+<input type="number" id="taxIncomeInput" placeholder="e.g. 600000" class="tax-input">
+
+<label id="taxDeductionLabel" class="small-label">
+Deductions u/s 80C, 80D etc. (₹)
+</label>
+
+<input type="number" id="taxDeductionInput" placeholder="e.g. 150000" class="tax-input">
+
+<button class="fin-btn primary-btn full-btn" onclick="calculateTax()">
+Calculate Tax
+</button>
+
+<div id="taxResult" class="tax-result"></div>
+
+</div>
+</div>
+
+<!-- Khata -->
+<div id="finTab-khata" class="finance-tab-content hidden">
+
+<div class="khata-summary">
+
+<div class="khata-card receive-card">
+<h3 id="khataTotalReceive" class="receive-text">₹0</h3>
+<p class="khata-label">YOU WILL GET</p>
+</div>
+
+<div class="khata-card pay-card">
+<h3 id="khataTotalPay" class="expense-text">₹0</h3>
+<p class="khata-label">YOU WILL GIVE</p>
+</div>
+
+</div>
+
+<div class="finance-row">
+<input type="text" id="khataPartyName" class="flex-2" placeholder="Party / Contact name">
+
+<input type="tel" id="khataPartyPhone" class="flex-1 min-90" placeholder="Phone (optional)">
+
+<button class="fin-btn primary-btn" onclick="addKhataParty()">
+Add
+</button>
+</div>
+
+<div id="khataPartyList"></div>
+
+</div>
+<!-- Khata Party Modal -->
+<div id="khataPartyModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('khataPartyModal')">✖</span>
+
+<h2 id="khataPartyModalName" class="modal-title">
+Party
+</h2>
+
+<p id="khataPartyModalPhone" class="modal-subtitle"></p>
+
+<div class="khata-balance-card">
+<p id="khataPartyBalanceLabel" class="balance-label">BALANCE</p>
+<h2 id="khataPartyBalance" class="balance-value">₹0</h2>
+</div>
+
+<div class="khata-type-row">
+<button id="khataTypeGave" class="khata-type-btn active" onclick="setKhataEntryType('gave')">💸 You Gave</button>
+<button id="khataTypeGot" class="khata-type-btn" onclick="setKhataEntryType('got')">💰 You Got</button>
+</div>
+
+<div class="finance-row">
+<input type="number" id="khataEntryAmt" class="flex-1" placeholder="₹ Amount">
+<input type="date" id="khataEntryDate" class="flex-1">
+</div>
+
+<div class="finance-row">
+<input type="text" id="khataEntryNote" class="flex-1" placeholder="Note (optional)">
+<button class="fin-btn income-btn" onclick="addKhataEntry()">Add</button>
+</div>
+
+<h5 class="section-mini-title">
+Transaction History
+</h5>
+
+<div id="khataPartyHistory"></div>
+
+<button class="delete-party-btn" onclick="deleteKhataParty()">
+🗑️ Delete Party & All Records
+</button>
+
+</div>
+</div>
+
+<!-- Student Page -->
+<div id="page-student" class="page-section">
+
+<div class="page-header">
+<button class="back-btn" onclick="switchPage('more')">← Back</button>
+<h2 class="page-heading">📚 Student Mode</h2>
+</div>
+
+<div id="examCountdownsContainer"></div>
+
+<div class="student-card">
+
+<h5 class="section-mini-title">
+Add Exam
+</h5>
+
+<div class="finance-row wrap">
+<input type="text" id="examNameInput" class="flex-2 min-120" placeholder="Exam name">
+<input type="date" id="examDateInput" class="flex-1">
+<input type="text" id="examEmojiInput" class="emoji-input" placeholder="📝">
+<button class="fin-btn primary-btn" onclick="addExam()">Add</button>
+</div>
+
+</div>
+
+<h5 class="section-mini-title">
+📖 Subjects & Study Log
+</h5>
+
+<div id="subjectsList" class="mb-10"></div>
+
+<div class="finance-row wrap">
+<input type="text" id="subjectNameInput" class="flex-2 min-120" placeholder="Subject name">
+<input type="color" id="subjectColorInput" class="color-picker" value="#007aff">
+<button class="fin-btn primary-btn" onclick="addSubject()">Add</button>
+</div>
+
+</div>
+<!-- Study Goal -->
+<div class="student-card">
+
+<h5 class="section-mini-title">
+⏱️ Study Pomodoro
+</h5>
+
+<select id="studySubjectSelect" class="mb-10">
+<option value="">Select Subject</option>
+</select>
+
+<button class="primary-full-btn" onclick="openPomoModal()">
+🍅 Start Study Session
+</button>
+
+</div>
+
+</div>
+
+<!-- Journal Page -->
+<div id="page-journal" class="page-section">
+
+<div class="page-header">
+<button class="back-btn" onclick="switchPage('more')">← Back</button>
+<h2 class="page-heading">📓 Daily Journal</h2>
+</div>
+
+<div class="journal-stats">
+
+<div class="journal-card journal-orange">
+<h3 id="journalStreak">0🔥</h3>
+<p>STREAK</p>
+</div>
+
+<div class="journal-card journal-blue">
+<h3 id="journalTotalEntries">0</h3>
+<p>ENTRIES</p>
+</div>
+
+<div class="journal-card journal-green">
+<h3 id="journalLongestStreak">0</h3>
+<p>BEST STREAK</p>
+</div>
+
+</div>
+<!-- Journal Prompt -->
+<div class="journal-prompt-card" onclick="usePrompt()">
+<p class="journal-prompt-title">✨ Today's Prompt (tap to use)</p>
+<p id="journalPromptText" class="journal-prompt-text">Loading...</p>
+</div>
+
+<!-- Journal Editor -->
+<div class="journal-editor">
+
+<div class="journal-header">
+<span id="journalTodayLabel" class="journal-date-label">Today</span>
+
+<div class="journal-mood-row">
+<button onclick="logMood(0)" title="Great">😄</button>
+<button onclick="logMood(1)" title="Good">😊</button>
+<button onclick="logMood(2)" title="Okay">😐</button>
+<button onclick="logMood(3)" title="Sad">😔</button>
+<button onclick="logMood(4)" title="Bad">😢</button>
+</div>
+
+</div>
+
+<textarea id="journalEntryInput" class="journal-textarea" placeholder="Write your thoughts for today... ✍️"></textarea>
+
+<input type="text" id="journalTagsInput" placeholder="🏷️ Tags (comma separated, e.g. work, gratitude)">
+
+<button class="primary-btn mt-8" onclick="saveJournalEntry()">
+Save Entry 💾
+</button>
+
+</div>
+
+<div class="journal-search-wrap">
+
+<input type="text" id="journalSearchInput" placeholder="🔍 Search entries..." oninput="renderJournalEntries()">
+
+<div id="journalTagFilters" class="tag-filter-row"></div>
+
+</div>
+
+<div id="journalEntriesContainer"></div>
+
+</div>
+
+<div id="remindersList" class="hidden"></div>
+
+<div class="bottom-nav">
+
+<div id="nav-home" class="nav-item active" onclick="switchPage('home')">
+<span class="icon">🏠</span>Home
+</div>
+
+<div id="nav-add" class="nav-item" onclick="switchPage('add')">
+<span class="icon">➕</span>Add
+</div>
+
+<div id="nav-more" class="nav-item nav-relative" onclick="switchPage('more')">
+<span class="icon">⚡</span>More
+<span id="notifNavBadge" class="nav-badge hidden">0</span>
+</div>
+
+<div id="nav-settings" class="nav-item" onclick="switchPage('settings')">
+<span class="icon">⚙️</span>Settings
+</div>
+
+</div>
+<!-- Floating FAB -->
+<div id="fabBackdrop" class="fab-backdrop" onclick="closeFabMenu()"></div>
+
+<button id="fabItemVoice" class="fab-speed-item" onclick="fabAction('voice')" title="Voice Assistant">🎙️</button>
+
+<button id="fabItemRecommend" class="fab-speed-item" onclick="fabAction('recommend')" title="AI Ideas">✨</button>
+
+<button id="fabItemSearch" class="fab-speed-item" onclick="fabAction('search')" title="Search">🔍</button>
+
+<button id="fabItemChat" class="fab-speed-item" onclick="fabAction('chat')" title="AI Assistant">🤖</button>
+
+<button id="mainFabBtn" class="main-fab" onclick="toggleFabMenu()">➕</button>
+
+<!-- Matrix Modal -->
+<div id="matrixModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('matrixModal')">✖</span>
+
+<h2 class="modal-title-center">🔲 Eisenhower Matrix</h2>
+
+<div class="matrix-grid">
+
+<div class="matrix-card matrix-red">
+<h4>🔴 Do First</h4>
+<div id="q1Tasks"></div>
+</div>
+
+<div class="matrix-card matrix-yellow">
+<h4>🟡 Schedule</h4>
+<div id="q2Tasks"></div>
+</div>
+
+<div class="matrix-card matrix-green">
+<h4>🟢 Delegate</h4>
+<div id="q3Tasks"></div>
+</div>
+
+<div class="matrix-card matrix-blue">
+<h4>🔵 Eliminate</h4>
+<div id="q4Tasks"></div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<!-- Morning Briefing -->
+<div id="briefingModal" class="modal-overlay">
+
+<div class="modal-content text-center">
+
+<span class="close-modal-btn" onclick="closeModal('briefingModal')">✖</span>
+
+<h1 class="emoji-title">🌅</h1>
+
+<h2 class="primary-title">
+Good Morning!
+</h2>
+
+<div class="brief-card">
+
+<h4>
+🎯 Tasks Scheduled:
+<span id="briefingTaskCount" class="primary-text">0</span>
+</h4>
+
+<h4>
+🔥 Habits Pending:
+<span id="briefingHabitCount" class="orange-text">0</span>
+</h4>
+
+</div>
+
+<button class="add-btn" onclick="closeModal('briefingModal')">
+Start My Day
+</button>
+
+</div>
+
+</div>
+
+<!-- Pro Modal -->
+<div id="proModal" class="modal-overlay">
+
+<div class="modal-content text-center">
+
+<span class="close-modal-btn" onclick="closeModal('proModal')">✖</span>
+
+<h1 class="emoji-title">👑</h1>
+
+<h2 class="gold-title">
+Master PRO
+</h2>
+
+<ul class="pro-list">
+<li>✨ Exclusive Gold Theme</li>
+<li>👑 PRO Badge on profile</li>
+<li>🪄 Unlimited AI Assistant</li>
+<li>☁️ Advanced Backup</li>
+</ul>
+
+<button class="pro-btn" onclick="activatePro()">
+Upgrade for $4.99/mo
+</button>
+
+<p class="demo-note">
+(This is a demo. Clicking upgrades for free!)
+</p>
+
+</div>
+
+</div>
+
+<!-- Analytics -->
+<div id="analyticsModal" class="modal-overlay">
+
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('analyticsModal')">✖</span>
+
+<h2 class="modal-title">
+📊 Report
+</h2>
+
+<div class="report-toggle">
+<button id="reportBtn-week" class="active" onclick="setReportPeriod('week')">📅 Weekly</button>
+<button id="reportBtn-month" onclick="setReportPeriod('month')">🗓️ Monthly</button>
+</div>
+
+<div class="stats-grid">
+
+<div class="stat-card">
+<h5>Total Tasks</h5>
+<h2 id="statTotalTasks">0</h2>
+</div>
+
+<div class="stat-card success">
+<h5>Completed</h5>
+<h2 id="statCompletedTasks">0</h2>
+</div>
+
+</div>
+
+<div class="chart-card">
+<canvas id="productivityChart" width="400" height="200"></canvas>
+</div>
+
+</div>
+
+</div>
+<!-- Extended Report -->
+<div id="extendedReportStats" class="report-card"></div>
+
+<div class="report-card">
+<h5 class="section-mini-title">🔥 Productivity Heatmap (12 Weeks)</h5>
+
+<div class="heatmap-wrap">
+<div id="productivityHeatmap" class="heatmap-grid"></div>
+</div>
+
+<div class="heatmap-legend">
+<span>Less</span>
+<span class="heatmap-cell heat-0"></span>
+<span class="heatmap-cell heat-1"></span>
+<span class="heatmap-cell heat-2"></span>
+<span class="heatmap-cell heat-3"></span>
+<span>More</span>
+</div>
+</div>
+
+<div class="report-card">
+<h5 class="section-mini-title">🔮 Goal Prediction</h5>
+<div id="goalPredictionContainer"></div>
+</div>
+
+<button class="review-btn" onclick="generateAIReview()">
+🪄 AI Performance Review
+</button>
+
+<div id="aiReviewOutput" class="review-output"></div>
+
+</div>
+</div>
+
+<!-- Leaderboard -->
+<div id="leaderboardModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('leaderboardModal')">✖</span>
+
+<h2 class="modal-title">🏆 Leaderboard</h2>
+
+<div id="leaderboardContainer" class="report-card min100">
+<p class="loading-text">
+Loading Top Users...
+</p>
+</div>
+
+</div>
+</div>
+
+<!-- Calendar -->
+<div id="fullCalendarModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('fullCalendarModal')">✖</span>
+
+<h2 class="modal-title-center">🗓️ Calendar</h2>
+
+<div class="calendar-header">
+
+<button class="nav-btn" onclick="changeMonth(-1)">Prev</button>
+
+<h3 id="calMonthDisplay">Month</h3>
+
+<button class="nav-btn" onclick="changeMonth(1)">Next</button>
+
+</div>
+
+<div class="calendar-weekdays">
+<div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+</div>
+
+<div id="fullCalendarGrid" class="calendar-grid"></div>
+
+</div>
+</div>
+
+<!-- Pomodoro -->
+<div id="pomodoroModal" class="modal-overlay">
+
+<div class="modal-content text-center">
+
+<span class="close-modal-btn" onclick="closeModal('pomodoroModal');if(document.body.classList.contains('zen-mode'))toggleZenMode();">✖</span>
+
+<h2 class="modal-title">🍅 Focus Timer</h2>
+
+<select id="pomoTaskSelect" class="pomo-select">
+<option value="">🎯 Select Task (Optional)</option>
+</select>
+
+<select id="pomoTimeSelect" class="pomo-select mt10" onchange="resetPomo()">
+<option value="1500">⏳ 25 Min</option>
+<option value="3000">⏳ 50 Min</option>
+<option value="300">☕ 5 Min Break</option>
+</select>
+
+<div id="pomodoroDisplay" class="pomo-display">
+25:00
+</div>
+
+<div class="pomo-buttons">
+<button class="add-btn green" onclick="startPomo()">Start</button>
+<button class="add-btn orange" onclick="pausePomo()">Pause</button>
+<button class="add-btn gray" onclick="resetPomo()">Reset</button>
+</div>
+
+<button class="focus-btn" onclick="openFocusModeFromHome();closeModal('pomodoroModal');">
+🎯 Enter Full Focus Mode
+</button>
+
+</div>
+</div>
+<!-- Projects -->
+<div id="projectsModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('projectsModal')">✖</span>
+
+<h2 class="modal-title">📁 Projects / Folders</h2>
+
+<div class="project-add-row">
+<input id="newProjectName" type="text" placeholder="Project name..." class="flex1">
+
+<input id="newProjectEmoji" type="text" placeholder="📁" class="emoji-input">
+
+<input id="newProjectColor" type="color" value="#007aff" class="color-input">
+
+<button class="primary-btn" onclick="addProject()">Add</button>
+</div>
+
+<div id="projectsListContainer">
+<p class="empty-text">No projects yet</p>
+</div>
+
+</div>
+</div>
+
+<!-- Share Task -->
+<div id="shareTaskModal" class="modal-overlay">
+<div class="modal-content text-center">
+
+<span class="close-modal-btn" onclick="closeModal('shareTaskModal')">✖</span>
+
+<h3 id="shareTaskTitle">📤 Share Task</h3>
+
+<p class="sub-text">
+Enter the email of the family member or friend
+</p>
+
+<input id="shareEmailInput" type="email" placeholder="friend@email.com" class="text-center">
+
+<button class="add-btn purple" onclick="shareTaskWithFamily()">
+📤 Share Task
+</button>
+
+</div>
+</div>
+
+<!-- Shared With Me -->
+<div id="sharedWithMeModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('sharedWithMeModal')">✖</span>
+
+<h2 class="modal-title">📥 Shared With Me</h2>
+
+<div id="sharedTasksContainer">
+<p class="empty-text pad20">
+Loading...
+</p>
+</div>
+
+</div>
+</div>
+
+<!-- AI Assistant -->
+<div id="aiChatModal" class="modal-overlay">
+
+<div class="modal-content ai-chat-modal">
+
+<span class="close-modal-btn" onclick="closeModal('aiChatModal')">✖</span>
+
+<h2 class="modal-title">🤖 AI Assistant</h2>
+
+<div id="aiChatMessages" class="chat-messages">
+
+<div class="chat-bubble ai">
+Hi! I can plan your day, fix overdue tasks, or answer questions about your reminders & habits. 🪄
+</div>
+
+</div>
+
+<div class="chat-actions">
+
+<button onclick="aiQuickAction('plan')" class="chip blue">
+🪄 Plan My Day
+</button>
+
+<button onclick="aiQuickAction('reschedule')" class="chip orange">
+🔄 Fix Overdue
+</button>
+
+<button onclick="aiQuickAction('summary')" class="chip green">
+📊 Summary
+</button>
+
+</div>
+
+<div class="chat-input-row">
+
+<input
+id="aiChatInput"
+type="text"
+placeholder="Ask anything about your tasks..."
+onkeypress="if(event.key==='Enter')sendAIChatMessage();"
+>
+
+<button class="send-btn" onclick="sendAIChatMessage()">
+➤
+</button>
+
+</div>
+
+</div>
+</div>
+<!-- Family Calendar -->
+<div id="familyCalendarModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('familyCalendarModal')">✖</span>
+
+<h2 class="modal-title">👨‍👩‍👧 Family Calendar</h2>
+
+<p class="sub-text">
+Tasks shared between you & family members
+</p>
+
+<div id="familyContainer">
+<p class="empty-text pad20">Loading...</p>
+</div>
+
+</div>
+</div>
+
+<!-- Habit Details -->
+<div id="habitDetailModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('habitDetailModal')">✖</span>
+
+<h2 id="habitDetailTitle" class="modal-title">
+📈 Habit
+</h2>
+
+<div id="habitScoreCircle" class="habit-score-circle habit-score">
+0
+</div>
+
+<p class="section-caption">
+Habit Score
+</p>
+
+<div class="habit-stats">
+
+<div class="habit-card">
+<h5>Streak</h5>
+<h3 id="habitDetailStreak">0</h3>
+</div>
+
+<div class="habit-card">
+<h5>Best</h5>
+<h3 id="habitDetailBest">0</h3>
+</div>
+
+<div class="habit-card">
+<h5>30d Rate</h5>
+<h3 id="habitDetailRate">0%</h3>
+</div>
+
+</div>
+
+<h5 class="section-title">
+📅 This Month — Habit Calendar
+</h5>
+
+<div class="cal-weekdays">
+<div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+</div>
+
+<div id="habitCalGrid" class="cal-grid mb20"></div>
+
+<h5 class="section-title">
+📊 Habit Graph — Last 8 Weeks
+</h5>
+
+<div class="card-box">
+<canvas id="habitGraphChart" height="120"></canvas>
+</div>
+
+<h5 class="section-title">
+⚠️ Missed Habit Analysis (30 days)
+</h5>
+
+<div id="habitMissedAnalysis" class="warning-box"></div>
+
+</div>
+</div>
+
+<!-- Kanban Board -->
+<div id="kanbanModal" class="modal-overlay">
+<div class="modal-content kanban-modal">
+
+<span class="close-modal-btn" onclick="closeModal('kanbanModal')">✖</span>
+
+<h2 class="modal-title">
+🗂️ Kanban Board
+</h2>
+
+<p class="section-caption">
+Drag cards between columns ↔️
+</p>
+
+<div class="kanban-board">
+
+<div class="kanban-column">
+<div class="kanban-column-header">
+<span>📋 To Do</span>
+<span id="kanbanCountTodo">0</span>
+</div>
+<div id="kanbanColTodo" class="kanban-col-list" data-col="todo"></div>
+</div>
+
+<div class="kanban-column">
+<div class="kanban-column-header">
+<span>⚡ In Progress</span>
+<span id="kanbanCountInprogress">0</span>
+</div>
+<div id="kanbanColInprogress" class="kanban-col-list" data-col="inprogress"></div>
+</div>
+
+<div class="kanban-column">
+<div class="kanban-column-header">
+<span>✅ Done</span>
+<span id="kanbanCountDone">0</span>
+</div>
+<div id="kanbanColDone" class="kanban-col-list" data-col="done"></div>
+</div>
+
+</div>
+
+</div>
+</div>
+<!-- Project Details -->
+<div id="projectDetailModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('projectDetailModal')">✖</span>
+
+<h2 id="projectDetailTitle" class="modal-title">
+📁 Project
+</h2>
+
+<div id="projectDetailProgress" class="mb15"></div>
+
+<h5 class="section-title">
+📈 Timeline
+</h5>
+
+<div class="timeline-wrap">
+<div id="projectTimeline" class="timeline-track"></div>
+</div>
+
+<h5 class="section-title mt15">
+🏁 Milestones
+</h5>
+
+<div class="row gap8 mb12">
+
+<input
+id="milestoneNameInput"
+type="text"
+placeholder="Milestone name"
+class="flex15"
+>
+
+<input
+id="milestoneDateInput"
+type="date"
+class="flex1"
+>
+
+<button class="primary-btn" onclick="addMilestone()">
+Add
+</button>
+
+</div>
+
+<div id="milestonesContainer"></div>
+
+</div>
+</div>
+
+<!-- Shared Workspace -->
+<div id="workspaceModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('workspaceModal')">✖</span>
+
+<h2 class="modal-title">
+👥 Shared Workspace
+</h2>
+
+<p class="sub-text">
+A shared task list for family or team — anyone with the code can add & check off items.
+</p>
+
+<div id="workspaceSetup">
+
+<label class="label-title">Create New</label>
+
+<div class="row gap8 mb16">
+
+<input
+id="workspaceNameInput"
+type="text"
+placeholder="e.g. Home, Team Alpha"
+class="flex1"
+>
+
+<button class="primary-btn" onclick="createWorkspace()">
+Create
+</button>
+
+</div>
+
+<label class="label-title">Join Existing</label>
+
+<div class="row gap8">
+
+<input
+id="workspaceJoinCode"
+type="text"
+placeholder="Enter 6-letter code"
+class="flex1 uppercase"
+>
+
+<button class="purple-btn" onclick="joinWorkspace()">
+Join
+</button>
+
+</div>
+
+</div>
+
+<div id="workspaceActive" style="display:none;">
+
+<div class="workspace-header">
+
+<div>
+
+<h3 id="workspaceActiveName"></h3>
+
+<p class="workspace-info">
+Code:
+<b id="workspaceActiveCode"></b>
+·
+<span id="workspaceMemberCount"></span>
+members
+</p>
+
+</div>
+
+<button class="danger-btn" onclick="leaveWorkspace()">
+Leave
+</button>
+
+</div>
+
+<div class="row gap8 mb12">
+
+<input
+id="workspaceTaskInput"
+type="text"
+placeholder="Add shared task..."
+class="flex1"
+onkeypress="if(event.key==='Enter')addWorkspaceTask();"
+>
+
+<button class="primary-btn" onclick="addWorkspaceTask()">
+Add
+</button>
+
+</div>
+
+<div id="workspaceTasksContainer"></div>
+
+<button class="refresh-btn" onclick="syncWorkspace()">
+🔄 Refresh
+</button>
+
+</div>
+
+</div>
+</div>
+<!-- Shift Schedule -->
+<div id="shiftModal" class="modal-overlay">
+<div class="modal-content">
+
+<span class="close-modal-btn" onclick="closeModal('shiftModal')">✖</span>
+
+<h2 class="modal-title">🔄 Shift Schedule</h2>
+
+<div class="cal-view-toggle">
+<button id="shifttab-setup" class="cal-view-btn shift-view-btn active" onclick="setShiftTab('setup')">⚙️ Setup</button>
+<button id="shifttab-calendar" class="cal-view-btn shift-view-btn" onclick="setShiftTab('calendar')">📅 Calendar</button>
+<button id="shifttab-summary" class="cal-view-btn shift-view-btn" onclick="setShiftTab('summary')">📊 Summary</button>
+</div>
+
+<!-- Setup -->
+<div id="shiftTabSetup">
+
+<h5 class="section-title">Shift Types</h5>
+
+<div id="shiftTypesContainer" class="mb10"></div>
+
+<div class="row gap6 wrap mb6">
+<input id="newShiftName" class="flex2" type="text" placeholder="Name (e.g. Morning)">
+<input id="newShiftEmoji" class="emoji-input-sm" type="text" placeholder="🌅">
+<input id="newShiftColor" class="color-input-sm" type="color" value="#ff9500">
+</div>
+
+<div class="row gap6 mb6">
+<input id="newShiftStart" class="flex1" type="time">
+<input id="newShiftEnd" class="flex1" type="time">
+</div>
+
+<div class="row gap6 mb6">
+<input id="newShiftRate" class="flex1" type="number" placeholder="₹/hour (optional)">
+<button class="primary-btn flex1" onclick="addShiftType()">Add</button>
+</div>
+
+<p class="hint-text">
+💡 "Off day" માટે time fields blank રાખો. Hourly rate set કરો તો monthly income auto-calculate થશે.
+</p>
+
+<h5 class="section-title">Rotation Pattern</h5>
+
+<p class="hint-text">
+Tap shift chips below to build your repeating cycle.
+</p>
+
+<div id="shiftPatternBuilder" class="row gap6 wrap mb10"></div>
+
+<div id="shiftPatternSequence" class="pattern-box"></div>
+
+<label class="label-title">
+Cycle Day 1 starts on:
+</label>
+
+<input id="shiftPatternStartDate" type="date" onchange="saveShiftPattern()" class="mb15">
+
+<div class="settings-box">
+
+<div class="toggle-row">
+<span>🔔 Auto Shift Reminders</span>
+<input id="shiftReminderToggle" type="checkbox" onchange="saveShiftReminderSettings()">
+</div>
+
+<div id="shiftReminderMinutesWrap" style="display:none;">
+
+<label class="small-label">
+Remind me before shift starts:
+</label>
+
+<select id="shiftReminderMinutes" onchange="saveShiftReminderSettings()">
+<option value="30">30 min</option>
+<option value="60" selected>1 hour</option>
+<option value="90">1.5 hours</option>
+<option value="120">2 hours</option>
+</select>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Calendar -->
+<div id="shiftTabCalendar" style="display:none;">
+
+<div class="cal-header">
+<button class="cal-nav-btn" onclick="changeShiftCalMonth(-1)">◀</button>
+<h3 id="shiftCalMonthDisplay">Month Year</h3>
+<button class="cal-nav-btn" onclick="changeShiftCalMonth(1)">▶</button>
+</div>
+
+<div class="cal-weekdays">
+<div>Sun</div><div>Mon</div><div>Tue</div>
+<div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+</div>
+
+<div id="shiftCalGrid" class="cal-grid"></div>
+
+<div id="shiftCalLegend" class="legend-row"></div>
+
+<p class="hint-text center">
+Tap any day to override its shift 👆 (📌 = manually set, 📝 = has note)
+</p>
+
+</div>
+</div>
+</div>
+<!-- SUMMARY TAB -->
+<div id="shiftTabSummary" class="hidden">
+    <div class="cal-header">
+        <button class="cal-nav-btn" onclick="changeShiftSummaryMonth(-1)">◀</button>
+        <h3 id="shiftSummaryMonthDisplay">Month Year</h3>
+        <button class="cal-nav-btn" onclick="changeShiftSummaryMonth(1)">▶</button>
+    </div>
+
+    <div id="shiftSummaryTypeCounts" class="mb-15"></div>
+
+    <div class="stats-grid-2">
+        <div class="summary-card blue">
+            <h3 id="shiftSummaryHours">0h</h3>
+            <p>TOTAL HOURS</p>
+        </div>
+
+        <div class="summary-card green">
+            <h3 id="shiftSummaryIncome">₹0</h3>
+            <p>EST. INCOME</p>
+        </div>
+    </div>
+
+    <button class="btn btn-success btn-full" onclick="addShiftIncomeToFinance()">
+        💰 Add This Month's Income to Finance
+    </button>
+</div>
+</div>
+</div>
+
+<!-- Shift Override Modal -->
+<div class="modal-overlay" id="shiftOverrideModal">
+    <div class="modal-content modal-center">
+        <span class="close-modal-btn" onclick="closeModal('shiftOverrideModal')">✖</span>
+
+        <h3 id="shiftOverrideDateLabel" class="modal-title">
+            Set Shift
+        </h3>
+
+        <div id="shiftOverrideOptions" class="shift-options"></div>
+
+        <label class="input-label">
+            📝 Note for this day (optional)
+        </label>
+
+        <textarea
+            id="shiftNoteInput"
+            class="note-textarea"
+            placeholder="e.g. Covering for Raj, extra OT shift...">
+        </textarea>
+
+        <button class="btn btn-primary btn-full mt-10" onclick="saveShiftNote()">
+            Save Note
+        </button>
+    </div>
+</div>
+
+<!-- Medicine Scheduler Modal -->
+<div class="modal-overlay" id="medicineModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('medicineModal')">✖</span>
+
+        <h2 class="modal-title">
+            💊 Medicine Scheduler
+        </h2>
+
+        <div class="flex-row wrap gap-8 mb-8">
+            <input
+                type="text"
+                id="medNameInput"
+                placeholder="Medicine name"
+                class="flex-2">
+
+            <input
+                type="text"
+                id="medDoseInput"
+                placeholder="Dose (e.g. 1 tab)"
+                class="flex-1">
+        </div>
+
+        <div class="flex-row wrap gap-8 mb-15">
+            <input
+                type="time"
+                id="medTimeInput"
+                class="flex-1">
+
+            <select
+                id="medFreqInput"
+                class="flex-1">
+                <option value="daily">Daily</option>
+                <option value="morning">Morning Only</option>
+                <option value="evening">Evening Only</option>
+                <option value="sos">SOS (as needed)</option>
+            </select>
+
+            <button
+                class="btn btn-purple"
+                onclick="addMedicine()">
+                Add
+            </button>
+        </div>
+
+        <div id="medicineList"></div>
+    </div>
+</div>
+<!-- Vehicle Reminder Modal -->
+<div class="modal-overlay" id="vehicleModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('vehicleModal')">✖</span>
+
+        <h2 class="modal-title">🚗 Vehicle</h2>
+
+        <div class="cal-view-toggle">
+            <button class="cal-view-btn active" id="vehtab-reminders" onclick="setVehTab('reminders')">🔔 Reminders</button>
+            <button class="cal-view-btn" id="vehtab-log" onclick="setVehTab('log')">📒 Log</button>
+        </div>
+
+        <div id="vehTabReminders">
+            <div class="flex-row wrap gap-8 mb-8">
+                <input type="text" id="vehNameInput" placeholder="Vehicle (e.g. My Car)" class="flex-2">
+                <input type="text" id="vehReminderInput" placeholder="Reminder (e.g. PUC, Oil Change)" class="flex-2">
+            </div>
+
+            <div class="flex-row gap-8 mb-15">
+                <input type="date" id="vehDueInput" class="flex-1">
+
+                <select id="vehTypeInput" class="flex-1">
+                    <option>🛢️ Oil Change</option>
+                    <option>🔧 Service</option>
+                    <option>📋 PUC</option>
+                    <option>📄 Insurance</option>
+                    <option>🪪 RC Renewal</option>
+                    <option>⛽ Fuel</option>
+                    <option>📦 Other</option>
+                </select>
+
+                <button class="btn btn-warning" onclick="addVehicleReminder()">
+                    Add
+                </button>
+            </div>
+
+            <div id="vehicleReminderList"></div>
+        </div>
+
+        <div id="vehTabLog" class="hidden">
+            <div id="vlogSummary" class="summary-box mb-15"></div>
+
+            <div class="flex-row wrap gap-8 mb-8">
+                <input type="text" id="vlogVehInput" placeholder="Vehicle name" class="flex-1-5">
+
+                <select id="vlogTypeInput" class="flex-1">
+                    <option>⛽ Fuel</option>
+                    <option>🔧 Service</option>
+                    <option>🛠️ Repair</option>
+                    <option>📦 Other</option>
+                </select>
+            </div>
+
+            <div class="flex-row gap-8 mb-8">
+                <input type="number" id="vlogCostInput" placeholder="₹ Cost" class="flex-1">
+                <input type="number" id="vlogOdoInput" placeholder="Odometer (km)" class="flex-1">
+            </div>
+
+            <div class="flex-row gap-8 mb-15">
+                <input type="date" id="vlogDateInput" class="flex-1">
+
+                <button class="btn btn-success" onclick="addVehicleLog()">
+                    Add
+                </button>
+            </div>
+
+            <div id="vehicleLogList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Warranty Tracker Modal -->
+<div class="modal-overlay" id="warrantyModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('warrantyModal')">✖</span>
+
+        <h2 class="modal-title">🛡️ Warranty Tracker</h2>
+
+        <div class="flex-row wrap gap-8 mb-8">
+            <input type="text" id="warrItemInput" placeholder="Product (e.g. Samsung TV)" class="flex-2">
+
+            <select id="warrCatInput" class="flex-1">
+                <option>📱 Electronics</option>
+                <option>🏠 Appliance</option>
+                <option>🪑 Furniture</option>
+                <option>🚗 Vehicle</option>
+                <option>⌚ Gadget</option>
+                <option>📦 Other</option>
+            </select>
+        </div>
+
+        <div class="flex-row wrap gap-8 mb-8">
+            <input type="date" id="warrPurchaseInput" class="flex-1">
+            <input type="number" id="warrMonthsInput" placeholder="Warranty (months)" class="flex-1">
+        </div>
+
+        <div class="flex-row gap-8 mb-15">
+            <input type="text" id="warrSellerInput" placeholder="Store/Seller (optional)" class="flex-1">
+            <input type="number" id="warrPriceInput" placeholder="₹ Price" class="flex-1">
+
+            <button class="btn btn-success" onclick="addWarranty()">
+                Add
+            </button>
+        </div>
+
+        <div id="warrantyList"></div>
+    </div>
+</div>
+<!-- Shopping Modal -->
+<div class="modal-overlay" id="shoppingModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('shoppingModal')">✖</span>
+
+        <h2 class="modal-title">🛒 Shopping List</h2>
+
+        <div class="flex-row gap-8 mb-8">
+            <input
+                type="text"
+                id="shopNameInput"
+                class="flex-1"
+                placeholder="Select list name">
+
+            <button
+                class="btn btn-primary"
+                onclick="addShopList()">
+                + List
+            </button>
+        </div>
+
+        <select
+            id="shopListSelect"
+            class="mb-10"
+            onchange="renderShoppingItems()">
+        </select>
+
+        <div class="flex-row gap-8 mb-15">
+            <input
+                type="text"
+                id="shopItemInput"
+                class="flex-1"
+                placeholder="Add item..."
+                onkeypress="if(event.key==='Enter') addShopItem();">
+
+            <input
+                type="number"
+                id="shopQtyInput"
+                class="qty-input"
+                placeholder="Qty">
+
+            <button
+                class="btn btn-success"
+                onclick="addShopItem()">
+                Add
+            </button>
+        </div>
+
+        <div id="shoppingItems"></div>
+
+        <div id="shoppingTotal" class="shopping-total"></div>
+    </div>
+</div>
+
+<!-- Travel Modal -->
+<div class="modal-overlay" id="travelModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('travelModal')">✖</span>
+
+        <h2 class="modal-title">✈️ Travel Planner</h2>
+
+        <div class="cal-view-toggle">
+            <button
+                class="cal-view-btn active"
+                id="traveltab-trips"
+                onclick="setTravelTab('trips')">
+                🗺️ Trips
+            </button>
+
+            <button
+                class="cal-view-btn"
+                id="traveltab-packing"
+                onclick="setTravelTab('packing')">
+                🧳 Packing
+            </button>
+        </div>
+
+        <div id="travelTabTrips">
+            <div class="flex-row wrap gap-8 mb-8">
+                <input
+                    type="text"
+                    id="tripNameInput"
+                    class="flex-2"
+                    placeholder="Trip name">
+
+                <input
+                    type="text"
+                    id="tripDestInput"
+                    class="flex-2"
+                    placeholder="Destination">
+            </div>
+
+            <div class="flex-row gap-8 mb-15">
+                <input
+                    type="date"
+                    id="tripFromInput"
+                    class="flex-1">
+
+                <input
+                    type="date"
+                    id="tripToInput"
+                    class="flex-1">
+
+                <button
+                    class="btn btn-primary"
+                    onclick="addTrip()">
+                    Add
+                </button>
+            </div>
+
+            <div id="tripsList"></div>
+        </div>
+
+        <div id="travelTabPacking" class="hidden">
+            <div class="flex-row gap-8 mb-15">
+                <input
+                    type="text"
+                    id="packItemInput"
+                    class="flex-1"
+                    placeholder="Add packing item..."
+                    onkeypress="if(event.key==='Enter') addPackingItem();">
+
+                <select
+                    id="packCatInput"
+                    class="flex-1">
+                    <option>👕 Clothes</option>
+                    <option>🪥 Toiletries</option>
+                    <option>💊 Medicine</option>
+                    <option>📱 Electronics</option>
+                    <option>📄 Documents</option>
+                    <option>📦 Other</option>
+                </select>
+
+                <button
+                    class="btn btn-success"
+                    onclick="addPackingItem()">
+                    Add
+                </button>
+            </div>
+
+            <div id="packingList"></div>
+        </div>
+    </div>
+</div>
+<!-- Attendance Tracker Modal -->
+<div class="modal-overlay" id="attendanceModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('attendanceModal')">✖</span>
+
+        <h2 class="modal-title">📋 Attendance Tracker</h2>
+
+        <div class="flex-row gap-8 mb-15">
+            <input
+                type="text"
+                id="attSubjectInput"
+                class="flex-1"
+                placeholder="Subject / Course">
+
+            <button
+                class="btn btn-primary"
+                onclick="addAttSubject()">
+                Add
+            </button>
+        </div>
+
+        <div id="attSubjectList"></div>
+    </div>
+</div>
+
+<!-- Life Events Timeline Modal -->
+<div class="modal-overlay" id="lifeEventsModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('lifeEventsModal')">✖</span>
+
+        <h2 class="modal-title">🌟 Life Events Timeline</h2>
+
+        <div class="flex-row wrap gap-8 mb-8">
+            <input
+                type="text"
+                id="lifeEventNameInput"
+                class="flex-2"
+                placeholder="Event (e.g. Graduation)">
+
+            <input
+                type="text"
+                id="lifeEventEmojiInput"
+                class="emoji-input"
+                placeholder="🎓">
+        </div>
+
+        <div class="flex-row gap-8 mb-15">
+            <input
+                type="date"
+                id="lifeEventDateInput"
+                class="flex-1">
+
+            <input
+                type="color"
+                id="lifeEventColorInput"
+                class="color-input"
+                value="#007aff">
+
+            <button
+                class="btn btn-primary"
+                onclick="addLifeEvent()">
+                Add
+            </button>
+        </div>
+
+        <div id="lifeEventsContainer"></div>
+    </div>
+</div>
+
+<!-- Subscription Tracker Modal -->
+<div class="modal-overlay" id="subModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('subModal')">✖</span>
+
+        <h2 class="modal-title">🔄 Subscriptions</h2>
+
+        <div id="subSummary" class="summary-box mb-15"></div>
+
+        <div class="flex-row wrap gap-8 mb-8">
+            <input
+                type="text"
+                id="subNameInput"
+                class="flex-2"
+                placeholder="Netflix, Spotify...">
+
+            <input
+                type="number"
+                id="subAmtInput"
+                class="flex-1"
+                placeholder="₹/month">
+        </div>
+
+        <div class="flex-row gap-8 mb-15">
+            <input
+                type="date"
+                id="subRenewInput"
+                class="flex-1">
+
+            <select
+                id="subFreqInput"
+                class="flex-1">
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+                <option value="weekly">Weekly</option>
+            </select>
+
+            <button
+                class="btn btn-purple"
+                onclick="addSubscription()">
+                Add
+            </button>
+        </div>
+
+        <div id="subList"></div>
+    </div>
+</div>
+<!-- Secret Space Modal -->
+<div class="modal-overlay" id="secretModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('secretModal')">✖</span>
+
+        <div id="secretLockScreen">
+
+            <h2 class="modal-title center">🔐 Secret Space</h2>
+
+            <p class="modal-subtitle">
+                Enter your secret PIN
+            </p>
+
+            <input
+                type="password"
+                id="secretPinInput"
+                class="secret-pin-input"
+                placeholder="4-digit PIN"
+                maxlength="4"
+                inputmode="numeric"
+                onkeypress="if(event.key==='Enter') unlockSecret();">
+
+            <button
+                class="btn btn-primary btn-full"
+                onclick="unlockSecret()">
+                Unlock 🔓
+            </button>
+
+            <button
+                class="btn btn-light btn-full mt-8"
+                onclick="setupSecretPin()">
+                Set / Change PIN
+            </button>
+
+        </div>
+
+        <div id="secretUnlocked" style="display:none;">
+
+            <h2 class="modal-title">🔐 Secret Space</h2>
+
+            <textarea
+                id="secretNoteInput"
+                class="secret-textarea"
+                placeholder="Your private notes here... 🤫"></textarea>
+
+            <div class="flex-row gap-8">
+
+                <button
+                    class="btn btn-primary flex-1"
+                    onclick="saveSecretNote()">
+                    Save 🔒
+                </button>
+
+                <button
+                    class="btn btn-light flex-1"
+                    onclick="lockSecret()">
+                    Lock
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Weather Modal -->
+<div class="modal-overlay" id="weatherModal">
+    <div class="modal-content center">
+
+        <span class="close-modal-btn" onclick="closeModal('weatherModal')">✖</span>
+
+        <h2 class="modal-title">🌤️ Weather</h2>
+
+        <div class="flex-row gap-8 mb-15">
+
+            <input
+                type="text"
+                id="weatherCityInput"
+                class="flex-1"
+                placeholder="City name (e.g. Surat)">
+
+            <button
+                class="btn btn-primary"
+                onclick="fetchWeather()">
+                Get
+            </button>
+
+        </div>
+
+        <p class="weather-note">
+            Free API: openweathermap.org → get key → Settings → add below
+        </p>
+
+        <input
+            type="text"
+            id="weatherApiKeyInput"
+            placeholder="OpenWeatherMap API Key">
+
+        <button
+            class="btn btn-light btn-full mb-15"
+            onclick="saveWeatherKey()">
+            Save API Key
+        </button>
+
+        <div id="weatherResult"></div>
+
+    </div>
+</div>
+
+<!-- Birthday Tracker Modal -->
+<div class="modal-overlay" id="birthdayModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('birthdayModal')">✖</span>
+
+        <h2 class="modal-title">🎂 Birthday Tracker</h2>
+
+        <div class="flex-row wrap gap-8 mb-8">
+
+            <input
+                type="text"
+                id="bdayNameInput"
+                class="flex-2"
+                placeholder="Name">
+
+            <input
+                type="date"
+                id="bdayDateInput"
+                class="flex-1">
+
+        </div>
+
+        <div class="flex-row gap-8 mb-15">
+
+            <select
+                id="bdayRelInput"
+                class="flex-1">
+                <option>👨‍👩‍👧 Family</option>
+                <option>👫 Friend</option>
+                <option>💼 Colleague</option>
+                <option>💕 Partner</option>
+                <option>📦 Other</option>
+            </select>
+
+            <input
+                type="text"
+                id="bdayEmojiInput"
+                class="emoji-input"
+                placeholder="🎂">
+
+            <button
+                class="btn btn-danger"
+                onclick="addBirthday()">
+                Add
+            </button>
+
+        </div>
+
+        <div id="birthdayList"></div>
+
+    </div>
+</div>
+<!-- Home Management Modal -->
+<div class="modal-overlay" id="homeManagementModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('homeManagementModal')">✖</span>
+
+        <h2 class="modal-title">🏠 Home Management</h2>
+
+        <div class="flex-row wrap gap-8 mb-8">
+
+            <input
+                type="text"
+                id="choreNameInput"
+                class="flex-2"
+                placeholder="Task (e.g. Vacuum living room)">
+
+            <select
+                id="choreFreqInput"
+                class="flex-1">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="once">One-time</option>
+            </select>
+
+        </div>
+
+        <div class="flex-row gap-8 mb-15">
+
+            <select
+                id="choreAreaInput"
+                class="flex-1">
+                <option>🛋️ Living Room</option>
+                <option>🍳 Kitchen</option>
+                <option>🛏️ Bedroom</option>
+                <option>🚿 Bathroom</option>
+                <option>🌿 Garden</option>
+                <option>🏠 General</option>
+            </select>
+
+            <button
+                class="btn btn-success"
+                onclick="addChore()">
+                Add
+            </button>
+
+        </div>
+
+        <div class="flex-row gap-6 mb-12">
+
+            <button id="choreTab-all" class="fin-tab-btn active" onclick="filterChores('all')">All</button>
+            <button id="choreTab-daily" class="fin-tab-btn" onclick="filterChores('daily')">Daily</button>
+            <button id="choreTab-weekly" class="fin-tab-btn" onclick="filterChores('weekly')">Weekly</button>
+            <button id="choreTab-monthly" class="fin-tab-btn" onclick="filterChores('monthly')">Monthly</button>
+
+        </div>
+
+        <div id="choreList"></div>
+
+    </div>
+</div>
+
+<!-- Quick Notes Modal -->
+<div class="modal-overlay" id="quickNotesModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('quickNotesModal')">✖</span>
+
+        <h2 class="modal-title">📝 Quick Notes</h2>
+
+        <div class="flex-row gap-8 mb-10">
+
+            <input
+                type="text"
+                id="quickNoteInput"
+                class="flex-1"
+                placeholder="Type a note..."
+                onkeypress="if(event.key==='Enter') addQuickNote();">
+
+            <select id="quickNoteColor" class="note-color-select">
+                <option value="#fffde7">🟡 Yellow</option>
+                <option value="#e8f5e9">🟢 Green</option>
+                <option value="#e3f2fd">🔵 Blue</option>
+                <option value="#fce4ec">🔴 Pink</option>
+                <option value="#f3e5f5">🟣 Purple</option>
+            </select>
+
+            <button
+                class="btn btn-primary"
+                onclick="addQuickNote()">
+                Add
+            </button>
+
+        </div>
+
+        <input
+            type="text"
+            id="noteSearchInput"
+            placeholder="🔍 Search notes..."
+            oninput="renderQuickNotes()"
+            class="mb-12">
+
+        <div id="quickNotesList"></div>
+
+    </div>
+</div>
+
+<!-- Pomodoro History Modal -->
+<div class="modal-overlay" id="pomoHistoryModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('pomoHistoryModal')">✖</span>
+
+        <h2 class="modal-title">🍅 Focus History</h2>
+
+        <div
+            id="pomoHistSummary"
+            class="stats-grid-3 mb-15">
+        </div>
+
+        <div id="pomoHistList"></div>
+
+    </div>
+</div>
+
+<!-- QR Share Modal -->
+<div class="modal-overlay" id="qrModal">
+    <div class="modal-content center">
+
+        <span class="close-modal-btn" onclick="closeModal('qrModal')">✖</span>
+
+        <h2 class="modal-title">📱 QR Share</h2>
+
+        <p class="modal-subtitle">
+            Share a task or note via QR Code
+        </p>
+
+        <select
+            id="qrTaskSelect"
+            onchange="generateQR()"
+            class="mb-10">
+        </select>
+
+        <div id="qrCodeDisplay" class="qr-display"></div>
+
+        <p id="qrTaskText" class="qr-text"></p>
+
+        <button
+            class="btn btn-primary mt-12"
+            onclick="downloadQR()">
+            ⬇️ Download QR
+        </button>
+
+    </div>
+</div>
+<!-- Finance Charts Modal -->
+<div class="modal-overlay" id="financeChartsModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('financeChartsModal')">✖</span>
+
+        <h2 class="modal-title">📊 Finance Charts</h2>
+
+        <div class="fin-chart-wrap">
+
+            <h5 class="section-title">
+                Expenses by Category
+            </h5>
+
+            <canvas id="expensePieChart" height="220"></canvas>
+
+        </div>
+
+        <div class="fin-chart-wrap">
+
+            <h5 class="section-title">
+                Monthly Income vs Expense (6 months)
+            </h5>
+
+            <canvas id="incomeExpenseChart" height="160"></canvas>
+
+        </div>
+
+        <div id="finInsightsAI" class="info-card"></div>
+
+    </div>
+</div>
+
+<!-- AI Coach Modal -->
+<div class="modal-overlay" id="aiCoachModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('aiCoachModal')">✖</span>
+
+        <h2 class="modal-title">🧠 AI Productivity Coach</h2>
+
+        <div id="aiCoachCard" class="ai-coach-card">
+            <p class="loading-text">
+                Loading your personal coaching report...
+            </p>
+        </div>
+
+        <div class="flex-row wrap gap-8 mb-10">
+
+            <button
+                class="coach-btn productivity"
+                onclick="getAICoachReport('productivity')">
+                📊 Productivity
+            </button>
+
+            <button
+                class="coach-btn habits"
+                onclick="getAICoachReport('habits')">
+                🔥 Habits
+            </button>
+
+            <button
+                class="coach-btn finance"
+                onclick="getAICoachReport('finance')">
+                💰 Finance
+            </button>
+
+        </div>
+
+        <div id="aiCoachDetail" class="info-card min-80"></div>
+
+    </div>
+</div>
+
+<!-- PWA Install Banner -->
+<div id="pwaBanner" class="pwa-banner" style="display:none;">
+
+    <div>
+
+        <b class="pwa-title">
+            📱 Install App
+        </b>
+
+        <br>
+
+        <span class="pwa-subtitle">
+            Add to home screen for best experience
+        </span>
+
+    </div>
+
+    <div class="pwa-banner-btns">
+
+        <button
+            class="pwa-install-btn"
+            onclick="installPWA()">
+            Install
+        </button>
+
+        <button
+            class="pwa-close-btn"
+            onclick="document.getElementById('pwaBanner').style.display='none'">
+            ✖
+        </button>
+
+    </div>
+
+</div>
+
+<!-- Voice Command Overlay -->
+<div id="voiceOverlay" class="voice-overlay">
+
+    <div class="voice-recording voice-icon">
+        🎤
+    </div>
+
+    <h2 class="voice-title">
+        Listening...
+    </h2>
+
+    <p id="voiceTranscript" class="voice-transcript"></p>
+
+    <button
+        class="voice-cancel-btn"
+        onclick="stopVoiceCommand()">
+        Cancel
+    </button>
+
+</div>
+<!-- App Statistics Modal -->
+<div class="modal-overlay" id="appStatsModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('appStatsModal')">✖</span>
+
+        <h2 class="modal-title">📈 App Statistics</h2>
+
+        <div id="appStatsGrid" class="stats-grid-2"></div>
+
+        <div class="info-card mb-15">
+            <canvas id="taskTrendChart" height="140"></canvas>
+        </div>
+
+        <div id="appStatsDetails" class="details-text"></div>
+
+        <button
+            class="export-csv-btn"
+            onclick="exportToCSV()">
+            📊 Export All Data as CSV
+        </button>
+
+    </div>
+</div>
+
+<!-- Automation Rules Modal -->
+<div class="modal-overlay" id="automationModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('automationModal')">✖</span>
+
+        <h2 class="modal-title">⚙️ Automation Rules</h2>
+
+        <p class="modal-subtitle">
+            Set automatic actions that run every day
+        </p>
+
+        <h5 class="section-title">
+            Quick Rules
+        </h5>
+
+        <div id="automationQuickRules" class="mb-20"></div>
+
+        <h5 class="section-title">
+            Custom Rule
+        </h5>
+
+        <div class="flex-row wrap gap-8 mb-8">
+
+            <select id="autoTriggerInput" class="flex-1">
+                <option value="overdue">Task Overdue</option>
+                <option value="budget_exceeded">Budget Exceeded</option>
+                <option value="habit_missed">Habit Missed 2+ days</option>
+                <option value="bill_due">Bill Due in 3 days</option>
+                <option value="birthday_soon">Birthday in 3 days</option>
+            </select>
+
+            <select id="autoActionInput" class="flex-1">
+                <option value="notify">Send Notification</option>
+                <option value="reschedule">Auto-Reschedule</option>
+                <option value="pin">Pin the Task</option>
+                <option value="ai_suggest">AI Suggestion</option>
+            </select>
+
+        </div>
+
+        <button
+            class="btn btn-primary btn-full mb-15"
+            onclick="addAutomationRule()">
+            + Add Rule
+        </button>
+
+        <div id="customRulesList"></div>
+
+        <button
+            class="btn btn-success btn-full mt-5"
+            onclick="runAutomations()">
+            ▶️ Run All Automations Now
+        </button>
+
+    </div>
+</div>
+
+<!-- Notification Centre Modal -->
+<div class="modal-overlay" id="notifCentreModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('notifCentreModal')">✖</span>
+
+        <h2 class="modal-title">🔔 Notification Centre</h2>
+
+        <div class="flex-between mb-12">
+
+            <span
+                id="notifUnreadCount"
+                class="small-muted">
+            </span>
+
+            <button
+                class="btn btn-danger-light btn-sm"
+                onclick="clearAllNotifs()">
+                Clear All
+            </button>
+
+        </div>
+
+        <div id="notifCentreList"></div>
+
+    </div>
+</div>
+<!-- Study Analytics Modal -->
+<div class="modal-overlay" id="studyAnalyticsModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('studyAnalyticsModal')">✖</span>
+
+        <h2 class="modal-title">📖 Study Analytics</h2>
+
+        <div class="stats-grid-2 mb-15">
+
+            <div class="study-stat-card study-blue">
+
+                <h3 id="studyTotalHours" class="study-hours">
+                    0h
+                </h3>
+
+                <p class="study-stat-label">
+                    Total Studied
+                </p>
+
+            </div>
+
+            <div class="study-stat-card study-green">
+
+                <h3 id="studyTopSubject" class="study-subject">
+                    —
+                </h3>
+
+                <p class="study-stat-label">
+                    Top Subject
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="fin-chart-wrap">
+
+            <h5 class="section-title">
+                Hours per Subject
+            </h5>
+
+            <canvas id="studySubjectChart" height="180"></canvas>
+
+        </div>
+
+        <div class="fin-chart-wrap">
+
+            <h5 class="section-title">
+                Daily Study (Last 7 days)
+            </h5>
+
+            <canvas id="studyDailyChart" height="140"></canvas>
+
+        </div>
+
+        <div id="examReadinessContainer"></div>
+
+    </div>
+</div>
+
+<!-- Global Search Modal -->
+<div class="modal-overlay" id="globalSearchModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('globalSearchModal')">✖</span>
+
+        <h2 class="modal-title">🔍 Global Search</h2>
+
+        <input
+            type="text"
+            id="globalSearchInput"
+            placeholder="Search tasks, notes, expenses, journal..."
+            oninput="runGlobalSearch()"
+            autofocus
+            class="mb-10">
+
+        <div id="globalSearchFilters" class="flex-row wrap gap-6 mb-12">
+
+            <button class="fin-tab-btn active" onclick="setGlobalFilter('all',this)">All</button>
+            <button class="fin-tab-btn" onclick="setGlobalFilter('tasks',this)">Tasks</button>
+            <button class="fin-tab-btn" onclick="setGlobalFilter('notes',this)">Notes</button>
+            <button class="fin-tab-btn" onclick="setGlobalFilter('finance',this)">Finance</button>
+            <button class="fin-tab-btn" onclick="setGlobalFilter('journal',this)">Journal</button>
+
+        </div>
+
+        <div id="globalSearchResults" class="search-results"></div>
+
+    </div>
+</div>
+
+<!-- Task Dependencies Modal -->
+<div class="modal-overlay" id="taskDepsModal">
+    <div class="modal-content">
+
+        <span class="close-modal-btn" onclick="closeModal('taskDepsModal')">✖</span>
+
+        <h2 class="modal-title">🔗 Task Dependencies</h2>
+
+        <p class="modal-subtitle">
+            Block a task until another is completed first
+        </p>
+
+        <div class="flex-row wrap gap-8 mb-15">
+
+            <div class="flex-1 min-130">
+
+                <label class="field-label">
+                    This task...
+                </label>
+
+                <select id="depBlockedTask" class="mt-4"></select>
+
+            </div>
+
+            <div class="dep-lock-icon">
+                🔒
+            </div>
+
+            <div class="flex-1 min-130">
+
+                <label class="field-label">
+                    ...needs this done first
+                </label>
+
+                <select id="depRequiredTask" class="mt-4"></select>
+
+            </div>
+
+        </div>
+
+        <button
+            class="btn btn-primary btn-full mb-15"
+            onclick="addDependency()">
+            Add Dependency
+        </button>
+
+        <div id="dependenciesList"></div>
+
+    </div>
+</div>
+<!-- AI Recommendations Modal -->
+<div class="modal-overlay" id="aiRecommendModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('aiRecommendModal')">✖</span>
+
+        <h2 class="modal-title">🤖 AI Recommendations</h2>
+
+        <div class="action-grid-3">
+
+            <button class="btn-ai btn-ai-green" onclick="getAIRecommend('habits')">
+                🔥 Habit Ideas
+            </button>
+
+            <button class="btn-ai btn-ai-blue" onclick="getAIRecommend('tasks')">
+                📋 Task Tips
+            </button>
+
+            <button class="btn-ai btn-ai-orange" onclick="getAIRecommend('finance')">
+                💰 Save More
+            </button>
+
+        </div>
+
+        <div id="aiRecommendOutput" class="ai-output-box">
+            <p class="placeholder-text">
+                Tap a button above to get personalized AI recommendations!
+            </p>
+        </div>
+
+        <div class="mt-15">
+
+            <h5 class="section-title">
+                One-tap AI Actions
+            </h5>
+
+            <button class="btn-full btn-danger mb-8" onclick="aiFixOverdue()">
+                🔄 Auto-Reschedule All Overdue Tasks
+            </button>
+
+            <button class="btn-full btn-primary-light" onclick="aiPlanMyDay();closeModal('aiRecommendModal');openAIChat();">
+                🪄 Plan My Day
+            </button>
+
+        </div>
+    </div>
+</div>
+
+<!-- Health Tips Modal -->
+<div class="modal-overlay" id="healthTipsModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('healthTipsModal')">✖</span>
+
+        <h2 class="modal-title">💪 Daily Health Tips</h2>
+
+        <div id="healthTipContent" class="ai-output-box mb-15">
+            <p class="placeholder-text">
+                Loading personalized health tips...
+            </p>
+        </div>
+
+        <div class="action-grid-4">
+
+            <button class="btn-ai btn-ai-blue" onclick="getHealthTip('sleep')">
+                Sleep
+            </button>
+
+            <button class="btn-ai btn-ai-green" onclick="getHealthTip('nutrition')">
+                Nutrition
+            </button>
+
+            <button class="btn-ai btn-ai-orange" onclick="getHealthTip('exercise')">
+                Exercise
+            </button>
+
+            <button class="btn-ai btn-ai-purple" onclick="getHealthTip('mental')">
+                Mental
+            </button>
+
+        </div>
+
+        <h5 class="section-title">
+            Daily Health Checklist
+        </h5>
+
+        <div id="healthChecklist"></div>
+
+    </div>
+</div>
+
+<!-- Achievement Share Modal -->
+<div class="modal-overlay" id="achievementModal">
+    <div class="modal-content text-center">
+        <span class="close-modal-btn" onclick="closeModal('achievementModal')">✖</span>
+
+        <h2 class="modal-title">
+            Your Achievement
+        </h2>
+
+        <div id="achievementCard" class="achievement-card">
+
+            <div id="achieveBadge" class="achievement-badge">
+                🏆
+            </div>
+
+            <h3 id="achieveTitle" class="achievement-title"></h3>
+
+            <p id="achieveDesc" class="achievement-desc"></p>
+
+            <div class="achievement-footer">
+                Master Reminder App
+            </div>
+
+        </div>
+
+        <button class="btn-full btn-primary mb-8" onclick="copyAchievementText()">
+            Copy to Share
+        </button>
+
+        <button class="btn-full btn-secondary" onclick="closeModal('achievementModal')">
+            Close
+        </button>
+
+    </div>
+</div>
+<!-- Daily Challenge Modal -->
+<div class="modal-overlay" id="dailyChallengeModal">
+    <div class="modal-content text-center">
+        <span class="close-modal-btn" onclick="closeModal('dailyChallengeModal')">✖</span>
+
+        <h2 class="modal-title">
+            Daily Challenge
+        </h2>
+
+        <div id="challengeContent" class="challenge-card">
+            <div id="challengeIcon" class="challenge-icon">
+                ⚡
+            </div>
+
+            <h3 id="challengeTitle" class="challenge-title"></h3>
+
+            <p id="challengeDesc" class="challenge-desc"></p>
+        </div>
+
+        <div class="challenge-actions">
+            <button class="btn-full btn-success" onclick="markChallengeComplete()">
+                Done! +50 XP
+            </button>
+
+            <button class="btn-full btn-secondary" onclick="generateDailyChallenge()">
+                New
+            </button>
+        </div>
+
+        <p id="challengeStatus" class="challenge-status"></p>
+
+    </div>
+</div>
+
+<!-- Focus Mode Overlay -->
+<div id="focusModeOverlay" class="focus-overlay">
+
+    <div class="focus-label">
+        FOCUS MODE
+    </div>
+
+    <div id="focusModeTask" class="focus-task"></div>
+
+    <div id="focusModeTimer" class="focus-timer">
+        25:00
+    </div>
+
+    <div class="focus-actions">
+
+        <button id="focusStartBtn" class="focus-btn-start" onclick="toggleFocusTimer()">
+            Start
+        </button>
+
+        <button class="focus-btn-exit" onclick="exitFocusMode()">
+            Exit
+        </button>
+
+    </div>
+
+    <div class="focus-note">
+        All notifications muted in Focus Mode
+    </div>
+
+</div>
+<!-- Recurring Expense Modal -->
+<div class="modal-overlay" id="recurringExpModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('recurringExpModal')">✖</span>
+
+        <h2 class="modal-title">
+            Recurring Expenses
+        </h2>
+
+        <div class="rec-exp-row">
+            <input type="text" id="recExpName" placeholder="Name (e.g. Netflix)" class="flex-2 min-130">
+            <input type="number" id="recExpAmt" placeholder="Amount" class="flex-1 min-80">
+        </div>
+
+        <div class="rec-exp-row mb-15">
+            <select id="recExpCat" class="flex-1">
+                <option>Food</option>
+                <option>Transport</option>
+                <option>Utilities</option>
+                <option>Subscriptions</option>
+                <option>Rent</option>
+                <option>Other</option>
+            </select>
+
+            <select id="recExpFreq" class="flex-1">
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly" selected>Monthly</option>
+            </select>
+
+            <button class="btn-rec-add" onclick="addRecurringExpense()">
+                Add
+            </button>
+        </div>
+
+        <div id="recurringExpList"></div>
+
+        <button class="btn-rec-process" onclick="processRecurringExpenses()">
+            Process Due Expenses
+        </button>
+    </div>
+</div>
+<!-- Profile Modal -->
+<div class="modal-overlay" id="profileModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('profileModal')">✖</span>
+
+        <h2 class="modal-title">
+            👤 My Profile
+        </h2>
+
+        <div class="profile-header">
+
+            <div class="profile-avatar">
+                👤
+            </div>
+
+            <h3 id="profModalName" class="profile-name">
+                User
+            </h3>
+
+            <p id="profModalEmail" class="profile-email"></p>
+
+            <button class="profile-edit-btn" onclick="openProfileEditModal()">
+                ✏️ Edit Name
+            </button>
+
+        </div>
+
+        <div class="profile-info-box">
+
+            <div class="profile-info-row">
+                <span class="profile-info-label">
+                    🆔 Unique ID
+                </span>
+
+                <span id="profModalUid" class="profile-info-value">
+                    —
+                </span>
+            </div>
+
+            <div class="profile-info-row profile-info-border">
+                <span class="profile-info-label">
+                    📅 Member Since
+                </span>
+
+                <span id="profModalJoined" class="profile-info-text">
+                    —
+                </span>
+            </div>
+
+        </div>
+
+        <div class="profile-stats-grid">
+
+            <div class="profile-stat stat-blue">
+                <h3 id="profModalLevel">1</h3>
+                <p>LEVEL</p>
+            </div>
+
+            <div class="profile-stat stat-green">
+                <h3 id="profModalXP">0</h3>
+                <p>TOTAL XP</p>
+            </div>
+
+            <div class="profile-stat stat-orange">
+                <h3 id="profModalTasks">0</h3>
+                <p>COMPLETED</p>
+            </div>
+
+            <div class="profile-stat stat-purple">
+                <h3 id="profModalStreak">0</h3>
+                <p>BEST STREAK</p>
+            </div>
+
+        </div>
+
+        <button class="profile-copy-btn" onclick="copyProfileId()">
+            📋 Copy Unique ID
+        </button>
+
+    </div>
+</div>
+<!-- Family Members Modal -->
+<div class="modal-overlay" id="familyModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('familyModal')">✖</span>
+
+        <h2 class="modal-title">👨‍👩‍👧‍👦 Family Members</h2>
+
+        <p class="modal-subtitle">
+            Add family members using their Unique ID to share tasks
+        </p>
+
+        <div class="family-id-card">
+
+            <p class="family-id-label">
+                YOUR UNIQUE ID
+            </p>
+
+            <div class="family-id-row">
+
+                <span id="familyMyId" class="family-id-value">
+                    ...
+                </span>
+
+                <button class="family-copy-btn" onclick="copyProfileId()">
+                    Copy
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="family-add-row">
+
+            <input
+                type="text"
+                id="familyMemberIdInput"
+                placeholder="Enter member's Unique ID (e.g. 202606AA001)"
+                maxlength="12"
+                class="family-id-input">
+
+            <button class="family-add-btn" onclick="addFamilyMember()">
+                Add
+            </button>
+
+        </div>
+
+        <div id="familyMembersList"></div>
+
+        <div class="family-info-box">
+            <p>
+                ℹ️ Family sharing lets members see & help complete your shared tasks.
+                Find your ID in Settings → Profile.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Smart Reminder Config Modal -->
+<div class="modal-overlay" id="smartReminderModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('smartReminderModal')">✖</span>
+
+        <h2 class="modal-title">
+            🧠 Smart Reminders
+        </h2>
+
+        <p class="modal-subtitle">
+            AI-powered reminders that adapt to your habits
+        </p>
+
+        <div class="smart-settings-card">
+
+            <div class="widget-toggle-row">
+                <span>🌅 Morning Briefing (8 AM)</span>
+                <input type="checkbox" id="smartMorningBriefing" onchange="saveSmartSettings()">
+            </div>
+
+            <div class="widget-toggle-row">
+                <span>⏰ Overdue Alert</span>
+                <input type="checkbox" id="smartOverdueAlert" checked onchange="saveSmartSettings()">
+            </div>
+
+            <div class="widget-toggle-row">
+                <span>🎂 Birthday Alert (3 days before)</span>
+                <input type="checkbox" id="smartBirthdayAlert" checked onchange="saveSmartSettings()">
+            </div>
+
+            <div class="widget-toggle-row">
+                <span>💰 Budget Alert</span>
+                <input type="checkbox" id="smartBudgetAlert" checked onchange="saveSmartSettings()">
+            </div>
+
+            <div class="widget-toggle-row">
+                <span>🔥 Habit Streak Reminder</span>
+                <input type="checkbox" id="smartHabitReminder" checked onchange="saveSmartSettings()">
+            </div>
+
+            <div class="widget-toggle-row no-border">
+                <span>🌙 Evening Review (9 PM)</span>
+                <input type="checkbox" id="smartEveningReview" onchange="saveSmartSettings()">
+            </div>
+
+        </div>
+
+        <label class="section-label">
+            ⏰ Reminder Quiet Hours
+        </label>
+
+        <div class="quiet-hours-row">
+
+            <div class="flex-1">
+                <label class="mini-label">Quiet from</label>
+                <input type="time" id="quietFrom" value="22:00" onchange="saveSmartSettings()">
+            </div>
+
+            <div class="flex-1">
+                <label class="mini-label">Quiet until</label>
+                <input type="time" id="quietTo" value="07:00" onchange="saveSmartSettings()">
+            </div>
+
+        </div>
+
+        <button class="btn-smart-run" onclick="runAutomations();closeModal('smartReminderModal');">
+            ▶️ Run Smart Check Now
+        </button>
+
+    </div>
+</div>
+
+<script src="app.js"></script>
+
+</div><!-- end #mainApp -->
+
+</body>
+
+</html>
