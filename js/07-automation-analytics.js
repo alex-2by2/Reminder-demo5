@@ -37,8 +37,11 @@
     }
 
     function addAutomationRule() {
-        const trigger = document.getElementById('autoTriggerInput').value;
-        const action = document.getElementById('autoActionInput').value;
+        const triggerInput = document.getElementById('autoTriggerInput');
+        const actionInput = document.getElementById('autoActionInput');
+        const trigger = triggerInput?.value || '';
+        const action = actionInput?.value || '';
+        if (!trigger || !action) return showToast('Pick trigger and action!', 'error');
         const rules = safeStorage('customRules', []);
         rules.unshift({ id:Date.now(), trigger, action });
         localStorage.setItem('customRules', JSON.stringify(rules));
@@ -171,18 +174,26 @@
     function openSavingsGoalModal() { renderSavingsGoals(); openModal('savingsGoalModal'); }
 
     function addSavingsGoal() {
-        const name = document.getElementById('goalNameInput').value.trim();
-        const emoji = document.getElementById('goalEmojiInput').value.trim() || '🎯';
-        const target = Number(document.getElementById('goalTargetInput').value);
-        const saved = Number(document.getElementById('goalSavedInput').value) || 0;
-        const deadline = document.getElementById('goalDeadlineInput').value;
+        const nameInput = document.getElementById('goalNameInput');
+        const emojiInput = document.getElementById('goalEmojiInput');
+        const targetInput = document.getElementById('goalTargetInput');
+        const savedInput = document.getElementById('goalSavedInput');
+        const deadlineInput = document.getElementById('goalDeadlineInput');
+        if (!nameInput || !emojiInput || !targetInput || !savedInput || !deadlineInput) {
+            return showToast('Savings goal form unavailable.', 'error');
+        }
+        const name = nameInput.value.trim();
+        const emoji = emojiInput.value.trim() || '🎯';
+        const target = Number(targetInput.value);
+        const saved = Number(savedInput.value) || 0;
+        const deadline = deadlineInput.value;
         if(!name || !target) return showToast('Enter goal name & target!', 'error');
         const goals = getSavingsGoals();
         goals.unshift({id:Date.now(), name, emoji, target, saved, deadline});
         saveSavingsGoals(goals); renderSavingsGoals();
-        document.getElementById('goalNameInput').value = '';
-        document.getElementById('goalTargetInput').value = '';
-        document.getElementById('goalSavedInput').value = '';
+        nameInput.value = '';
+        targetInput.value = '';
+        savedInput.value = '';
         hapticFeedback('success'); showToast('Goal added! 🎯', 'success');
     }
 
@@ -366,15 +377,20 @@
         const reminders = safeStorage('reminders', []);
         const active = reminders.filter(r => r.status !== 'completed' && !r.archived);
         const makeOpts = () => active.map(r => `<option value="${r.id}">${sanitizeHTML((r.task||'').slice(0,40))}</option>`).join('');
-        document.getElementById('depBlockedTask').innerHTML = makeOpts();
-        document.getElementById('depRequiredTask').innerHTML = makeOpts();
+        const blockedEl = document.getElementById('depBlockedTask');
+        const requiredEl = document.getElementById('depRequiredTask');
+        if (blockedEl) blockedEl.innerHTML = makeOpts();
+        if (requiredEl) requiredEl.innerHTML = makeOpts();
         renderDependenciesList();
         openModal('taskDepsModal');
     }
 
     function addDependency() {
-        const blocked = Number(document.getElementById('depBlockedTask').value);
-        const required = Number(document.getElementById('depRequiredTask').value);
+        const blockedEl = document.getElementById('depBlockedTask');
+        const requiredEl = document.getElementById('depRequiredTask');
+        if (!blockedEl || !requiredEl) return showToast('Dependency form unavailable.', 'error');
+        const blocked = Number(blockedEl.value);
+        const required = Number(requiredEl.value);
         if(blocked === required) return showToast('Cannot depend on itself!', 'error');
         let deps = safeStorage('taskDeps', []);
         if(deps.find(d => d.blocked === blocked && d.required === required)) return showToast('Dependency already exists!', 'error');
