@@ -301,8 +301,10 @@
         runSchemaMigrations();
         applyTimeOfDayTheme(); 
         isProUser = localStorage.getItem("isPro") === "true";
-        if(isProUser) { document.getElementById("proBadgeDisplay").style.display = "inline-flex"; }
-        if(appPinCode) document.getElementById("appLockToggle").checked = true;
+        const proBadge = document.getElementById("proBadgeDisplay");
+        if(isProUser && proBadge) { proBadge.style.display = "inline-flex"; }
+        const appLockToggle = document.getElementById("appLockToggle");
+        if(appPinCode && appLockToggle) appLockToggle.checked = true;
 
         window.addEventListener('offline', () => { 
             const _sst4=document.getElementById("syncStatusText"); if(_sst4) _sst4.innerText = "Offline Mode"; 
@@ -321,10 +323,12 @@
         renderProjectDropdown();
         renderMoodTracker();
         renderSleepTracker();
-        renderTodayShiftWidget();
+        if (typeof renderTodayShiftWidget === 'function') renderTodayShiftWidget();
         setFontSize(localStorage.getItem("appFontSize") || "medium", false);
-        document.getElementById("webhookUrlInput").value = localStorage.getItem("webhookUrl") || "";
-        document.getElementById("gcalClientIdInput").value = localStorage.getItem("gcalClientId") || "";
+        const webhookInput = document.getElementById("webhookUrlInput");
+        const gcalInput = document.getElementById("gcalClientIdInput");
+        if (webhookInput) webhookInput.value = localStorage.getItem("webhookUrl") || "";
+        if (gcalInput) gcalInput.value = localStorage.getItem("gcalClientId") || "";
         // Regenerate shift reminders daily
         const lastShiftSync = localStorage.getItem('lastShiftSync');
         const todayStr2 = getTodayStr();
@@ -608,12 +612,18 @@
                     if (pcId) pcId.innerText = "ID: " + uid;
                     if (pcName) pcName.innerText = userName;
                     
-                    document.getElementById("displayUserName").innerText = userName; 
-                    document.getElementById("profileNameInput").value = userName;
-                    document.getElementById("alarmSoundInput").value = userAlarmSound; 
-                    document.getElementById("voiceAlarmToggle").checked = voiceAlarmEnabled;
-                    document.getElementById("webhookUrlInput").value = localStorage.getItem("webhookUrl") || "";
-                    document.getElementById("gcalClientIdInput").value = localStorage.getItem("gcalClientId") || "";
+                    const displayNameEl = document.getElementById("displayUserName");
+                    const profileNameInput = document.getElementById("profileNameInput");
+                    const alarmSoundInput = document.getElementById("alarmSoundInput");
+                    const voiceAlarmToggle = document.getElementById("voiceAlarmToggle");
+                    if (displayNameEl) displayNameEl.innerText = userName;
+                    if (profileNameInput) profileNameInput.value = userName;
+                    if (alarmSoundInput) alarmSoundInput.value = userAlarmSound; 
+                    if (voiceAlarmToggle) voiceAlarmToggle.checked = voiceAlarmEnabled;
+                    const webhookInput = document.getElementById("webhookUrlInput");
+                    const gcalInput = document.getElementById("gcalClientIdInput");
+                    if (webhookInput) webhookInput.value = localStorage.getItem("webhookUrl") || "";
+                    if (gcalInput) gcalInput.value = localStorage.getItem("gcalClientId") || "";
                     setFontSize(localStorage.getItem("appFontSize") || "medium", false);
                     renderSleepTracker();
                     renderTodayShiftWidget();

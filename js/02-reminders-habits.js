@@ -386,8 +386,8 @@
     }
 
     function updateMiniDashboard() {
-        const reminders = safeStorage("reminders", []);
-        const habits = safeStorage("habits", []); 
+        const reminders = Array.isArray(safeStorage("reminders", [])) ? safeStorage("reminders", []) : [];
+        const habits = Array.isArray(safeStorage("habits", [])) ? safeStorage("habits", []) : [];
         const todayStr = getTodayStr(); 
         const tomorrow = new Date(); 
         tomorrow.setHours(0,0,0,0); 
@@ -395,27 +395,31 @@
         
         let todayPendingTasks = 0; 
         let todayCompletedTasks = 0;
+        const completedReminders = reminders.filter(r => r.status === "completed").length;
         
         reminders.forEach(r => { 
             const rDate = new Date(r.time);
             if (r.status !== "completed") { 
-                if (rDate < tomorrow) todayPendingTasks++; 
+                if (!isNaN(rDate.getTime()) && rDate < tomorrow) todayPendingTasks++; 
             } else { 
-                if(r.time.split('T')[0] === todayStr) todayCompletedTasks++; 
+                const taskDate = (r.time || '').split('T')[0];
+                if (taskDate === todayStr) todayCompletedTasks++; 
             }
         });
         
-        document.getElementById("widgetTasksToday").innerText = `${todayPendingTasks}`;
-        document.getElementById("widgetHabitsToday").innerText = `${habits.filter(h => h.lastCheckIn !== todayStr).length} habits pending`;
+        const tasksTodayEl = document.getElementById("widgetTasksToday");
+        const habitsTodayEl = document.getElementById("widgetHabitsToday");
+        if (tasksTodayEl) tasksTodayEl.innerText = `${todayPendingTasks}`;
+        if (habitsTodayEl) habitsTodayEl.innerText = `${habits.filter(h => h.lastCheckIn !== todayStr).length} habits pending`;
 
         // Upcoming count
         const now = new Date();
-        const upcomingTasks = reminders.filter(r => r.status !== 'completed' && !r.archived && r.time && new Date(r.time) > now);
+        const upcomingTasks = reminders.filter(r => r.status !== 'completed' && !r.archived && r.time && !isNaN(new Date(r.time).getTime()) && new Date(r.time) > now);
         const upcomingEl = document.getElementById('widgetUpcomingCount');
         const nextLabelEl = document.getElementById('widgetNextLabel');
         if (upcomingEl) upcomingEl.innerText = upcomingTasks.length;
         if (nextLabelEl) {
-            const next = upcomingTasks.sort((a,b) => new Date(a.time)-new Date(b.time))[0];
+            const next = upcomingTasks.slice().sort((a,b) => new Date(a.time)-new Date(b.time))[0];
             if (next) {
                 const mins = Math.round((new Date(next.time)-now)/60000);
                 nextLabelEl.innerText = mins < 60 ? 'Next in '+mins+'m' : mins < 1440 ? 'Next in '+Math.round(mins/60)+'h' : 'Next: '+new Date(next.time).toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
