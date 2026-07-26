@@ -166,6 +166,11 @@
         return INDIA_HOLIDAYS_2026.find(h => h.date === dateStr) || null;
     }
 
+    function $id(id) { return document.getElementById(id); }
+    function setVal(id, value) { const el = $id(id); if (el) el.value = value; }
+    function setTxt(id, text) { const el = $id(id); if (el) el.innerText = text; }
+    function setDisplay(id, value) { const el = $id(id); if (el) el.style.display = value; }
+
     // ============================================================
     // SPEED-DIAL FLOATING ACTION BUTTON
     // ============================================================
@@ -173,18 +178,22 @@
 
     function toggleFabMenu() {
         fabMenuOpen = !fabMenuOpen;
-        document.getElementById('mainFabBtn').classList.toggle('open', fabMenuOpen);
+        const mainFabBtn = $id('mainFabBtn');
+        const fabBackdrop = $id('fabBackdrop');
+        if (mainFabBtn) mainFabBtn.classList.toggle('open', fabMenuOpen);
         document.querySelectorAll('.fab-speed-item').forEach(el => el.classList.toggle('show', fabMenuOpen));
-        document.getElementById('fabBackdrop').classList.toggle('show', fabMenuOpen);
+        if (fabBackdrop) fabBackdrop.classList.toggle('show', fabMenuOpen);
         hapticFeedback('light');
     }
 
     function closeFabMenu() {
         if (!fabMenuOpen) return;
         fabMenuOpen = false;
-        document.getElementById('mainFabBtn').classList.remove('open');
+        const mainFabBtn = $id('mainFabBtn');
+        const fabBackdrop = $id('fabBackdrop');
+        if (mainFabBtn) mainFabBtn.classList.remove('open');
         document.querySelectorAll('.fab-speed-item').forEach(el => el.classList.remove('show'));
-        document.getElementById('fabBackdrop').classList.remove('show');
+        if (fabBackdrop) fabBackdrop.classList.remove('show');
     }
 
     function fabAction(action) {
@@ -240,34 +249,34 @@
 
         if(pageId === 'add') { loadDraft(); loadCustomTemplates(); }
         if(pageId === 'home') {
-            document.getElementById("taskInput").value = "";
-            document.getElementById("notesInput").innerText = ""; 
-            document.getElementById("timeInput").value = ""; 
-            document.getElementById("repeatInput").value = "none"; 
-            document.getElementById("priorityInput").value = "medium"; 
-            document.getElementById("tagsInput").value = "";
-            const asEl = document.getElementById("assigneeInput"); if(asEl) asEl.value = "";
-            document.getElementById("subtasksContainer").innerHTML = ""; 
+            setVal("taskInput", "");
+            setTxt("notesInput", "");
+            setVal("timeInput", "");
+            setVal("repeatInput", "none");
+            setVal("priorityInput", "medium");
+            setVal("tagsInput", "");
+            const asEl = $id("assigneeInput"); if(asEl) asEl.value = "";
+            const subtasksContainer = $id("subtasksContainer"); if(subtasksContainer) subtasksContainer.innerHTML = "";
             removeImage(); 
             removeVoiceMemo();
             editId = null; 
             window._editMode = false;
-            document.getElementById("customRepeatUI").style.display = "none";
+            const customRepeatUI = $id("customRepeatUI"); if(customRepeatUI) customRepeatUI.style.display = "none";
             // Close Advanced Options panel
-            const advPanel = document.getElementById('advancedOptionsPanel');
-            const advArrow = document.getElementById('advOptionsArrow');
+            const advPanel = $id('advancedOptionsPanel');
+            const advArrow = $id('advOptionsArrow');
             if (advPanel) advPanel.style.display = 'none';
             if (advArrow) advArrow.style.transform = '';
-            const _sb1=document.getElementById("submitBtn"); if(_sb1) _sb1.innerText = "Save Task"; 
-            const _mt2=document.getElementById("modalTitle"); if(_mt2) _mt2.innerText = "New Task";
-            document.getElementById("preAlarmInput").value = "0";
-            document.getElementById("categoryOverrideInput").value = "";
+            const _sb1 = $id("submitBtn"); if(_sb1) _sb1.innerText = "Save Task"; 
+            const _mt2 = $id("modalTitle"); if(_mt2) _mt2.innerText = "New Task";
+            setVal("preAlarmInput", "0");
+            setVal("categoryOverrideInput", "");
             updateCategoryPreview();
         }
         if (pageId === 'finance') { renderFinanceDashboard(); setFinTab('expenses'); }
         if (pageId === 'student') { renderExamCountdowns(); renderSubjects(); updateStudySubjectSelect(); }
         if (pageId === 'journal') {
-            document.getElementById('journalTodayLabel').innerText = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+            setTxt('journalTodayLabel', new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}));
             renderJournalEntries();
             loadTodayJournalEntry();
             renderJournalStats();
@@ -284,12 +293,12 @@
     // --- Initialization ---
     window.addEventListener('load', () => {
         setTimeout(() => {
-            const splash = document.getElementById('splashScreen');
-            splash.style.opacity = '0';
+            const splash = $id('splashScreen');
+            if (splash) splash.style.opacity = '0';
             setTimeout(() => { 
-                splash.style.display = 'none'; 
+                if (splash) splash.style.display = 'none'; 
                 if(appPinCode && localStorage.getItem("loggedIn") === "true") { 
-                    const _ps=document.getElementById("pinScreen"); if(_ps) _ps.style.display = "flex"; 
+                    const _ps = $id("pinScreen"); if(_ps) _ps.style.display = "flex"; 
                 } else { 
                     checkMorningBriefing(); 
                 }
@@ -311,7 +320,7 @@
             showToast("Working in Offline Mode.", "error"); 
         });
               window.addEventListener('online', () => { 
-            document.getElementById("syncStatusText").innerText = "☁️ Syncing..."; 
+            setTxt("syncStatusText", "☁️ Syncing..."); 
             showToast("Back online! Syncing...", "success"); 
             syncToCloud(); 
         });
@@ -745,19 +754,27 @@
     }
     
     function saveProfileSettings() { 
-        userName = document.getElementById("profileNameInput").value.trim() || "User";
-        userAlarmSound = document.getElementById("alarmSoundInput").value; 
-        voiceAlarmEnabled = document.getElementById("voiceAlarmToggle").checked; 
-        localStorage.setItem("webhookUrl", document.getElementById("webhookUrlInput").value.trim());
-        localStorage.setItem("gcalClientId", document.getElementById("gcalClientIdInput").value.trim());
-        document.getElementById("displayUserName").innerText = userName;
+        const profileNameInput = $id("profileNameInput");
+        const alarmSoundInput = $id("alarmSoundInput");
+        const voiceAlarmToggle = $id("voiceAlarmToggle");
+        const webhookInput = $id("webhookUrlInput");
+        const gcalInput = $id("gcalClientIdInput");
+        const displayUserName = $id("displayUserName");
+        userName = profileNameInput ? profileNameInput.value.trim() || "User" : "User";
+        userAlarmSound = alarmSoundInput ? alarmSoundInput.value : userAlarmSound;
+        voiceAlarmEnabled = voiceAlarmToggle ? voiceAlarmToggle.checked : voiceAlarmEnabled;
+        if (webhookInput) localStorage.setItem("webhookUrl", webhookInput.value.trim());
+        if (gcalInput) localStorage.setItem("gcalClientId", gcalInput.value.trim());
+        if (displayUserName) displayUserName.innerText = userName;
         updateMiniDashboard(); 
         syncToCloud(); 
         showToast("Settings saved!", "success"); 
     }
 
     function testAlarmSound() {
-        const sound = document.getElementById("alarmSoundInput").value;
+        const alarmSoundInput = $id("alarmSoundInput");
+        if (!alarmSoundInput) return showToast("Alarm sound input unavailable.", "error");
+        const sound = alarmSoundInput.value;
         new Audio(sound).play().catch(e => showToast("Could not play sound", "error"));
         hapticFeedback('light');
     }
@@ -773,14 +790,14 @@
         const uid = localStorage.getItem('uniqueId') || 'Generating...';
         const joined = localStorage.getItem('joinedAt');
 
-        document.getElementById('profModalName').innerText = userName || 'User';
-        document.getElementById('profModalEmail').innerText = currentUser?.email || '';
-        document.getElementById('profModalUid').innerText = uid;
-        document.getElementById('profModalJoined').innerText = joined ? new Date(joined).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) : '—';
-        document.getElementById('profModalLevel').innerText = level;
-        document.getElementById('profModalXP').innerText = totalXP;
-        document.getElementById('profModalTasks').innerText = completedReminders;
-        document.getElementById('profModalStreak').innerText = bestStreak;
+        setTxt('profModalName', userName || 'User');
+        setTxt('profModalEmail', currentUser?.email || '');
+        setTxt('profModalUid', uid);
+        setTxt('profModalJoined', joined ? new Date(joined).toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) : '—');
+        setTxt('profModalLevel', level);
+        setTxt('profModalXP', totalXP);
+        setTxt('profModalTasks', completedReminders);
+        setTxt('profModalStreak', bestStreak);
 
         openModal('profileModal');
     }
@@ -856,7 +873,8 @@
     // --- Leaderboard ---
     function openLeaderboard() {
         openModal('leaderboardModal');
-        const cont = document.getElementById("leaderboardContainer"); 
+        const cont = $id("leaderboardContainer");
+        if (!cont) return;
         cont.innerHTML = "<p style='text-align:center;'>Fetching...</p>";
         db.collection("public_profiles").orderBy("habitXP_tasks", "desc").limit(10).get().then((querySnapshot) => {
             let html = ""; 
@@ -886,7 +904,8 @@
     function setCalView(view) {
         calView = view;
         document.querySelectorAll('.cal-view-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('calview-' + view).classList.add('active');
+        const viewBtn = $id('calview-' + view);
+        if (viewBtn) viewBtn.classList.add('active');
         renderHomeCalendar();
     }
 
@@ -903,30 +922,31 @@
     }
 
     function renderHomeCalendar() {
-        const displayEl = document.getElementById("homeCalMonthDisplay");
+        const displayEl = $id("homeCalMonthDisplay");
         if(!displayEl) return;
 
-        const weekdaysRow = document.getElementById("calWeekdaysRow");
-        const grid = document.getElementById("homeCalendarGrid");
-        const agendaContainer = document.getElementById("agendaListContainer");
+        const weekdaysRow = $id("calWeekdaysRow");
+        const grid = $id("homeCalendarGrid");
+        const agendaContainer = $id("agendaListContainer");
+        const clearFilterWrapper = $id("clearFilterWrapper");
 
         if (calView === 'agenda') {
-            weekdaysRow.style.display = 'none';
-            grid.style.display = 'none';
-            agendaContainer.style.display = 'block';
-            renderAgendaView(displayEl, agendaContainer);
-            document.getElementById("clearFilterWrapper").style.display = "none";
+            if (weekdaysRow) weekdaysRow.style.display = 'none';
+            if (grid) grid.style.display = 'none';
+            if (agendaContainer) agendaContainer.style.display = 'block';
+            if (agendaContainer) renderAgendaView(displayEl, agendaContainer);
+            if (clearFilterWrapper) clearFilterWrapper.style.display = "none";
             return;
         }
 
-        weekdaysRow.style.display = '';
-        grid.style.display = '';
-        agendaContainer.style.display = 'none';
+        if (weekdaysRow) weekdaysRow.style.display = '';
+        if (grid) grid.style.display = '';
+        if (agendaContainer) agendaContainer.style.display = 'none';
 
         if (calView === 'week') {
-            renderWeekView(displayEl, grid);
+            if (grid) renderWeekView(displayEl, grid);
         } else {
-            renderMonthView(displayEl, grid);
+            if (grid) renderMonthView(displayEl, grid);
         }
     }
 
@@ -1022,7 +1042,8 @@
         
         // જો કોઈ તારીખ સિલેક્ટ કરેલી હોય અથવા કેલેન્ડરનો મહિનો હાલના મહિના કરતાં અલગ હોય, તો જ Clear બટન બતાવો 
         const isFilterActive = selectedDateFilter || currentCalMonth !== new Date().getMonth() || currentCalYear !== new Date().getFullYear();
-        document.getElementById("clearFilterWrapper").style.display = isFilterActive ? "flex" : "none";
+        const clearFilterWrapper = $id("clearFilterWrapper");
+        if (clearFilterWrapper) clearFilterWrapper.style.display = isFilterActive ? "flex" : "none";
     }
 
     function renderWeekView(displayEl, grid) {
@@ -1054,7 +1075,8 @@
             grid.innerHTML += `<div class="${classes}"${title} onclick="filterByDate('${dStr}')">${d.getDate()}</div>`;
         }
 
-        document.getElementById("clearFilterWrapper").style.display = selectedDateFilter ? "flex" : "none";
+        const clearFilterWrapper = $id("clearFilterWrapper");
+        if (clearFilterWrapper) clearFilterWrapper.style.display = selectedDateFilter ? "flex" : "none";
     }
 
     function renderAgendaView(displayEl, container) {
@@ -1129,11 +1151,13 @@
     }
     
     function updatePomoDisplay() { 
-        document.getElementById("pomodoroDisplay").innerText = `${Math.floor(pomoTime / 60).toString().padStart(2, '0')}:${(pomoTime % 60).toString().padStart(2, '0')}`; 
+        const pomoDisplay = $id("pomodoroDisplay");
+        if (pomoDisplay) pomoDisplay.innerText = `${Math.floor(pomoTime / 60).toString().padStart(2, '0')}:${(pomoTime % 60).toString().padStart(2, '0')}`; 
     }
     
     function openPomoModal() {
-        const select = document.getElementById("pomoTaskSelect");
+        const select = $id("pomoTaskSelect");
+        if (!select) { openModal('pomodoroModal'); return; }
         let html = `<option value="">🎯 Select Task (Optional)</option>`;
         const reminders = safeStorage("reminders", []);
         reminders.filter(r => r.status === 'pending').forEach(r => { 
@@ -1146,7 +1170,8 @@
     function resetPomo() { 
         clearInterval(pomoInterval); 
         focusAudio.pause(); 
-        pomoTime = parseInt(document.getElementById("pomoTimeSelect").value) || 1500; 
+        const pomoTimeSelect = $id("pomoTimeSelect");
+        pomoTime = parseInt(pomoTimeSelect?.value || "1500") || 1500; 
         updatePomoDisplay(); 
         if (wakeLock !== null) { 
             wakeLock.release().then(() => wakeLock = null); 
@@ -1199,7 +1224,8 @@
 
     // --- AI Features (Gemini Integration, via server-side proxy) ---
     async function aiGenerateSubtasks() {
-        const taskName = document.getElementById("taskInput").value.trim();
+        const taskInput = $id("taskInput");
+        const taskName = taskInput ? taskInput.value.trim() : '';
         if(!taskName) return showToast("Enter Task Title first!", "error"); 
         if(!currentUser) return showToast("Sign in to use AI features!", "error");
         showToast("🪄 AI is planning...", "info");
@@ -1215,7 +1241,8 @@
     }
     
     async function aiSuggestTime() {
-        const taskName = document.getElementById("taskInput").value.trim();
+        const taskInput = $id("taskInput");
+        const taskName = taskInput ? taskInput.value.trim() : '';
         if(!taskName) return showToast("Enter Task Title!", "error"); 
         if(!currentUser) return showToast("Sign in to use AI features!", "error");
         showToast("🪄 AI is thinking...", "info");
@@ -1223,7 +1250,8 @@
             const now = new Date();
             const prompt = `Task: "${taskName}". Current time: ${now.toISOString()}. Suggest a logical future date/time. Respond ONLY with format: YYYY-MM-DDTHH:mm.`;
             let aiTime = await callGeminiAI(prompt);
-            document.getElementById("timeInput").value = aiTime.trim(); 
+            const timeInput = $id("timeInput");
+            if (timeInput) timeInput.value = aiTime.trim(); 
             showToast("🪄 Time set!", "success");
         } catch(e) { 
             showToast(e.message || "AI Error.", "error"); 
@@ -1232,7 +1260,8 @@
     
     async function generateAIReview() {
         if(!currentUser) return showToast("Sign in to use AI features!", "error");
-        const outputDiv = document.getElementById("aiReviewOutput"); 
+        const outputDiv = $id("aiReviewOutput"); 
+        if (!outputDiv) return showToast("AI review output unavailable.", "error");
         outputDiv.innerText = "🪄 Analyzing...";
         try {
             const reminders = safeStorage("reminders", []);
@@ -1332,7 +1361,9 @@
         });
         const dataCounts = dateArr.map(date => rems.filter(r => r.time.split('T')[0] === date && r.status === 'completed').length);
         
-        const ctx = document.getElementById('productivityChart').getContext('2d'); 
+        const chartCanvas = $id('productivityChart');
+        const ctx = chartCanvas ? chartCanvas.getContext('2d') : null;
+        if (!ctx) return;
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, { 
             type: 'bar', 
