@@ -239,14 +239,19 @@
     function openShareModal(taskId) {
         sharedTaskIdToShare = taskId;
         const r = (safeStorage('reminders', [])).find(x => x.id === taskId);
-        if (r) document.getElementById('shareTaskTitle').innerText = '📤 Share: ' + r.task;
-        document.getElementById('shareEmailInput').value = '';
+        const shareTaskTitleEl = document.getElementById('shareTaskTitle');
+        if (r && shareTaskTitleEl) {
+            shareTaskTitleEl.innerText = '📤 Share: ' + r.task;
+        }
+        const shareEmailInput = document.getElementById('shareEmailInput');
+        if (shareEmailInput) shareEmailInput.value = '';
         openModal('shareTaskModal');
     }
 
     async function shareTaskWithFamily() {
         if (!currentUser) return showToast('Login required!', 'error');
-        const email = document.getElementById('shareEmailInput').value.trim().toLowerCase();
+        const emailInput = document.getElementById('shareEmailInput');
+        const email = emailInput?.value.trim().toLowerCase() || '';
         if (!email || !email.includes('@')) return showToast('Enter valid email!', 'error');
         const r = (safeStorage('reminders', [])).find(x => x.id === sharedTaskIdToShare);
         if (!r) return;
@@ -533,7 +538,8 @@
     }
 
     function connectGoogleCalendar() {
-        const clientId = document.getElementById('gcalClientIdInput').value.trim();
+        const clientIdInput = document.getElementById('gcalClientIdInput');
+        const clientId = clientIdInput?.value.trim();
         if (!clientId) return showToast('Paste Google Client ID first!', 'error');
         localStorage.setItem('gcalClientId', clientId);
         loadGcalScripts(() => {
