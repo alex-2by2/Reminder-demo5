@@ -75,9 +75,12 @@
     // --- Shift Modal & Tabs ---
     function openShiftModal() {
         const cfg = getShiftConfig();
-        document.getElementById('shiftReminderToggle').checked = cfg.reminderEnabled;
-        document.getElementById('shiftReminderMinutes').value = cfg.reminderMinutes;
-        document.getElementById('shiftReminderMinutesWrap').style.display = cfg.reminderEnabled ? 'block' : 'none';
+        const reminderToggle = document.getElementById('shiftReminderToggle');
+        const reminderMinutes = document.getElementById('shiftReminderMinutes');
+        const reminderMinutesWrap = document.getElementById('shiftReminderMinutesWrap');
+        if (reminderToggle) reminderToggle.checked = cfg.reminderEnabled;
+        if (reminderMinutes) reminderMinutes.value = cfg.reminderMinutes;
+        if (reminderMinutesWrap) reminderMinutesWrap.style.display = cfg.reminderEnabled ? 'block' : 'none';
         renderShiftTypes();
         setShiftTab('setup');
         openModal('shiftModal');
@@ -85,10 +88,14 @@
 
     function setShiftTab(tab) {
         document.querySelectorAll('.shift-view-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('shifttab-' + tab).classList.add('active');
-        document.getElementById('shiftTabSetup').style.display = (tab === 'setup') ? 'block' : 'none';
-        document.getElementById('shiftTabCalendar').style.display = (tab === 'calendar') ? 'block' : 'none';
-        document.getElementById('shiftTabSummary').style.display = (tab === 'summary') ? 'block' : 'none';
+        const tabBtn = document.getElementById('shifttab-' + tab);
+        if (tabBtn) tabBtn.classList.add('active');
+        const setupEl = document.getElementById('shiftTabSetup');
+        const calendarEl = document.getElementById('shiftTabCalendar');
+        const summaryEl = document.getElementById('shiftTabSummary');
+        if (setupEl) setupEl.style.display = (tab === 'setup') ? 'block' : 'none';
+        if (calendarEl) calendarEl.style.display = (tab === 'calendar') ? 'block' : 'none';
+        if (summaryEl) summaryEl.style.display = (tab === 'summary') ? 'block' : 'none';
         if (tab === 'calendar') renderShiftCalendar();
         if (tab === 'summary') renderShiftSummary();
     }
@@ -97,6 +104,7 @@
     function renderShiftTypes() {
         const cfg = getShiftConfig();
         const container = document.getElementById('shiftTypesContainer');
+        if (!container) return;
         container.innerHTML = cfg.types.map(t => `
             <div style="display:flex; justify-content:space-between; align-items:center; background:#f2f2f7; padding:10px 12px; border-radius:10px; margin-bottom:6px;">
                 <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
@@ -149,6 +157,7 @@
     function renderShiftPatternBuilder() {
         const cfg = getShiftConfig();
         const builder = document.getElementById('shiftPatternBuilder');
+        if (!builder) return;
         builder.innerHTML = cfg.types.map(t =>
             `<button class="shift-type-chip" style="background:${t.color}22; color:${t.color};" onclick="addToPattern(${t.id})">${sanitizeHTML(t.icon||'')} ${sanitizeHTML(t.name||'')}</button>`
         ).join('');
@@ -158,6 +167,7 @@
     function renderShiftPatternSequence() {
         const cfg = getShiftConfig();
         const container = document.getElementById('shiftPatternSequence');
+        if (!container) return;
         if (cfg.pattern.length === 0) {
             container.innerHTML = '<span style="font-size:12px; color:#8e8e93; padding:6px;">Tap chips above to build your cycle (e.g. 🌅🌅🌇🌇🌙🌙🏖️🏖️)</span>';
         } else {
