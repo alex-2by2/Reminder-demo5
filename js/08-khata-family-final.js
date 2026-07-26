@@ -878,34 +878,7 @@
         _syncTimeout = setTimeout(() => _origSyncToCloud(), 1500); // debounce 1.5s
     };
 
-    // ============================================================
-    // MULTI-LANGUAGE: Gujarati UI labels
-    // ============================================================
-    const LANG_GU = {
-        'Add Task': 'કાર્ય ઉમેરો',
-        'Today': 'આજે',
-        'Upcoming': 'આગામી',
-        'Done': 'પૂર્ણ',
-        'All': 'બધા',
-        'Settings': 'સેટિંગ',
-        'Finance': 'ફાઇનાન્સ',
-        'Habits': 'આદતો',
-        'Save': 'સાચવો',
-    };
-
-    let currentLang = localStorage.getItem('appLang') || 'en';
-
-    function setAppLanguage(lang) {
-        currentLang = lang;
-        localStorage.setItem('appLang', lang);
-        // Reload to apply (Google Translate handles full translation)
-        if (lang === 'gu') {
-            showToast('ભાષા: ગુજરાતી ✅', 'success');
-        } else {
-            showToast('Language: English ✅', 'success');
-        }
-    }
-
+   
     // ============================================================
     // INIT: Run all startup checks
     // ============================================================
