@@ -1,0 +1,124 @@
+rules_version = '2';
+
+// ============================================================================
+// Master Reminder App — Firestore Security Rules
+// ============================================================================
+// I can't see your currently-deployed rules (they live in the Firebase Console /
+// firebase.json, not in this codebase) — these are written to match exactly what
+// the client code in js/*.js actually reads and writes. Deploy with:
+//   firebase deploy --only firestore:rules
+// (requires this file to be referenced from firebase.json, and the Firebase CLI)
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // users/{uid} — the FULL private data blob: reminders, habits, khataData
+    // (a ledger with other real people's names and money owed), moodLog,
+    // sleepLog, savingsGoals, warranties, vehicleLogs, familyMembers, etc.
+    // Owner-only, full stop. Nobody else should ever read or write this document.
+    // ------------------------------------------------------------------------
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ------------------------------------------------------------------------
+    // public_profiles/{uid} — NEW collection, introduced alongside these rules.
+    // Holds ONLY userName, habitXP_tasks, and uniqueId — the three fields the
+    // leaderboard and "add family member by ID" features need to read from
+    // OTHER users. Everything sensitive stays in users/{uid} above.
+    //
+    // Why this collection exists: the leaderboard queries across all users
+    // ordered by XP, and the family-lookup feature searches across all users
+    // by uniqueId. Firestore rules can't grant read access to two fields of a
+    // document while denying the rest — access control is per-document, not
+    // per-field. Putting the shareable fields in their own tiny document is
+    // the standard fix, instead of opening up the whole `users` document
+    // (which would expose everyone's khata book, mood log, and finances to
+    // every other logged-in user).
+    // ------------------------------------------------------------------------
+    match /public_profiles/{uid} {
+      allow get, list: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ------------------------------------------------------------------------
+    // shared_tasks/{taskId} — one-off task shares, addressed by email (not uid).
+    // Anyone signed in can create a share (they're the sender). Only the
+    // intended recipient can read or update it — matched against their OWN
+    // Firebase Auth email, and only once that email is VERIFIED.
+    //
+    // The email_verified check matters: without it, anyone could sign up with
+    // someone else's real email address (unverified) and immediately read
+    // every task ever shared to that address. Verification is the only thing
+    // standing between "typed an email" and "proved you own it."
+    // ------------------------------------------------------------------------
+    match /shared_tasks/{taskId} {
+      allow create: if request.auth != null
+                    && request.resource.data.fromUid == request.auth.uid
+                    && request.resource.data.status == 'pending';
+
+      allow read: if request.auth != null
+                  && request.auth.token.email_verified == true
+                  && resource.data.toEmail == request.auth.token.email.lower();
+
+      // Recipient may only flip status (e.g. to 'accepted') — nothing else.
+      allow update: if request.auth != null
+                    && request.auth.token.email_verified == true
+                    && resource.data.toEmail == request.auth.token.email.lower()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      allow delete: if false; // not used by the app
+    }
+
+    // ------------------------------------------------------------------------
+    // workspaces/{code} — shared task lists, keyed by an invite code rather
+    // than a uid. Reading a single doc by its (unguessable, randomly
+    // generated) code is how joining works, so `get` is allowed for any
+    // signed-in user — but `list` is explicitly denied so nobody can browse
+    // every workspace that exists. Updates require you to already be a
+    // member, OR to be joining (your email appears in the NEW member list).
+    //
+    // KNOWN LIMITATION: `tasks` is stored as one array field on the workspace
+    // document, not as separate documents. These rules can confirm a request
+    // comes from a legitimate member, but can't fully verify that a member's
+    // update only touched their own task and left everyone else's alone —
+    // Firestore rules can't diff individual array elements that precisely.
+    // A member could, in theory, wipe another member's task. Fixing this
+    // properly means moving tasks to a subcollection
+    // (workspaces/{code}/tasks/{taskId}), which is a real data-model change,
+    // not just a rules change — flagging it here rather than pretending
+    // these rules fully solve it.
+    // ------------------------------------------------------------------------
+    match /workspaces/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.members == [request.auth.token.email.lower()];
+
+      allow update: if request.auth != null
+                    && (request.auth.token.email.lower() in resource.data.members
+                        || request.auth.token.email.lower() in request.resource.data.members);
+
+      allow delete: if false; // not used by the app
+    }
+
+    // ------------------------------------------------------------------------
+    // ai_usage/{uid} — per-user daily AI call counters, written ONLY by the
+    // callGeminiProxy Cloud Function via the Admin SDK (which bypasses these
+    // rules entirely). Explicitly denying client access here so nobody can
+    // read or reset their own rate limit directly through the client SDK.
+    // ------------------------------------------------------------------------
+    match /ai_usage/{uid} {
+      allow read, write: if false;
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
