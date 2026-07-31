@@ -1,0 +1,281 @@
+# Master Reminder App — Refactor & Audit Report
+**Date:** July 28, 2026
+**Scope:** Full codebase audit (~12,300 lines: `index.html`, 8 JS files, Firebase Cloud Function, Firestore rules, service worker, existing test suite) plus the fixes described below.
+
+## Before anything else: what was already solid
+
+This app had already been through at least one real security/architecture pass before this one — worth saying plainly, because it changed how this review was done. Specifically, going in, the codebase already had:
+
+- A schema-migration system (`runSchemaMigrations`) for evolving stored data safely across versions.
+- An XSS-hardening pass: `sanitizeHTML`/`escInline` used at ~140 call sites, and every render function checked in this pass that touches user-entered text (task names, notes, category names, party names, etc.) was already using them correctly.
+- A genuinely well-designed service worker (`sw.js`), with its own documented trade-offs.
+- Firestore security rules that read as though someone sat down with the actual client code and worked out exactly what each collection needs — including a documented, deliberate limitation around workspace task updates.
+- A Cloud Function (Gemini AI proxy) with proper auth checks, prompt-length limits, atomic per-user daily rate limiting, and secrets handled via `defineSecret` — never a hardcoded key.
+- An existing test suite (`node --test tests/*.test.js`), 10/10 passing, using a sandboxed-extraction approach to test real pure-logic functions without needing a browser or live Firebase. This was used as the safety baseline throughout — **all changes below were verified against it, and it's now 15/15** with the new tests added.
+
+None of that was rewritten. The work below is what was actually still wrong or missing.
+
+---
+
+## 1. Critical bugs fixed
+
+### 1.1 Finance data had no cloud backup at all
+**File:** `js/01-core-init.js` (`syncToCloud`)
+`finData` — every expense, income entry, budget, bill, EMI, and investment — was stored in `localStorage` but was **never included** in the object written to Firestore. Every other feature's data (habits, khata, mood, sleep, birthdays, vehicles, warranties, etc.) was in that payload; finance wasn't. A user reinstalling the app or switching devices would silently lose every recorded expense, with no error, because nothing failed — the data just was never there to restore.
+
+This also explains why a related merge function (`applyCloudDataWithConflictResolution`'s finance-merge branch) looked dead: it was checking `data.finData`, which was always `undefined` because it was never saved. Fixing the save path makes that existing merge logic reachable again.
+
+**Fix:** added `finData: safeStorage("finData", {...})` to the sync payload, matching the default shape `getFinData()` already uses. Covered by a new test (`syncToCloud includes finData in the payload written to Firestore`).
+
+### 1.2 Pre-alarm notifications repeated every 60 seconds
+**File:** `js/07-automation-analytics.js` (`checkPreAlarmNotifications`)
+This runs on a 60-second interval. It set `r.preNotified = true` on a reminder object to avoid re-notifying — but that object came from `safeStorage()`, which re-parses `localStorage` fresh on every call. The flag was only ever set in memory and was never written back, so every single run re-read the *original*, un-flagged data. Net effect: the same "15 minutes to go" notification fired again every minute for the entire pre-alarm window.
+
+**Fix:** persist the array back to `localStorage` after flagging. Covered by a new test that calls the function twice and asserts only one notification fires.
+
+### 1.3 Three separate, uncoordinated `online`/`offline` handlers
+**Files:** `js/01-core-init.js`, `js/06-lifestyle-settings-widgets.js`, `js/08-khata-family-final.js`
+Each of these files independently registered its own `window.addEventListener('online'/'offline', ...)` pair, added at different points in the app's history with no awareness of each other. Actual effect every time connectivity changed: **2–3 overlapping toast notifications** stacking on screen, and **`syncToCloud()` called up to 3 times** simultaneously.
+
+**Fix:** consolidated into one handler (in `js/01-core-init.js`) that does everything all three used to do — sync status text, the offline banner, background sync request, one toast. The two redundant copies were removed and replaced with a one-line comment pointing to where the logic now lives.
+
+### 1.4 Duplicate global keyboard shortcut handlers
+**Files:** `js/07-automation-analytics.js`, `js/08-khata-family-final.js`
+Both registered a global `keydown` listener for `/` (open search) and `Escape` (close modals). Every press of either key ran the action **twice**. The two versions also disagreed on behavior: file 08's version correctly skipped shortcuts while typing in a text field; file 07's did not, so pressing Escape while typing task notes would force-close the modal regardless.
+
+**Fix:** kept the more complete version (file 08 — more shortcuts, consistent input-field guard), removed file 07's redundant copy.
+
+### 1.5 `syncToCloud` was being debounced twice
+**File:** `js/08-khata-family-final.js`
+The original `syncToCloud` (file 01) already debounces itself by 2000ms. File 08 additionally reassigned `syncToCloud = function() {...}` to wrap the *entire function* in a second, independent 1500ms debounce. Every call actually waited roughly 3.5 seconds end-to-end, and the real timing logic was split across two files 700+ lines apart with no comment connecting them.
+
+**Fix:** removed the redundant wrapper; the original's own debounce is now the only one.
+
+### 1.6 Microphone stayed active after closing the app
+**File:** `js/01-core-init.js` (`closeModal`)
+Recording a voice memo, then closing the modal (tap outside, or Escape) *without* explicitly clicking "Stop Recording" first, left the `MediaRecorder` and microphone stream running indefinitely — the browser's mic-in-use indicator stayed lit with no way to turn it off short of reopening the modal.
+
+**Fix:** `closeModal` now stops any in-progress recording and releases the stream.
+
+### 1.7 `openLeaderboard`'s Firestore query had no error handling
+**File:** `js/01-core-init.js`
+Found while migrating this to the new API layer: the leaderboard query had no `.catch()` at all. A network or permissions error left the modal stuck on "Fetching..." forever with no feedback.
+**Fix:** added a catch that logs to the new error logger and shows a real message.
+
+---
+
+## 2. Dead code removed
+
+All five were verified unused (appear nowhere except their own definition) before removal, and each has a specific reason:
+
+| Function | File | Why it was dead |
+|---|---|---|
+| `resolveConflict` | 07 | Fully superseded duplicate of `mergeReminders` (file 08), which is the function actually wired into the live conflict-resolution path. |
+| `addExpenseWithNote` | 07 | Superseded duplicate — the active "Add Expense" button calls `addExpense()` (file 05), which already handles and sanitizes the note field itself. |
+| `getSubtasks` | 08 | Strict subset of `getSubtasksFromForm` (file 01), the function actually used by `addOrUpdateReminder`. |
+| `patchPomoComplete` / `completePomoSession` | 06 | An abandoned attempt at Pomodoro task-name logging. The active Pomodoro flow (`startPomo`, file 01) already logs task name + duration inline; Focus Mode has its own separate, working completion path. Neither ever called these. |
+
+Removing these isn't just tidiness — `patchPomoComplete`/`completePomoSession` in particular were a trap for future maintenance: they looked like the "real" logging path but hadn't executed in what was presumably a long time.
+
+---
+
+## 3. Fully-built features that had no way to reach them
+
+Found by cross-referencing every function against every call site (including `onclick` attributes in `index.html`). These five were completely implemented, tested-looking code with **zero UI entry point** — not broken, just invisible:
+
+- **`aiSuggestPriority()`** — every other AI-assist field (category, time) has a matching 🪄 button; Priority didn't. Added one, matching the existing pattern exactly.
+- **`openLeaderboard()`** — the modal, the query, the rendering all existed; no button anywhere opened it. Added a tile next to the related "App Stats" tile.
+- **`resendVerificationEmail()`** — no verification UI existed at all. This matters beyond convenience: Firestore rules require `email_verified == true` on the recipient before `shared_tasks` are readable, so an unverified user's shared tasks were silently unreachable with no indication why. Added a banner in the profile modal that only shows when relevant.
+- **`exportToGoogleCalendar()`** (`.ics` export) — the 2-way Google Calendar sync requires setting up an OAuth Client ID, which has real setup friction ("How to get a free Client ID?" is its own linked help page). This is a one-tap alternative needing no setup, that works with any calendar app. Added a button in Data Backup.
+- **`addSwipeToComplete()`** — a fully-implemented swipe-right-to-complete / swipe-left-to-pin gesture, never attached to any list item. Wired into the reminder list (gated off during bulk-select mode, where it would conflict with multi-select).
+
+All five are gated behind the new feature-flag system, defaulted **on** — see below.
+
+---
+
+## 4. New infrastructure
+
+Three new files, loaded first (`js/00-config.js`, `js/00-logger.js`, `js/00-services.js`), covering the architectural items from the brief:
+
+- **Central config** — every `localStorage` key the app uses (67 of them) catalogued in one `STORAGE_KEYS` registry, plus tunable numbers (debounce delays, check intervals, limits) that used to be bare magic numbers, now named in `APP_CONFIG`. *(Note on scope: this doesn't rewrite all ~150 existing call sites that reference these keys/numbers as literals — that's a large, higher-risk change. New code in this pass uses the registry; a handful of the highest-value existing call sites were migrated as real, working examples — see `syncToCloud`'s interval references, etc.)*
+- **Feature flags** — `Features.isEnabled(name)` / `Features.set(name, bool)`, backed by `localStorage`. Everything defaults to `true`, so adding this file changes no behavior by itself.
+- **Error logging & crash reporting** — `AppLogger` persists a rolling log of the last 50 errors/warnings to `localStorage` (survives a reload, unlike the old console-only handler), with a real "View Error Log" screen wired into Settings (copy/clear included). Nothing is sent anywhere — this is on-device only, not a remote reporting service. The old `window.onerror`/`window.onunhandledrejection` pair in `js/02` (console-only, lost on refresh) was removed in favor of this; its user-facing toast behavior was preserved.
+- **Permission manager** — `Permissions.requestNotifications()` / `.requestMicrophone()` / `.requestLocation()` / `.requestWakeLock()`, each with consistent, non-throwing behavior. The two highest-traffic call sites (notification permission, microphone for voice memos) were migrated to use it; geolocation and wake-lock call sites are documented as following the same pattern for future migration.
+- **API layer** — a thin layer in front of the Firestore/Functions calls that read/write the whole user document and call the AI proxy (`saveUserData`, `getUserData`, `onUserDataChange`, `getLeaderboard`, `callAI`). `callGeminiAI`, `openLeaderboard`, and the interval-driven checks were migrated to use it. This is **not** a rewrite of every Firestore call in the app (there are several dozen, spread by feature) — it's the handful central enough to be worth one seam.
+- **Service registry (`window.App`)** — ties the above together (`App.config`, `App.keys`, `App.features`, `App.logger`, `App.permissions`, `App.api`) as one discoverable object.
+
+**On "Dependency Injection" specifically:** a real DI/IoC container implies constructor injection, which implies classes/modules — and this app is 8 classic `<script>` files sharing one global scope by deliberate design (see `DEPLOY.md`), a decision that would require a genuine rewrite (load order, every cross-file function call) to undo safely, not something to change incidentally inside a bug-fix pass with no way to test in a real browser. `window.App` is the pragmatic version of what DI actually buys you in an app shaped like this one: swappable, discoverable services in one place instead of scattered bare globals. Full module-based DI is a legitimate future project, just a much larger and separate one.
+
+---
+
+## 5. Bundle / performance
+
+- **`defer` added to all 11 script tags** (3 new + 8 original), local and CDN. Previously, 8 external scripts (4 Firebase SDKs, Chart.js, SortableJS, RRule, QRCode) loaded synchronously in `<head>`, blocking render until all 8 downloaded, parsed, and executed **serially**. They now download in parallel while guaranteeing the same execution order.
+- **`preconnect` hints** added for the 3 CDN origins (`gstatic.com`, `jsdelivr.net`, `cdnjs.cloudflare.com`), so DNS/TLS setup overlaps with HTML parsing instead of starting cold.
+- **Two unpinned dependencies pinned**: `chart.js` had no version at all (silently tracked whatever "latest" resolved to on each load); `sortablejs` was pinned to `@latest`. Both now pinned to their current stable releases (`chart.js@4.5.1`, `sortablejs@1.15.7`) — verified via a live search rather than guessed, so a future upstream release can't silently change this app's behavior.
+- **`build.js`** — a new, dependency-free bundling script (`node build.js`) that concatenates the 11 JS files into one, syntax-checks the result, and generates a matching `dist/index.html` + copies static assets, producing a deployable folder with 1 script request instead of 11. Deliberately does **not** minify — see `BUILD.md` for why, and the recommended `terser` follow-up once you have npm access.
+
+**Not done, and why:** true code-splitting (only loading e.g. the khata/finance files when that page opens) was considered and rejected for this pass — the 8 files call each other's functions across file boundaries throughout, and without a real browser to test against, verifying a lazy-load order wouldn't silently break something was more risk than the reward justified here. Flagged as a good candidate for a future pass with proper testing in place.
+
+---
+
+## 6. Smaller fixes
+
+- Fixed a stale comment in `functions/index.js` that described a client-side migration (moving off a direct, insecure Gemini API call) as still-needed — it was already done; the comment now says so, so a future maintainer doesn't go looking for a migration that already happened.
+- `renderMorePinned()` now wraps icon/label in `sanitizeHTML()` for consistency with the equivalent `renderGettingStartedCard()` function — both draw from the same developer-defined feature catalog (not free user text), so this isn't a live exploit fix, just closing a style inconsistency at near-zero cost.
+
+---
+
+## 7. Testing
+
+Baseline before any changes: 10/10 passing (`node --test tests/*.test.js`). **Now 15/15**, all real execution tests (not just syntax checks), following the existing project's sandboxed-extraction convention:
+
+- `checkPreAlarmNotifications persists preNotified so it does not re-fire` — calls the real function twice with a frozen clock, asserts exactly one notification fires and the flag survives a simulated reload.
+- `syncToCloud includes finData in the payload written to Firestore` — runs the real function against a mock Firestore, asserts the finance data actually reaches the write.
+- Three tests for the new Feature Flags module (defaults, persistence across reload, that the config objects are actually frozen).
+
+Run them yourself: `node --test tests/*.test.js`
+
+---
+
+## 8. UI polish pass (second update)
+
+### 8.1 Empty states — the single biggest visual gap in the app
+`styles.css` already had a considered empty-state style (`.empty-state`/`.empty-state-icon`/`.empty-state-text`: centered icon, muted color, styled text) — and it was used in exactly zero of the roughly 36 places across the app that show a "no data yet" message. Every one of them (expenses, income, budgets, bills, EMIs, investments, medicines, vehicle reminders, trips, subscriptions, birthdays, notes, Pomodoro sessions, custom rules, notifications, savings goals, search results, dependencies, recurring expenses, warranties, log entries, khata parties, khata transactions, family members, and more) was just a plain, unstyled line of gray text instead.
+
+Added a shared `emptyStateHTML(icon, text)` helper (next to the other shared utilities in `js/01-core-init.js`) and wired all ~36 into it, each with a fitting icon (💸 for expenses, 🎂 for birthdays, 🤝 for khata parties, etc.). Genuine loading states ("Thinking...", "🪄 AI analyzing...") and prompts ("Sign in to use AI Import!") were deliberately left alone — they aren't empty states.
+
+### 8.2 Duplicate / conflicting CSS rules
+The same category of bug found in the JS files during the first pass turned out to exist in `styles.css` too — several classes were defined twice, in different sections added at different times, with the two definitions silently fighting over the same property:
+
+| Class | The conflict | Fix |
+|---|---|---|
+| `.btn-success` / `.btn-secondary` | Defined once as small flat buttons, and again ~200 lines later as gradient buttons — completely different intents sharing one name. Only worked by accident because of cascade order. | Renamed the gradient pair to `.action-btn-success`/`.action-btn-secondary` (their actual, only real use, paired with `.action-btn`) and updated the two call sites. Zero visual change — same colors, same everything, just an unambiguous name now. |
+| `.page-section` | Two rules each set `animation` to a *different* keyframe (`pageIn` vs `fadeInApp`) — the second silently won, orphaning the `pageIn` keyframe entirely. | Removed the dead rule and its now-unreachable keyframe. |
+| `.toast` | Same pattern — `toastIn` vs `slideDown`/`fadeOut`, the latter always won. | Removed the dead rule and its orphaned keyframe. |
+| `.form-group` | Two different `margin-bottom` values (15px vs 14px) — a real if trivial conflict. | Kept one. |
+| `.fab-speed-item` | A standalone `transition` rule turned out to be byte-for-byte duplicated inside a fuller rule added later. | Removed the redundant copy. |
+| `.vlog-item` | An entire rule (plus its dark-mode pairing) duplicated verbatim elsewhere in the file. | Removed the duplicate. |
+| `.warranty-item` / `.warranty-expired` / `.warranty-soon` | A whole leftover styling system from before the Warranty feature was renamed to use `.warranty-card` (confirmed zero JS references to `.warranty-item`). Its `.warranty-expired` used **red**, silently overriding the still-live `.warranty-card`-paired version, which uses a muted gray — meaning expired warranties were rendering in the "wrong," abandoned color scheme. | Removed the dead `.warranty-item` block entirely, which restores the intended muted-gray treatment for expired warranties (red reads as "act now," which doesn't fit something whose window already closed — gray/dimmed matches how the rest of the app treats already-resolved items, e.g. completed tasks). |
+
+None of this changes the app's actual design — it resolves ambiguity that was one stylesheet reorder away from changing behavior unpredictably, exactly like the duplicate-function fixes in the first pass.
+
+### 8.3 Keyboard accessibility for the "More" page grid
+`js/01-core-init.js` already had a small, well-built retrofit mechanism for exactly this problem — a `DOMContentLoaded` handler that finds elements by class, ensures `role="button"` + `tabindex="0"`, and wires up Enter/Space to trigger a click — applied to `.close-modal-btn` and `.nav-item`. It just hadn't been extended to `.feature-tile` (the 44-item grid on the "More" page) or `.template-chip` (6 instances), both of which are plain `<div onclick>` with the identical gap. Added both to the existing selector list — same mechanism, no new code path, so it's exactly as tested/trustworthy as the fix it's sitting next to.
+
+*Not extended further:* the nested "pin to home" star inside each feature tile is its own separately-clickable element and wasn't included — fixing the primary action (opening the feature) covers the main gap without expanding scope into every secondary control in the app.
+
+### 8.4 Considered and deliberately not done: a color palette refresh
+The visual palette is a direct, unmodified copy of Apple's system colors (`#007AFF` blue, `#34C759` green, `#FF3B30` red, exact iOS grays) — safe and familiar, but indistinguishable from any other "looks like iOS" web app, and the one place a bigger creative swing could have made this feel more like *this app's* rather than a template. It wasn't done in this pass: changing the primary palette touches hundreds of untouched inline `style="..."` color references throughout `index.html` that a stylesheet change alone wouldn't reach, and there's no way to visually verify the result here (no browser, no screenshots). Doing this well would need either a real design review with actual screenshots, or a much larger, riskier find-and-replace across the inline styles than fits inside a polish pass. Flagged here rather than attempted blind. (Superseded in part by §9 below — the glass pass adds real visual identity without touching the base palette.)
+
+---
+
+## 9. Deeper async & error-handling audit, and Liquid Glass UI (third update)
+
+### 9.1 Three more async gaps found and fixed
+Continuing the same audit method that found the leaderboard's missing `.catch()` in the first pass:
+
+- **The app's core realtime data listener had no error callback at all.** `js/01-core-init.js`'s `onSnapshot` subscription (everything — reminders, habits, finance, khata, etc. — syncs down through this one listener) only had a success callback. If it ever errors — a permission-denied after a rules change, an expired auth token, certain connectivity failures — it used to fail completely silently: no log, no toast, sync just quietly stops while the user keeps working on data that will never update. Added an error callback that logs it via `AppLogger` and shows one honest toast rather than nothing.
+- The same gap existed in the API layer's `onUserDataChange` wrapper (`js/00-services.js`) — now accepts an optional error handler and defaults to logging via `AppLogger` if the caller doesn't supply one.
+- `shareAppURL()`'s clipboard write (`js/02-reminders-habits.js`) had no `.catch()` — clipboard writes can genuinely be rejected (permission denied, missing user-activation context in some browsers), and a failed copy silently did nothing. Added a fallback error toast.
+
+*Reviewed and found fine, not changed:* the microphone permission promise (never rejects by design — resolves to `null` on failure, see `js/00-services.js`), the PWA install-prompt promise (spec-guaranteed to always resolve), and a second clipboard call in `js/07` that already had a `.catch()` one line down that an earlier single-line grep had missed.
+
+### 9.2 Liquid Glass UI
+Evolved the app's floating "chrome" — the surfaces that sit above scrolling content rather than being content themselves — from flat/frosted to Apple's current Liquid Glass language: translucent material with blur + saturation, a thin highlight along the top edge where light would catch a real glass surface, and (where relevant) a colored tint rather than a flat fill.
+
+Added a set of shared tokens at the top of `styles.css` (`--glass-bg`, `--glass-bg-strong`, `--glass-border`, `--glass-highlight`, `--glass-blur`, `--glass-shadow`), redefined for dark mode via `body.dark-mode`, so every glass surface pulls from one place instead of repeating blur/opacity values. Applied to:
+
+- **Bottom nav** — already had a basic blur; now uses the shared tokens (more translucent, `saturate()` added for richer color pass-through, specular top-edge highlight). The dark-mode-specific override this used to need is gone — it's automatic now that the variables themselves flip.
+- **Modal sheets** — the backdrop scrim already blurred (gained the `-webkit-` prefix it was missing, for Safari/iOS); the sheet itself moves from flat opaque white/black to the *high-opacity* glass variant (82%, not the nav's 72%) — genuinely glass, but kept dense enough that forms and financial figures stay fully legible.
+- **FAB cluster** — the main button keeps its bold color gradient (it's the primary tap target; full transparency would hurt discoverability) but gained a glossy specular highlight, the same way tinted glass looks in real Liquid Glass buttons. The secondary speed-dial items (temporary, non-primary) became true translucent glass circles.
+- **Toasts, the PWA install banner, and the offline banner** — same treatment for consistency: toasts and the offline banner became tinted glass (kept at 85% opacity so white text stays readable); the install banner gained the same glossy highlight as the main FAB.
+
+**Deliberately not glassed:** widget cards, list rows, and forms. Apple's own Liquid Glass reserves this material for navigational chrome specifically because heavy blur/translucency over dense text and data hurts legibility — this app's home dashboard, expense lists, and forms stay on their existing solid/opaque surfaces for the same reason.
+
+All CSS changes verified for brace balance and cross-checked for the exact duplicate-rule trap described in §8.2 (none introduced). No JS logic touched by this section beyond the two files in §9.1.
+
+---
+
+## 10. Project split for maintainability (fourth update)
+
+The 8 original JS files averaged ~1,200 lines each and each blended multiple unrelated features (e.g. `06-lifestyle-settings-widgets.js` alone covered medicine, vehicles, travel, subscriptions, birthdays, settings, PWA install, widgets, and more). Split into 30 smaller, single-domain files across 9 folders — see `README.md` for the folder map.
+
+**What this deliberately is not:** a move to ES modules. This app's 8 files are classic (non-module) `<script>` tags that share one global scope by design (see `DEPLOY.md`), and hundreds of inline `onclick="functionName()"` attributes throughout `index.html` (and in dynamically-generated HTML strings) depend on every function being reachable as a bare global. Converting to real ES modules would mean adding explicit `export`/`import` to every cross-file reference *and* either keeping a `window.fn = fn` escape hatch for every onclick-called function or rewriting all of them to `addEventListener` — essentially the same large, high-risk rewrite already flagged in §13 (CSP hardening) below, which still isn't something to do blind, without a browser to verify against. This split gets the real, everyday maintainability benefit (finding code, working in a file you can actually hold in your head, smaller diffs) without that risk: every file is still a plain script, still shares global scope exactly as before, still gets called the exact same way from `index.html`.
+
+**How it was done safely:** each of the 8 files was cut at its own existing internal section-comment boundaries (they already had clear headers like `// FEATURE 3: MOOD TRACKER` or `// BATCH 4 — GOAL PREDICTION` from prior work) — nothing was reordered, only split. Before touching `index.html` or the tests, the new files were concatenated back together in their new load order and diffed byte-for-byte against a concatenation of the original 8 files in their original order: **identical, zero differences.** Only after that check passed were a short header comment added to each new file, `index.html`'s script tags updated, the 5 test-file path references updated to point at each function's new home, and `build.js`'s file list updated — all reverified afterward with a fresh syntax check, the full test suite (15/15), and a real run of `build.js`.
+
+**Folder-to-original-file map**, for anyone who bookmarked line numbers in the old files:
+
+| New folder | Came from |
+|---|---|
+| `00-foundation/` | `00-config.js`, `00-logger.js`, `00-services.js` (unchanged, just moved) |
+| `01-core/` | `01-core-init.js` |
+| `02-tasks/` | `02-reminders-habits.js` |
+| `03-wellbeing/` | `03-notifications-mood-sleep.js` |
+| `04-ai-calendar/` | `04-ai-features-calendar.js` |
+| `05-work-finance/` | `05-shifts-finance-student.js` |
+| `06-lifestyle/` | `06-lifestyle-settings-widgets.js` |
+| `07-automation/` | `07-automation-analytics.js` |
+| `08-khata-family/` | `08-khata-family-final.js` |
+
+Within each folder, files are numbered in their original load-order sequence, so e.g. `06-lifestyle/01-life-admin.js` is the first (top) chunk of the old file 06, `02-settings-core.js` the middle chunk, `03-extras.js` the last.
+
+**Not perfectly domain-pure:** because nothing was reordered (the safety guarantee above depends on that), a few files still contain 2-3 adjacent-but-different features rather than exactly one (e.g. `03-wellbeing/03-sleep-and-tasks.js` has snooze + font size + sleep tracker + task archive + bulk actions, because that's what sat next to each other in the original file). Each file's header comment says exactly what's inside it, so this doesn't cost discoverability — it's just an honest reflection of "smaller and clearer" rather than "perfectly one-feature-per-file," which would have required reordering code and given up the byte-for-byte safety guarantee.
+
+---
+
+## 11. New features requested for the roadmap (fifth update)
+
+You asked for 13 items. A few already existed in some form (Medicine tracker, Google Calendar sync, and multi-device sync via the existing Firebase backend), a couple were ambiguous enough that guessing wrong risked real wasted effort, and two need something only you can provide (an Azure app registration for Outlook, the same way Google Calendar already needs your own OAuth Client ID). Built the concrete, self-contained, unambiguous ones for real this round; flagged the rest below with exactly why.
+
+### 11.1 🎨 Premium Themes
+The app already had `setThemeColor()` and 6 free accent-color swatches — extended rather than replaced. Added 5 new, richer combinations (Midnight, Rose Gold, Emerald Noir, Slate, Sakura) gated behind `isProUser`, which already existed (`js/01-core/02-navigation-auth.js`) but wasn't gating anything yet — this is its first real use, giving "Premium" actual meaning. New file: `js/01-core/05-premium-themes.js`.
+
+### 11.2 💊 Medicine Schedule (upgraded)
+The existing tracker only supported one dose time per day and no stock tracking. Now supports up to 2 dose times (covers the common twice-daily pattern without needing a fully dynamic add-more-times UI), and each filled time generates a real recurring reminder — not just a display label. Added optional pill-count + refill-threshold fields; tapping "Taken" decrements stock and warns once it's low. Fully backward compatible with existing saved medicines (old single-`time` entries still render and work).
+
+### 11.3 ❤️ Health Dashboard
+New aggregated view — today's mood, 7-day mood/sleep averages, water intake vs. goal, medicine adherence — pulling from data that already existed (`moodLog`, `sleepLog`, `medicines`) rather than introducing parallel tracking. New file: `js/06-lifestyle/05-health-dashboard.js`, covered by a new test on the averaging math itself (`tests/bug-fixes.test.js`).
+
+One genuinely new piece: **water intake logging**. `waterCount`/`waterDate` already existed as variables (declared, synced to the cloud) but had no function or button anywhere that ever changed them — dead state. `logWaterCup()` is their first real use.
+
+### 11.4 Advanced Dashboard Widgets
+Added two new optional home widgets (Health Snapshot, Finance Snapshot) to the existing `toggleWidget()` system. While wiring this in, found and fixed two **pre-existing** bugs from before this session: the "Mood" and "Shift" widget toggles in Settings already called `document.getElementById()` on `todayMoodSection` / `todayShiftCard` — and `renderTodayShiftWidget()` was already being called from 6 different places in the codebase — but neither element existed anywhere in `index.html`. Both had been silently doing nothing, possibly since those features were first written. Built the real HTML for both.
+
+*Near-miss worth recording:* while building this, started writing a second, parallel "apply saved widget visibility on load" function before noticing one already existed (`applyWidgetPrefs()` in `js/08-khata-family/02-more-page.js`, correctly wired into real app startup) — exactly the kind of duplicate-parallel-system bug fixed repeatedly earlier in this project. Caught it before shipping and extended the existing function's map instead of adding a second one.
+
+### 11.5 📄 PDF Report Export / 📊 Excel Export
+Both fully real, not stubs. jsPDF 4.2.1 and SheetJS (`xlsx`) 0.18.5 added via jsDelivr (already CSP-allowlisted; versions verified live rather than guessed — SheetJS's newer releases moved to their own CDN domain, which would have needed a CSP change, so pinned to the last version still served from the already-trusted domain). The PDF report covers task/habit/finance summaries in one document; the Excel export is a 4-sheet workbook (Tasks, Habits, Expenses, Income) — both richer than the existing single-sheet CSV export, which was left as-is for anyone who just wants a quick spreadsheet-agnostic dump. New file: `js/06-lifestyle/04-reports-export.js`.
+
+### 11.6 Flagged, not built — need a decision, not just more time
+- **Team Workspace vs. Family Workspace** — the app already has family sharing (`shared_tasks`, family members, a shared workspace/kanban view). Building "Team Workspace" as a genuinely separate system (distinct data model, non-family invitees, maybe roles/permissions) is a different, larger scope than extending the existing sharing model to non-family collaborators under a second label. Guessing which one you want risks building the wrong thing.
+- **Outlook Calendar** — Google Calendar's 2-way sync already requires *you* to create your own Google Cloud OAuth Client ID and paste it into Settings (there's no way around this — it's how OAuth works, not a shortcut skipped). Outlook would follow the identical pattern with Microsoft's Azure AD / Graph API instead, needing your own Azure app registration. Can build the client-side OAuth flow + calendar read/write calls the same way Google's was built, but the setup step itself isn't something I can complete on your behalf.
+- **"Office sync"** — genuinely unclear what this refers to (Microsoft 365/Outlook specifically? A workplace-distinct sync profile? Something else?). Rather than guess and possibly build the wrong thing, flagging for clarification.
+- **Advance AI Features** — the app already has AI chat/planning/rescheduling, priority suggestion, auto-categorization, goal prediction, and recommendations. "Advanced" could mean several different concrete directions (natural-language quick-add parsing, proactive "you might want to..." suggestions the AI initiates rather than waits to be asked, AI-generated weekly email summaries, etc.) — each a real, separate build. Flagging rather than picking one arbitrarily.
+- **Workout Planner** — no blocker, just not reached yet this round; same shape as the existing Habits feature (exercises, sets/reps, a weekly schedule).
+- **Multi-device Sync** — this already works today (Firebase real-time sync, now with the error-handling fix from §9.1). What's missing is visibility: a "your data synced across N sessions" indicator or last-synced timestamp would be the concrete next step, not new sync infrastructure.
+
+---
+
+## 12. Shift Schedule improvements (sixth update)
+
+The Shift Schedule feature (`js/05-work-finance/01-shifts.js`) was already one of the most complete features in the app going in — shift types with color/icon/hourly rate, a repeating rotation-pattern builder, per-day overrides with notes, auto-generated shift reminders, and a monthly hours/income summary that can push straight into Finance. Extended it rather than reworking it:
+
+- **Next 7 Days list** — a scannable look-ahead list at the top of the Calendar tab, since checking a full month grid just to see "what's my shift tomorrow" was more friction than a rotating-shift worker usually wants.
+- **Bulk date-range override** — a whole week of leave or vacation used to mean tapping 7 individual calendar days one at a time. New "Set a Date Range" action applies one shift type (or resets to rotation) across an entire range at once.
+- **Overtime tracking** — logged separately from the scheduled roster (date, hours, its own rate), since OT is ad-hoc and often paid differently than a regular shift. Rolls into the monthly summary and the existing "Add to Finance" action.
+- **Per-shift-type reminder timing** — reminders were previously one global "X minutes before" setting for every shift type. A Night shift that needs 2 hours' wake-up notice and a 5-minutes-away Morning shift now don't have to share a setting; falls back to the global default when left unset.
+- **Shift schedule `.ics` export** — distinct from the app's existing task/.ics export, since shift days are computed on the fly from the rotation pattern rather than stored as individual reminders unless shift reminders happen to be turned on. Exports the actual 90-day roster for import into any calendar app.
+
+Also added the feature's first real test coverage: `getShiftForDate()` — the single function nearly everything else here depends on (the home widget, the calendar, the summary, and now the bulk override and `.ics` export too) — had zero tests before this; added one covering the rotation-cycle math itself plus override precedence.
+
+---
+
+## 13. What to look at next (not done here, on purpose)
+
+- **CSP still allows `script-src 'unsafe-inline'`.** This is required because the app uses hundreds of inline `onclick="..."` attributes throughout `index.html` and in dynamically-generated HTML strings. Removing it means converting every one of those to `addEventListener`-based event delegation — a large, mechanical, but genuinely risky rewrite to do blind (no browser here to click through and confirm nothing silently stopped working). Worth a dedicated pass with real testing, not a line item inside this one.
+- **Full DI / ES modules** — see §4.
+- **True lazy-loading / code-splitting** — see §5.
+- **Minification** — see `BUILD.md`.
+- **Firestore workspace task updates** — the rules file already documents a known limitation here (array-based updates on shared workspace tasks); a subcollection-based redesign was previously identified but not implemented, and wasn't revisited here since it's a data-model migration question, not a bug.
