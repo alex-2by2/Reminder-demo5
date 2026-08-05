@@ -249,7 +249,7 @@
             const taskTime = new Date(r.time).getTime();
             const preMs = r.preAlarm * 60000;
             if(now >= taskTime - preMs && now < taskTime) {
-                showPushNotification('Pre-reminder: ' + r.task, r.preAlarm + ' min before due time');
+                showPushNotification('Pre-reminder: ' + r.task, r.preAlarm + ' min before due time', r.id, r.priority);
                 r.preNotified = true;
                 changed = true;
             }
