@@ -201,7 +201,7 @@ All CSS changes verified for brace balance and cross-checked for the exact dupli
 
 The 8 original JS files averaged ~1,200 lines each and each blended multiple unrelated features (e.g. `06-lifestyle-settings-widgets.js` alone covered medicine, vehicles, travel, subscriptions, birthdays, settings, PWA install, widgets, and more). Split into 30 smaller, single-domain files across 9 folders — see `README.md` for the folder map.
 
-**What this deliberately is not:** a move to ES modules. This app's 8 files are classic (non-module) `<script>` tags that share one global scope by design (see `DEPLOY.md`), and hundreds of inline `onclick="functionName()"` attributes throughout `index.html` (and in dynamically-generated HTML strings) depend on every function being reachable as a bare global. Converting to real ES modules would mean adding explicit `export`/`import` to every cross-file reference *and* either keeping a `window.fn = fn` escape hatch for every onclick-called function or rewriting all of them to `addEventListener` — essentially the same large, high-risk rewrite already flagged in §13 (CSP hardening) below, which still isn't something to do blind, without a browser to verify against. This split gets the real, everyday maintainability benefit (finding code, working in a file you can actually hold in your head, smaller diffs) without that risk: every file is still a plain script, still shares global scope exactly as before, still gets called the exact same way from `index.html`.
+**What this deliberately is not:** a move to ES modules. This app's 8 files are classic (non-module) `<script>` tags that share one global scope by design (see `DEPLOY.md`), and hundreds of inline `onclick="functionName()"` attributes throughout `index.html` (and in dynamically-generated HTML strings) depend on every function being reachable as a bare global. Converting to real ES modules would mean adding explicit `export`/`import` to every cross-file reference *and* either keeping a `window.fn = fn` escape hatch for every onclick-called function or rewriting all of them to `addEventListener` — essentially the same large, high-risk rewrite already flagged under "CSP hardening" in the final section of this document, which still isn't something to do blind, without a browser to verify against. This split gets the real, everyday maintainability benefit (finding code, working in a file you can actually hold in your head, smaller diffs) without that risk: every file is still a plain script, still shares global scope exactly as before, still gets called the exact same way from `index.html`.
 
 **How it was done safely:** each of the 8 files was cut at its own existing internal section-comment boundaries (they already had clear headers like `// FEATURE 3: MOOD TRACKER` or `// BATCH 4 — GOAL PREDICTION` from prior work) — nothing was reordered, only split. Before touching `index.html` or the tests, the new files were concatenated back together in their new load order and diffed byte-for-byte against a concatenation of the original 8 files in their original order: **identical, zero differences.** Only after that check passed were a short header comment added to each new file, `index.html`'s script tags updated, the 5 test-file path references updated to point at each function's new home, and `build.js`'s file list updated — all reverified afterward with a fresh syntax check, the full test suite (15/15), and a real run of `build.js`.
 
@@ -272,7 +272,133 @@ Also added the feature's first real test coverage: `getShiftForDate()` — the s
 
 ---
 
-## 13. What to look at next (not done here, on purpose)
+## 13. Recycle Bin and Gamification (seventh update)
+
+You sent a list of 60+ items this round, spanning feature additions, a real payment/billing system, legal documents, and licensing/DRM. Rather than treat all of those the same way, triaged first: several already existed (real-time multi-device sync, conflict merge, background sync, shared workspace, XP/Levels/Streaks/Leaderboard, PUC/Insurance/Service reminders for vehicles, Fuel History, Bill/EMI/Subscription tracking, Cleaning via the chore tracker), a few need a real decision from you before building (flagged in §11.6 already), and Payments/Licensing/Legal need their own dedicated, careful pass rather than being squeezed in alongside everything else — more on that below. Built the two full, well-scoped systems below for real this round.
+
+### 13.1 Recently Deleted (Recycle Bin)
+The app already had a basic "Undo Delete" — a 5-second toast after deleting a reminder, holding exactly one item. Kept that (it's good, fast-path UX for the in-the-moment case) and built a real, persistent bin behind it: every reminder or habit deletion now also lands in a 30-day recoverable bin, browsable as a list, restorable individually, auto-purged after 30 days. Habit deletion previously had **no** recovery path at all — permanent with just a toast; it now gets the same treatment (bin + its own 5-second quick-undo). New file: `js/02-tasks/04-recycle-bin.js`.
+
+Scope note: covers reminders and habits specifically — the two highest-stakes, most-frequently-deleted data types. The restore/bin functions are written generically enough to extend to other types (vehicle logs, expenses, etc.) later; wiring every delete function in the app into it was more surface area than this pass covers.
+
+### 13.2 Gamification: Coins, Rewards, Weekly Missions
+XP/Levels/Streaks/Leaderboard already existed — but XP there is a *derived, display-only* stat, recomputed from total completions every time (fine for a level display; if you tried to spend it, it would just reappear on the next recompute). Coins are a real, separately-tracked, spendable balance:
+
+- **Coins** — earned on task completion and habit check-in (same hook points where XP/confetti already fire), at half the XP rate so the numbers feel related but distinct. Un-completing a task now revokes the coins it earned, so toggling complete/incomplete repeatedly can't be gamed for free coins.
+- **Rewards** — a user-defined list of self-rewards with a coin cost ("Coffee treat — 20 coins"); redeeming actually decrements the balance and tracks how many times each has been claimed.
+- **Weekly Missions** — three rotating goals evaluated against real existing data (tasks completed this week, best habit streak, mood-log days this week) rather than a separately-tracked system, resetting every Monday (ISO week), each claimable once for a coin bonus.
+
+New file: `js/07-automation/04-gamification.js`. Coin balance, rewards, and mission state were added to the cloud sync payload on both the save *and* restore side — checked this explicitly rather than assuming, since missing the save side for a new field is exactly the `finData` bug from §1.1 in this same project.
+
+*Caught during this work:* a real syntax error (bad string escaping in an empty-state message) and a test-harness gap (the `syncToCloud` test's sandbox didn't have `safeNum` in scope once the real function started calling it for the new `coinBalance` field) — both caught by the existing verification steps (syntax check + full test suite) before shipping, not after.
+
+### 13.3 On Payments, Licensing, and Legal documents specifically
+Flagging why these aren't in this batch rather than quietly dropping them:
+
+- **Right now, "Pro" status is just a `localStorage` flag** (`isProUser`) with no server-side check at all — anyone can open browser devtools and set it to unlock every Pro feature for free, including the Premium Themes built in §11.1. A coupon system, referral system, or "device limit" built purely in client-side JS would have the exact same problem — decorative, not real protection, and arguably worse than not having the feature at all if it creates a false sense of security.
+- What *is* genuinely buildable without a payment gateway account: a manual-payment workflow (you list a bank transfer/UPI ID, a user submits proof, you approve it, a Cloud Function flips their Pro flag server-side), invoice generation (can reuse the PDF export infrastructure from §11.5), and a real server-side license check using the existing Cloud Functions backend (`functions/index.js` already has the pattern for this — auth check + Firestore read, same shape as the AI proxy's rate limiting).
+- A live payment gateway (Razorpay/Stripe/etc.) needs your own merchant account — not something to fake with a fallback that only looks like it works.
+- Legal documents (Privacy Policy, Terms, Cookie Notice, Security Policy, Data Processing Agreement) aren't something I should generate as if they're valid, reviewed legal documents — I'm not a lawyer, and a business's actual legal exposure needs real review. Can build clear, honest starting-point pages with a prominent "have a lawyer review this before publishing" notice, which is genuinely useful without misrepresenting what it is.
+
+Happy to build the honest versions of all of the above in a focused follow-up — just didn't want to ship either fake security or fake legal protection quietly alongside a feature batch.
+
+---
+
+## 14. Remaining reminder types, notification improvements, and a critical service-worker fix (eighth update)
+
+### 14.1 A real bug found while working nearby: the service worker's offline cache was broken
+While extending the notification system (below), noticed `sw.js`'s `PRECACHE_URLS` still listed the *original* 8 flat JS files (`js/01-core-init.js` etc.) — stale since the maintainability split in §10, several updates ago. This matters more than a cosmetic mismatch: `cache.addAll()` rejects **entirely** if even one URL 404s, which means the service worker's `install` step has likely been failing silently since that split, blocking that worker version from ever activating — no offline app-shell caching for anyone reinstalling or getting a fresh service worker in that window. Fixed the list, and added a real safeguard so this can't quietly happen again: `node build.js` now cross-checks its own authoritative file list against `sw.js`'s precache list every time it runs (which is also part of the verification routine used before every update in this project) and warns loudly if they drift.
+
+### 14.2 Remaining reminder types — extended existing systems rather than building parallel ones
+Checked what already existed before adding anything (Warranty tracker already covers "Appliance Warranty Tracker" generically, complete with auto-reminders — nothing to add there):
+
+- **FASTag Recharge** and **Driving License Renewal** added to the vehicle reminder type dropdown (Insurance, PUC, and Service were already covered).
+- **Tax** and **Gas Cylinder** added as bill types, reusing the existing Bills system rather than building two more separate features.
+- **Bills now actually generate a reminder** — previously a bill's due date had zero calendar visibility anywhere in the app (unlike Warranty, which already auto-creates one); this was the real gap behind "Utility Bill Calendar," more than a missing calendar widget was.
+- **Tax Due Reminders** — a one-tap button in the existing Tax Calculator tab adds the standard Indian advance-tax installment dates (Jun/Sep/Dec/Mar 15) plus the ITR filing deadline as real reminders. (The existing Tax tab is an income tax *calculator* — New vs. Old regime, 80C/80D deductions — a genuinely different thing from a due-date *reminder*, so this was additive, not overlapping.)
+- **SIP Reminder** — investments can now be marked as a recurring monthly SIP with a reminder day; generates an actual monthly-repeating reminder rather than investments staying one-off log entries with no recurrence concept at all.
+- **Emergency Contacts** — new, self-contained: name/relation/phone with one-tap calling via `tel:` links.
+- **Shared Grocery List** — deliberately reuses the *existing, proven* `shared_tasks` Firestore collection and security rules (verified the `create` rule has no field allowlist, so no rules changes were needed at all) rather than standing up a new collection with its own rules to write and verify without a live Firebase to test against. Sharing a list sends a snapshot a family member accepts into their own Shopping list — not a live-syncing shared document, which would be the same "Shared Workspace" scope already flagged as needing a product decision in §11.6.
+
+*Caught mid-edit:* an insertion accidentally consumed the `acceptSharedTask` function's own signature line while adding code above it, orphaning its body. Caught immediately by the syntax check that runs before every batch in this project, not after.
+
+### 14.3 Notification improvements
+Previously a bare title + body with no icon, no vibration, and no way to act on it without opening the app. Now:
+- Branded icon/badge instead of the browser's generic placeholder.
+- Vibration pattern reflects the task's actual priority instead of every notification feeling identical.
+- **Mark Done / Snooze 10m action buttons directly on the notification** — the substantial piece. This required switching from the plain `Notification` constructor to a Service-Worker-registered notification (action buttons only work that way), plus a new `notificationclick` handler in `sw.js` that relays the button tap to an open tab, or opens the app if none is open. Reuses the existing `toggleStatus()`/`snoozeTask()` functions rather than reimplementing completion/snooze logic — this file didn't need new logic, just a new way to trigger the logic that already existed.
+
+The existing in-app Notification Centre (`notifLog`) already covers notification history — nothing needed there.
+
+---
+
+## 15. Legal documents merged with real business details, and the features they now accurately describe (ninth update)
+
+You provided a legal document with real business details (Keynote Infotech, contact email, Vadodara/Gujarat jurisdiction, a 7-day refund window, 30-day data retention) that filled in most of the placeholders already sitting in this project's `privacy-policy.html`/`terms-of-service.html` — both existed from earlier work, already grounded in the app's actual features rather than written generically, which is why merging rather than replacing them made sense.
+
+**Three things your document described didn't exist in the app: you asked me to build them for real rather than remove the claims, so I did.**
+
+### 15.1 Account Deletion
+`js/01-core/06-account-deletion.js`. Deletes the Firestore user document, the leaderboard entry (`public_profiles`), and the Firebase Auth account itself — with a type-your-email-to-confirm step and proper handling of Firebase's re-authentication requirement (deleting an account needs a *recent* sign-in; if the session is older, this now re-prompts for password or Google sign-in before retrying, rather than just failing). Verified against `firestore.rules` first: the existing `allow write` rule on `users/{uid}` already covers delete (Firestore's `write` permission is create+update+delete together), so no rules changes were needed.
+
+Scope decision, stated plainly in the deletion confirmation screen itself: this doesn't cascade-delete tasks/lists you previously shared with someone else — those stay in the recipient's account, the same way deleting your email doesn't unsend mail already sent. A full cascade delete would need a new Firestore rule permission and a Cloud Function to be safe against deleting data you don't own; a deliberate scope line, not an oversight.
+
+### 15.2 Firebase Analytics
+Added the `firebase-analytics-compat.js` SDK, gated behind a real opt-out preference from the start (checked *before* initializing, not initialized-then-disabled) — `js/00-foundation/04-privacy-analytics.js`. Requires a one-time Firebase Console step only the project owner can do (linking Google Analytics to the project, which generates a `measurementId` — there's a placeholder for it with instructions in `js/01-core/01-bootstrap.js`); until that's done, analytics calls are harmless no-ops rather than errors.
+
+### 15.3 Two-Factor Authentication
+The largest piece — real phone/SMS-based MFA using Firebase Auth's actual Multi-Factor Auth APIs (`js/01-core/07-two-factor-auth.js`), not a decorative toggle:
+- **Enrollment**: phone number → SMS code → `multiFactor.enroll()`, using an invisible reCAPTCHA verifier (Firebase's own abuse-prevention requirement for phone auth).
+- **Sign-in challenge**: `loginUser()` now catches the `auth/multi-factor-auth-required` error Firebase throws for an already-enrolled user and routes to a real SMS-verification modal, completing sign-in via `resolver.resolveSignIn()`.
+- **Unenroll**: available from the same Privacy Center screen once enabled.
+
+**This needs a one-time setup step only you can do**, the same way Google Calendar sync needs your own OAuth Client ID: Firebase Console → Authentication → Sign-in method → enable Multi-factor authentication. This also requires the **Blaze (pay-as-you-go) plan**, since SMS delivery costs a small amount per message — that's Firebase's own pricing, not something this app's code controls. Until that's enabled, enrollment attempts surface a clear "2FA isn't turned on for this app yet" message rather than a confusing raw Firebase error.
+
+### 15.4 Privacy Center
+New screen (Profile → Privacy Center) tying all of this together: 2FA status/toggle, analytics opt-out, links to the existing PDF/Excel/CSV export, a Data Processing Agreement request (a `mailto:` link — a DPA needs a human on our side, not an automated form), and the account deletion entry point.
+
+### 15.5 What actually changed in the legal documents
+Real business details merged in throughout both files (company name, contact, jurisdiction, refund window, retention period); new sections added for Subscription Terms, Refund & Cancellation, Data Retention, Cookie Policy, and Community Guidelines; the account-deletion placeholder replaced with the real, accurate process; 2FA and Analytics added to the data-collection and third-parties sections. **Deliberately left as a placeholder**, not filled in with generic legal boilerplate: Terms §11, Disclaimers & Limitation of Liability. That clause carries real, jurisdiction-specific legal weight, wasn't covered in the business details provided, and is exactly the kind of thing that needs a lawyer rather than a plausible-sounding substitute. Also left open: the minimum-age number in both documents (13 vs. 16 is a real jurisdictional decision, not something to default silently).
+
+---
+
+## 16. Production-readiness audit (tenth update)
+
+You asked what's missing to go live at production grade. Audited the areas that actually determine whether a launch goes smoothly rather than generic checklist items — found and fixed several real gaps, several of which were silent (nothing would visibly announce them until they caused a support ticket or a compliance complaint).
+
+### 16.1 A composite Firestore index that has never existed in this project
+`loadSharedWithMe()`'s query (`js/03-wellbeing/02-mood-sharing.js`) filters on two different fields (`toEmail` + `status`) — this requires an explicit composite index in Firestore, which is never auto-created. There was no `firestore.indexes.json` in the project at all, **and** `firebase.json` didn't even reference one. Practically, this means the family task-sharing feature (and the Shared Grocery List built on the same mechanism in §14.2) may have never actually worked against a fresh Firestore project, or was silently patched at some point by someone manually clicking "create index" in a past console error with no record of it anywhere. Added `firestore.indexes.json` with the correct index, and wired it into `firebase.json` so `firebase deploy` actually deploys it.
+
+### 16.2 A cookie/analytics consent model that wasn't real consent
+Building Firebase Analytics in §15.2 used a boolean "opted out?" flag defaulting to `false` — meaning tracking was **on** for everyone until they found a settings toggle and turned it off. That's not meaningfully different from having no consent mechanism, and doesn't hold up against the Cookie Policy section added to the Privacy Policy in the same update. Replaced with a real three-state model (undecided / granted / denied) and a genuine cookie consent banner shown on first visit — analytics now only initializes after an explicit "Accept," not by default.
+
+### 16.3 Terms/Privacy acceptance was never actually recorded
+The signup screen has said "by creating an account, you agree to our Terms/Privacy" since it was written — but nothing recorded that a given user actually agreed, or to which version. Added `termsAcceptedAt`/`termsVersion` fields, written at registration for both the email/password and first-time Google sign-in paths. Matters if the terms ever change and you need to show what a specific user agreed to and when.
+
+### 16.4 Missing security headers, and a real clickjacking gap
+Only `sw.js` had any custom header at all. Added the standard set (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS) — but the more substantive finding: there was no `frame-ancestors` or `X-Frame-Options` anywhere, meaning nothing currently prevents this app from being embedded in an iframe on another site (a real clickjacking vector). Worth knowing while fixing it: `frame-ancestors` is silently ignored by browsers when set via a `<meta>` tag like this app's existing CSP — it only works as a real HTTP header, so it had to go in `firebase.json`, not next to the rest of the CSP in `index.html`.
+
+### 16.5 A hosting-ignore rule that would have silently swallowed the new security.txt
+Added `robots.txt` (this app is a login-gated personal tool with nothing worth indexing, so it's explicit about that rather than silent) and a `.well-known/security.txt` (RFC 9116 — standard practice for responsible vulnerability disclosure, worth having given this app handles financial data). Caught before it mattered: `firebase.json`'s existing ignore list has a `**/.*` rule (ignore all dotfiles) that would have silently excluded `.well-known/security.txt` from ever actually deploying, since `.well-known` itself starts with a dot. Added an explicit exception.
+
+### 16.6 Password strength floor
+Registration only ever checked `password.length < 6` — Firebase's own bare minimum, not a real check. Added a length+variety scoring function and a live strength meter on the signup screen, raising the effective floor to 8 characters (the length NIST 800-63B recommends focusing on, rather than arbitrary complexity rules). Applied only to **registration** — existing accounts created under the old 6-character minimum aren't retroactively locked out at login.
+
+### 16.7 Verified and left alone (already solid)
+- `manifest.json` — genuinely thorough (icons including maskable, shortcuts, categories, orientation); nothing to add.
+- `workspaces` Firestore rules — `allow list: false` prevents enumeration, create/update logic correctly scoped to actual membership; no changes needed.
+- All four Firestore collections referenced anywhere in the code (`users`, `public_profiles`, `shared_tasks`, `workspaces`) have matching rules — no orphaned collection with implicit-deny-only coverage.
+
+### 16.8 What's still genuinely missing before a real launch — not something more engineering time alone fixes
+- **CSP hardening** (removing `'unsafe-inline'`, converting the app's hundreds of inline `onclick` handlers) — flagged repeatedly through this project as needing a dedicated pass with real browser testing, not a line item here.
+- **Payments/Licensing** — "Pro" is still a client-side flag with no server-side enforcement (see §13.3). A live payment gateway needs your own merchant account; the honest manual-payment + server-side license check described there is still unbuilt.
+- **Legal review** — both documents still have a real placeholder for Limitation of Liability (jurisdiction-specific legal drafting, not something to fill with plausible boilerplate) and the minimum-age number. Get an actual lawyer's eyes on both documents before publishing, full stop.
+- **A real error-tracking/monitoring dashboard** — the local error log (§4) is genuinely useful for a user reporting a bug to you, but there's no aggregate view across all your users, no alerting if the Cloud Function starts erroring at scale, and no Firestore usage/billing alerting given the Blaze plan requirement for 2FA and AI features. Consider Firebase Crashlytics or a similar service if usage grows.
+- **A staging/dev Firebase project separate from production** — all of this development has targeted a single Firebase project (`reminder-76588`). Testing new features against the same project real users are on is a real risk as this app grows; a separate dev project with its own config is standard practice once you have actual users to protect.
+
+---
+
+## 17. What to look at next (not done here, on purpose)
 
 - **CSP still allows `script-src 'unsafe-inline'`.** This is required because the app uses hundreds of inline `onclick="..."` attributes throughout `index.html` and in dynamically-generated HTML strings. Removing it means converting every one of those to `addEventListener`-based event delegation — a large, mechanical, but genuinely risky rewrite to do blind (no browser here to click through and confirm nothing silently stopped working). Worth a dedicated pass with real testing, not a line item inside this one.
 - **Full DI / ES modules** — see §4.

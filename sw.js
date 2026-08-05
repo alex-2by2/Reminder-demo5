@@ -18,14 +18,53 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
-  '/js/01-core-init.js',
-  '/js/02-reminders-habits.js',
-  '/js/03-notifications-mood-sleep.js',
-  '/js/04-ai-features-calendar.js',
-  '/js/05-shifts-finance-student.js',
-  '/js/06-lifestyle-settings-widgets.js',
-  '/js/07-automation-analytics.js',
-  '/js/08-khata-family-final.js'
+  '/js/00-foundation/01-config.js',
+  '/js/00-foundation/02-logger.js',
+  '/js/00-foundation/03-services.js',
+  '/js/00-foundation/04-privacy-analytics.js',
+  '/js/01-core/01-bootstrap.js',
+  '/js/01-core/02-navigation-auth.js',
+  '/js/01-core/03-sync-profile.js',
+  '/js/01-core/04-calendar-pomodoro.js',
+  '/js/01-core/05-premium-themes.js',
+  '/js/01-core/06-account-deletion.js',
+  '/js/01-core/07-two-factor-auth.js',
+  '/js/02-tasks/01-reminders-utils.js',
+  '/js/02-tasks/02-habits.js',
+  '/js/02-tasks/03-reminders-core.js',
+  '/js/02-tasks/04-recycle-bin.js',
+  '/js/03-wellbeing/01-notifications-projects.js',
+  '/js/03-wellbeing/02-mood-sharing.js',
+  '/js/03-wellbeing/03-sleep-and-tasks.js',
+  '/js/03-wellbeing/04-integrations.js',
+  '/js/04-ai-calendar/01-ai-assistant.js',
+  '/js/04-ai-calendar/02-calendar-habits.js',
+  '/js/04-ai-calendar/03-workspace.js',
+  '/js/05-work-finance/01-shifts.js',
+  '/js/05-work-finance/02-finance.js',
+  '/js/05-work-finance/03-student-journal.js',
+  '/js/06-lifestyle/01-life-admin.js',
+  '/js/06-lifestyle/02-settings-core.js',
+  '/js/06-lifestyle/03-extras.js',
+  '/js/06-lifestyle/04-reports-export.js',
+  '/js/06-lifestyle/05-health-dashboard.js',
+  '/js/06-lifestyle/06-advanced-widgets.js',
+  '/js/06-lifestyle/07-emergency-contacts.js',
+  '/js/07-automation/01-rules-notifications.js',
+  '/js/07-automation/02-analytics-search.js',
+  '/js/07-automation/03-engagement-reports.js',
+  '/js/07-automation/04-gamification.js',
+  '/js/08-khata-family/01-khata.js',
+  '/js/08-khata-family/02-more-page.js',
+  '/js/08-khata-family/03-family-profile.js',
+  '/js/08-khata-family/04-planning.js'
+  // MAINTENANCE: this list MUST match every <script src="js/..."> tag in
+  // index.html exactly, or cache.addAll() below rejects entirely (even one
+  // 404 fails the whole install) — silently breaking offline support and
+  // blocking this SW version from ever activating. It drifted out of sync
+  // with index.html for several updates after a file-reorganization pass
+  // before this comment was added. `node build.js` now checks this
+  // automatically (see build.js) — run it before deploying if unsure.
 ];
 
 // Cross-origin CDN library hosts we're okay opportunistically caching for offline resilience.
@@ -163,3 +202,37 @@ async function notifyClients(message) {
   const clientsList = await self.clients.matchAll({ type: 'window' });
   clientsList.forEach((client) => client.postMessage(message));
 }
+
+// NOTIFICATION IMPROVEMENT: handles taps on the Mark Done / Snooze action
+// buttons added to push notifications (see showPushNotification in
+// js/03-wellbeing/01-notifications-projects.js). Relayed to an open tab via
+// postMessage — the actual reminder update happens there since this service
+// worker can't reach localStorage (see the file-level comment at the top).
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const reminderId = event.notification.data && event.notification.data.reminderId;
+  const action = event.action; // '' if the notification body itself was tapped, not a button
+
+  event.waitUntil(
+    (async () => {
+      const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      if (action && reminderId) {
+        if (clientsList.length) {
+          clientsList.forEach((client) => client.postMessage({ type: 'NOTIF_ACTION', action, reminderId }));
+          clientsList[0].focus();
+        } else {
+          // No tab open to act on this — open the app so the user can handle
+          // it themselves rather than silently dropping the action.
+          await self.clients.openWindow('/');
+        }
+        return;
+      }
+      // Plain tap (no action button): just bring the app to the front.
+      if (clientsList.length) {
+        clientsList[0].focus();
+      } else {
+        await self.clients.openWindow('/');
+      }
+    })()
+  );
+});

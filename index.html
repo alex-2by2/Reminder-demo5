@@ -26,6 +26,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-functions-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics-compat.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.8/dist/es5/rrule.min.js" defer></script>
@@ -61,6 +62,13 @@
                 }
                 if (e.data?.type === 'SW_UPDATED') {
                     if (confirm('App update available! Reload now?')) location.reload();
+                }
+                // NOTIFICATION IMPROVEMENT: Snooze/Mark Done action buttons on the
+                // push notification itself (see showPushNotification in
+                // js/03-wellbeing/01-notifications-projects.js and the
+                // notificationclick handler in sw.js).
+                if (e.data?.type === 'NOTIF_ACTION' && typeof handleNotificationAction === 'function') {
+                    handleNotificationAction(e.data.action, e.data.reminderId);
                 }
             });
         }
@@ -102,6 +110,14 @@
 </div>
 
 <div id="toastContainer"></div>
+<div id="recaptcha-container-2fa"></div>
+<div id="cookieConsentBanner" class="cookie-banner">
+    <p>🍪 We'd like to use analytics to understand app usage and improve Life reminder. Essential sign-in storage always stays on regardless of your choice here.</p>
+    <div class="cookie-banner-btns">
+        <button onclick="respondToCookieBanner(false)" class="cookie-banner-decline">Decline</button>
+        <button onclick="respondToCookieBanner(true)" class="cookie-banner-accept">Accept</button>
+    </div>
+</div>
 
 <div id="authScreen" class="app-container" style="max-width: 400px; margin-top: 10vh; display: none;">
     <h2 style="text-align:left;">Login</h2>
@@ -111,7 +127,11 @@
     </button>
     <div style="text-align: center; color: #8e8e93; font-size: 12px; margin-bottom: 15px;">OR</div>
     <input type="email" id="emailInput" placeholder="Email Address" required>
-    <input type="password" id="passwordInput" placeholder="Password" required>
+    <input type="password" id="passwordInput" placeholder="Password" required oninput="updatePasswordStrengthMeter()">
+    <div id="passwordStrengthMeter" style="display:none; margin:-10px 0 12px;">
+        <div style="background:#e5e5ea; border-radius:6px; height:4px; overflow:hidden;"><div id="passwordStrengthBar" style="height:100%; width:0%; transition:0.2s;"></div></div>
+        <p id="passwordStrengthLabel" style="margin:4px 0 0; font-size:11px; font-weight:600;"></p>
+    </div>
     <button class="add-btn" onclick="loginUser()" style="margin-bottom:10px;">Login</button>
     <button class="add-btn" onclick="registerUser()" style="background: #f2f2f7; color: #1c1c1e; box-shadow: none; margin-bottom:10px;">Create Account</button>
     <button onclick="resetPassword()" style="background: none; border: none; color: var(--primary); font-size: 14px; width: 100%; font-weight: 600; padding: 10px;">Forgot Password?</button>
@@ -530,6 +550,7 @@
                 <div class="progress-bar-bg" style="height:6px; background:rgba(255,255,255,0.25); border-radius:10px; margin-top:8px;">
                     <div class="progress-fill" id="profileCardXPFill" style="background:white; border-radius:10px; height:100%; width:0%;"></div>
                 </div>
+                <div onclick="openRewardsModal()" id="coinBalanceDisplay" style="margin-top:10px; font-size:13px; font-weight:700; cursor:pointer;">🪙 0</div>
             </div>
 
             <!-- Profile Name (inline) -->
@@ -656,6 +677,7 @@
                 </div>
                 <div style="display:flex;gap:8px;margin-bottom:20px;">
                     <button class="print-btn" onclick="exportToExcel()" style="flex:1;justify-content:center;">📊 Excel Export</button>
+                    <button class="print-btn" onclick="openRecycleBinModal()" style="flex:1;justify-content:center;">🗑️ Recycle Bin</button>
                 </div>
                 <button onclick="showGcalInstructions()" style="background:none;border:none;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:20px;padding:0;">ℹ️ How to get free Google Calendar Client ID?</button>
 
@@ -702,6 +724,9 @@
             <div class="feature-tile" onclick="openAppStatsModal()"><span class="ft-icon">📈</span><span class="ft-label">App Stats</span></div>
             <div class="feature-tile" onclick="openLeaderboard()"><span class="ft-icon">🏆</span><span class="ft-label">Leaderboard</span></div>
             <div class="feature-tile" onclick="openHealthDashboard()"><span class="ft-icon">❤️</span><span class="ft-label">Health Dashboard</span></div>
+            <div class="feature-tile" onclick="openRewardsModal()"><span class="ft-icon">🎁</span><span class="ft-label">Rewards</span></div>
+            <div class="feature-tile" onclick="openWeeklyMissionsModal()"><span class="ft-icon">🏆</span><span class="ft-label">Weekly Missions</span></div>
+            <div class="feature-tile" onclick="openEmergencyContactsModal()"><span class="ft-icon">🚨</span><span class="ft-label">Emergency Contacts</span></div>
             <div class="feature-tile" onclick="openAutomationModal()"><span class="ft-icon">⚙️</span><span class="ft-label">Automation</span></div>
             <div class="feature-tile" onclick="openNotifCentreModal()"><span class="ft-icon">🔔</span><span class="ft-label">Notifications</span></div>
             <div class="feature-tile" onclick="openSavingsGoalModal()"><span class="ft-icon">🎯</span><span class="ft-label">Savings Goal</span></div>
@@ -834,7 +859,8 @@
                 <input type="date" id="billDueInput" style="flex:1; margin:0;">
                 <select id="billTypeInput" style="flex:1; margin:0;">
                     <option>💡 Electricity</option><option>💳 Credit Card</option><option>🛡️ Insurance</option>
-                    <option>📱 Phone</option><option>🌐 Internet</option><option>📦 Other</option>
+                    <option>📱 Phone</option><option>🌐 Internet</option><option>🧾 Tax</option>
+                    <option>🔥 Gas Cylinder</option><option>📦 Other</option>
                 </select>
                 <button onclick="addBill()" style="background:#ff9500; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
             </div>
@@ -869,6 +895,10 @@
                 <input type="number" id="invReturnInput" placeholder="Return %" style="flex:1; margin:0;">
                 <button onclick="addInvestment()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
             </div>
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; margin-bottom:15px; cursor:pointer;">
+                <input type="checkbox" id="invIsSipInput" style="width:18px; height:18px; margin:0;">
+                📅 This is a recurring SIP — remind me monthly on day <input type="number" id="sipDayInput" min="1" max="28" value="5" style="width:44px; margin:0; padding:6px; display:inline-block;">
+            </label>
             <div id="investList"></div>
         </div>
 
@@ -887,6 +917,7 @@
                 <button onclick="calculateTax()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; cursor:pointer;">Calculate Tax</button>
                 <div id="taxResult" style="margin-top:12px; font-size:13px; text-align:center; font-weight:700;"></div>
             </div>
+            <button onclick="addTaxDeadlineReminders()" style="background:#f2f2f7; color:#1c1c1e; border:none; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer; margin-bottom:15px;">📅 Add This Year's Tax Deadline Reminders</button>
         </div>
 
         <!-- Khata (Ledger) -->
@@ -1175,6 +1206,16 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="recycleBinModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('recycleBinModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:6px; font-size:20px;">🗑️ Recently Deleted</h2>
+            <p style="margin:0 0 14px; font-size:12px; color:#8e8e93;">Deleted tasks and habits stay here for 30 days before being permanently removed.</p>
+            <div id="recycleBinList"></div>
+            <button onclick="emptyRecycleBin()" style="width:100%; margin-top:12px; background:none; border:1px solid #ff3b30; color:#ff3b30; border-radius:10px; padding:10px; font-weight:700; cursor:pointer;">Empty Recycle Bin</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="errorLogModal">
         <div class="modal-content">
             <span class="close-modal-btn" onclick="closeModal('errorLogModal')">✖</span>
@@ -1250,7 +1291,7 @@
             <h3 id="shareTaskTitle" style="margin-top:0; font-size:18px;">📤 Share Task</h3>
             <p style="color:#8e8e93; font-size:13px; margin-bottom:20px;">Enter the email of the family member or friend</p>
             <input type="email" id="shareEmailInput" placeholder="friend@email.com" style="text-align:center;">
-            <button class="add-btn" onclick="shareTaskWithFamily()" style="background:#5e5ce6;">📤 Share Task</button>
+            <button class="add-btn" onclick="confirmShare()" style="background:#5e5ce6;">📤 Share</button>
         </div>
     </div>
 
@@ -1590,6 +1631,29 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="rewardsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('rewardsModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:2px; font-size:20px;">🎁 Rewards</h2>
+            <p id="coinBalanceDisplay2" style="margin:0 0 14px; font-size:13px; font-weight:700; color:#ff9500;"></p>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="text" id="rewardNameInput" placeholder="Reward (e.g. Coffee treat)" style="flex:2; margin:0;">
+                <input type="number" id="rewardCostInput" placeholder="🪙 Cost" min="1" style="flex:1; margin:0;">
+                <button onclick="addReward()" style="background:#ffd60a; color:#5c4200; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="rewardsList"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="weeklyMissionsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('weeklyMissionsModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:6px; font-size:20px;">🏆 Weekly Missions</h2>
+            <p style="margin:0 0 14px; font-size:12px; color:#8e8e93;">Resets every Monday. Complete a mission to claim its coin bonus.</p>
+            <div id="weeklyMissionsList"></div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="healthDashboardModal">
         <div class="modal-content">
             <span class="close-modal-btn" onclick="closeModal('healthDashboardModal')">✖</span>
@@ -1618,7 +1682,8 @@
                     <input type="date" id="vehDueInput" style="flex:1; margin:0;">
                     <select id="vehTypeInput" style="flex:1; margin:0;">
                         <option>🛢️ Oil Change</option><option>🔧 Service</option><option>📋 PUC</option>
-                        <option>📄 Insurance</option><option>🪪 RC Renewal</option><option>⛽ Fuel</option><option>📦 Other</option>
+                        <option>📄 Insurance</option><option>🪪 RC Renewal</option><option>🚦 Driving License</option>
+                        <option>📶 FASTag Recharge</option><option>⛽ Fuel</option><option>📦 Other</option>
                     </select>
                     <button onclick="addVehicleReminder()" style="background:#ff9500; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
                 </div>
@@ -1696,7 +1761,10 @@
                 <input type="text" id="shopNameInput" placeholder="Select list name" style="flex:1; margin:0;">
                 <button onclick="addShopList()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">+ List</button>
             </div>
-            <select id="shopListSelect" onchange="renderShoppingItems()" style="margin-bottom:10px;"></select>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <select id="shopListSelect" onchange="renderShoppingItems()" style="flex:1; margin:0;"></select>
+                <button onclick="openShareGroceryListModal()" style="background:#5e5ce6; color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;" title="Share this list with a family member">📤</button>
+            </div>
             <div style="display:flex; gap:8px; margin-bottom:15px;">
                 <input type="text" id="shopItemInput" placeholder="Add item..." style="flex:1; margin:0;" onkeypress="if(event.key==='Enter') addShopItem();">
                 <input type="number" id="shopQtyInput" placeholder="Qty" style="width:60px; margin:0;">
@@ -1851,6 +1919,23 @@
                 <button onclick="addBirthday()" style="background:#ff2d55;color:white;border:none;border-radius:10px;padding:0 14px;font-weight:700;cursor:pointer;">Add</button>
             </div>
             <div id="birthdayList"></div>
+        </div>
+    </div>
+
+    <!-- Emergency Contacts Modal -->
+    <div class="modal-overlay" id="emergencyContactsModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('emergencyContactsModal')">✖</span>
+            <h2 style="margin-top:0; font-size:20px;">🚨 Emergency Contacts</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <input type="text" id="ecNameInput" placeholder="Name" style="flex:1; margin:0; min-width:100px;">
+                <input type="text" id="ecRelationInput" placeholder="Relation (optional)" style="flex:1; margin:0; min-width:100px;">
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:15px;">
+                <input type="tel" id="ecPhoneInput" placeholder="Phone number" style="flex:1; margin:0;">
+                <button onclick="addEmergencyContact()" style="background:#ff3b30; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Add</button>
+            </div>
+            <div id="emergencyContactsList"></div>
         </div>
     </div>
 
@@ -2277,7 +2362,97 @@
                 </div>
             </div>
 
-            <button onclick="copyProfileId()" style="background:#f2f2f7; border:none; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer; color:var(--primary); font-size:13px;">📋 Copy Unique ID</button>
+            <button onclick="copyProfileId()" style="background:#f2f2f7; border:none; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer; color:var(--primary); font-size:13px; margin-bottom:8px;">📋 Copy Unique ID</button>
+            <button onclick="closeModal('profileModal'); openPrivacyCenterModal();" style="background:none; border:1px solid #e5e5ea; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer; color:#1c1c1e; font-size:13px;">🛡️ Privacy Center</button>
+        </div>
+    </div>
+
+    <!-- Two-Factor Authentication Enrollment Modal -->
+    <div class="modal-overlay" id="twoFactorEnrollModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('twoFactorEnrollModal')">✖</span>
+            <h2 style="margin-top:0;">🔐 Enable Two-Factor Authentication</h2>
+            <div id="tfaEnrollStep1">
+                <p style="font-size:12px; color:#8e8e93; margin-bottom:14px;">Enter your phone number in international format. We'll text you a verification code.</p>
+                <input type="tel" id="tfaPhoneInput" placeholder="+919876543210" style="text-align:center; margin-bottom:14px;">
+                <button onclick="send2FAEnrollmentCode()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer;">Send Code</button>
+            </div>
+            <div id="tfaEnrollStep2" style="display:none;">
+                <p style="font-size:12px; color:#8e8e93; margin-bottom:14px;">Enter the 6-digit code we texted you.</p>
+                <input type="text" inputmode="numeric" id="tfaCodeInput" placeholder="123456" style="text-align:center; margin-bottom:14px; letter-spacing:4px; font-size:18px;">
+                <button onclick="confirm2FAEnrollment()" style="width:100%; background:#34c759; color:white; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer;">Verify & Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MFA Sign-In Challenge Modal (already-enrolled users, at login) -->
+    <div class="modal-overlay" id="mfaSignInChallengeModal">
+        <div class="modal-content" style="text-align:center;">
+            <h2 style="margin-top:0;">🔐 Verify It's You</h2>
+            <p style="font-size:12px; color:#8e8e93; margin-bottom:14px;">We texted a code to <span id="mfaChallengePhoneHint" style="font-weight:700; color:#1c1c1e;"></span></p>
+            <input type="text" inputmode="numeric" id="mfaChallengeCodeInput" placeholder="123456" style="text-align:center; margin-bottom:14px; letter-spacing:4px; font-size:18px;">
+            <button onclick="confirmMFASignInChallenge()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer;">Verify & Sign In</button>
+        </div>
+    </div>
+
+    <!-- Privacy Center Modal -->
+    <div class="modal-overlay" id="privacyCenterModal">
+        <div class="modal-content">
+            <span class="close-modal-btn" onclick="closeModal('privacyCenterModal')">✖</span>
+            <h2 style="margin-top:0; margin-bottom:4px; font-size:20px;">🛡️ Privacy Center</h2>
+            <p style="margin:0 0 18px; font-size:12px; color:#8e8e93;">Manage your account security, data, and privacy preferences in one place.</p>
+
+            <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                    <span style="font-size:13px; font-weight:700;">🔐 Two-Factor Authentication</span>
+                    <span id="pc2faStatus" style="font-size:11px; font-weight:700; color:#8e8e93;">Checking...</span>
+                </div>
+                <p style="margin:0 0 10px; font-size:11px; color:#8e8e93;">Adds a phone verification step at sign-in, on top of your password.</p>
+                <button id="pc2faActionBtn" onclick="open2FAEnrollModal()" style="width:100%; background:var(--primary); color:white; border:none; border-radius:8px; padding:9px; font-weight:700; font-size:12px; cursor:pointer;">Enable 2FA</button>
+            </div>
+
+            <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:12px;">
+                <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                    <span style="font-size:13px; font-weight:700;">📊 Analytics & Cookie Preferences</span>
+                    <input type="checkbox" id="analyticsOptOutToggle" onchange="toggleAnalyticsOptOut(this.checked)" style="width:40px; height:22px;">
+                </label>
+                <p style="margin:6px 0 0; font-size:11px; color:#8e8e93;">Essential sign-in/security storage can't be disabled, but you can opt out of usage analytics here.</p>
+            </div>
+
+            <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:12px;">
+                <span style="font-size:13px; font-weight:700; display:block; margin-bottom:8px;">📤 Export Your Data</span>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="closeModal('privacyCenterModal'); exportToPDF();" style="flex:1; background:white; border:1px solid #e5e5ea; border-radius:8px; padding:8px; font-weight:700; font-size:11px; cursor:pointer;">📄 PDF</button>
+                    <button onclick="closeModal('privacyCenterModal'); exportToExcel();" style="flex:1; background:white; border:1px solid #e5e5ea; border-radius:8px; padding:8px; font-weight:700; font-size:11px; cursor:pointer;">📊 Excel</button>
+                    <button onclick="closeModal('privacyCenterModal'); exportToCSV();" style="flex:1; background:white; border:1px solid #e5e5ea; border-radius:8px; padding:8px; font-weight:700; font-size:11px; cursor:pointer;">📥 CSV</button>
+                </div>
+            </div>
+
+            <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:18px;">
+                <span style="font-size:13px; font-weight:700; display:block; margin-bottom:6px;">🏢 Data Processing Agreement</span>
+                <p style="margin:0 0 8px; font-size:11px; color:#8e8e93;">Business customers can request a DPA. This opens an email — a DPA needs a human on our side, not an automated form.</p>
+                <a href="mailto:rr586109@gmail.com?subject=Data%20Processing%20Agreement%20Request" style="display:block; text-align:center; background:white; border:1px solid #e5e5ea; border-radius:8px; padding:9px; font-weight:700; font-size:12px; color:#1c1c1e; text-decoration:none;">✉️ Request DPA</a>
+            </div>
+
+            <button onclick="closeModal('privacyCenterModal'); openAccountDeletionModal();" style="width:100%; background:none; border:1px solid #ff3b30; color:#ff3b30; border-radius:10px; padding:12px; font-weight:700; cursor:pointer; font-size:13px;">🗑️ Delete My Account</button>
+        </div>
+    </div>
+
+    <!-- Account Deletion Confirmation Modal -->
+    <div class="modal-overlay" id="accountDeletionModal">
+        <div class="modal-content" style="text-align:center;">
+            <span class="close-modal-btn" onclick="closeModal('accountDeletionModal')">✖</span>
+            <h2 style="margin-top:0; color:#ff3b30;">⚠️ Delete Account</h2>
+            <p style="font-size:13px; color:#1c1c1e; text-align:left; margin-bottom:6px;">This permanently deletes:</p>
+            <ul style="font-size:12px; color:#8e8e93; text-align:left; margin:0 0 14px; padding-left:20px;">
+                <li>All your reminders, habits, finance records, and every other data type in this app</li>
+                <li>Your leaderboard entry</li>
+                <li>Your sign-in account itself — you would need to register again to use the app</li>
+            </ul>
+            <p style="font-size:11px; color:#8e8e93; text-align:left; margin-bottom:14px;">Note: tasks or lists you previously shared with a family member remain in <i>their</i> account, the same way deleting your email doesn't unsend mail you've already sent.</p>
+            <p style="font-size:12px; font-weight:700; text-align:left; margin-bottom:6px;">Type your email address to confirm:</p>
+            <input type="email" id="deleteAccountEmailConfirm" placeholder="your@email.com" style="text-align:center; margin-bottom:14px;">
+            <button onclick="confirmAccountDeletion()" style="width:100%; background:#ff3b30; color:white; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer;">Permanently Delete My Account</button>
         </div>
     </div>
 
@@ -2436,14 +2611,18 @@
 <script src="js/00-foundation/01-config.js" defer></script>
 <script src="js/00-foundation/02-logger.js" defer></script>
 <script src="js/00-foundation/03-services.js" defer></script>
+<script src="js/00-foundation/04-privacy-analytics.js" defer></script>
 <script src="js/01-core/01-bootstrap.js" defer></script>
 <script src="js/01-core/02-navigation-auth.js" defer></script>
 <script src="js/01-core/03-sync-profile.js" defer></script>
 <script src="js/01-core/04-calendar-pomodoro.js" defer></script>
 <script src="js/01-core/05-premium-themes.js" defer></script>
+<script src="js/01-core/06-account-deletion.js" defer></script>
+<script src="js/01-core/07-two-factor-auth.js" defer></script>
 <script src="js/02-tasks/01-reminders-utils.js" defer></script>
 <script src="js/02-tasks/02-habits.js" defer></script>
 <script src="js/02-tasks/03-reminders-core.js" defer></script>
+<script src="js/02-tasks/04-recycle-bin.js" defer></script>
 <script src="js/03-wellbeing/01-notifications-projects.js" defer></script>
 <script src="js/03-wellbeing/02-mood-sharing.js" defer></script>
 <script src="js/03-wellbeing/03-sleep-and-tasks.js" defer></script>
@@ -2460,9 +2639,11 @@
 <script src="js/06-lifestyle/04-reports-export.js" defer></script>
 <script src="js/06-lifestyle/05-health-dashboard.js" defer></script>
 <script src="js/06-lifestyle/06-advanced-widgets.js" defer></script>
+<script src="js/06-lifestyle/07-emergency-contacts.js" defer></script>
 <script src="js/07-automation/01-rules-notifications.js" defer></script>
 <script src="js/07-automation/02-analytics-search.js" defer></script>
 <script src="js/07-automation/03-engagement-reports.js" defer></script>
+<script src="js/07-automation/04-gamification.js" defer></script>
 <script src="js/08-khata-family/01-khata.js" defer></script>
 <script src="js/08-khata-family/02-more-page.js" defer></script>
 <script src="js/08-khata-family/03-family-profile.js" defer></script>

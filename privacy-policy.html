@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Privacy Policy — Master Reminder App</title>
+<title>Privacy Policy — Life reminder</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; color: #1c1c1e; line-height: 1.65; }
   h1 { font-size: 26px; margin-bottom: 4px; }
@@ -21,19 +21,20 @@
 <body>
 
 <div class="notice">
-  <b>⚠️ Before you publish this:</b> this draft was generated based on the app's actual code, but it is
-  <b>not legal advice</b> and has not been reviewed by a lawyer. Given this app handles financial records
-  (including a debit/credit ledger involving <i>other people's</i> names and amounts), health-adjacent data
-  (medicine reminders, mood logs), and family data sharing, get it reviewed by someone qualified in your
-  jurisdiction(s) before this goes live — especially regarding India's DPDP Act 2023, GDPR (if you'll have
-  EU users), and children's privacy law, before relying on it.
+  <b>⚠️ Before you publish this:</b> this draft is grounded in the app's actual code and the business
+  details you provided, but it is <b>not legal advice</b> and has not been reviewed by a lawyer. Given this
+  app handles financial records (including a debit/credit ledger involving <i>other people's</i> names and
+  amounts), health-adjacent data (medicine reminders, mood logs), and family data sharing, get it reviewed by
+  someone qualified in your jurisdiction(s) before this goes live — especially regarding India's DPDP Act
+  2023, GDPR (if you'll have EU users), and children's privacy law.
 </div>
 
 <h1>Privacy Policy</h1>
-<p class="updated">Last updated: <span class="placeholder"><b>[INSERT DATE]</b></span></p>
+<p class="updated">Last updated: August 2, 2026</p>
 
-<p>This Privacy Policy explains what information Master Reminder App ("the App," "we," "us") collects, how
-we use it, and the choices you have. By using the App, you agree to the practices described here.</p>
+<p>This Privacy Policy explains what information Life reminder ("the App," "we," "us"), operated by
+<b>Keynote Infotech</b>, collects, how we use it, and the choices you have. By using the App, you agree to
+the practices described here.</p>
 
 <h2>1. Information We Collect</h2>
 
@@ -61,6 +62,9 @@ may include:</p>
 
 <h3>1.3 Optional Device Features</h3>
 <ul>
+  <li><b>Phone number (Two-Factor Authentication):</b> if you choose to enable Two-Factor Authentication in
+  the Privacy Center, we collect your phone number solely to send a verification code at sign-in, via
+  Firebase's phone authentication service. This is entirely optional and off by default.</li>
   <li><b>Location:</b> if you tap "attach location" on a task, we request your device's current GPS
   coordinates once, to generate a Google Maps link saved with that task. We do not track your location in
   the background or at any other time.</li>
@@ -95,8 +99,11 @@ is inherent in the API call. See Section 3 for how this data is used.</p>
   <li>To power AI-assisted features you choose to use</li>
   <li>To enable the family-sharing and workspace features you set up</li>
   <li>To send you reminders and notifications you've configured</li>
-  <li>To maintain basic security (e.g., rate-limiting to prevent abuse of AI features)</li>
-  <li>To improve the App's reliability (e.g., understanding crash reports, if error tracking is enabled)</li>
+  <li>To maintain basic security (e.g., rate-limiting to prevent abuse of AI features, optional
+  Two-Factor Authentication)</li>
+  <li>To understand basic app usage (screens visited, features used) via Google Analytics for Firebase, so
+  we can improve the App — you can opt out of this at any time in the Privacy Center, and it's separate from
+  the essential storage that keeps you signed in, which can't be disabled without signing out</li>
 </ul>
 <p>We do not sell your personal information, and we do not use your content to train AI models.</p>
 
@@ -104,8 +111,11 @@ is inherent in the API call. See Section 3 for how this data is used.</p>
 <p>The App is built on the following service providers, each of which processes data on our behalf under
 their own security and privacy commitments:</p>
 <ul>
-  <li><b>Firebase (Google):</b> authentication, cloud data storage/sync (Firestore), and the server-side
-  functions that power AI features and rate-limiting.</li>
+  <li><b>Firebase (Google):</b> authentication (including optional Two-Factor Authentication via SMS),
+  cloud data storage/sync (Firestore), and the server-side functions that power AI features and
+  rate-limiting.</li>
+  <li><b>Google Analytics for Firebase:</b> aggregate, anonymized usage analytics — opt-out available in the
+  Privacy Center.</li>
   <li><b>Google Gemini AI:</b> processes text you submit through AI features, via our server.</li>
   <li><b>OpenWeatherMap:</b> if you add your own API key to use the weather widget, your city queries are
   sent directly to OpenWeatherMap from your device.</li>
@@ -121,33 +131,54 @@ HTTPS. No system is perfectly secure, and we cannot guarantee absolute security.
 
 <h2>5. Your Choices &amp; Rights</h2>
 <ul>
-  <li><b>Export:</b> the App includes a built-in feature to export your data.</li>
-  <li><b>Delete your account:</b> <span class="placeholder"><b>[The app does not currently have an in-app
-  "delete my account" button. Add one, or clearly state here how users can request deletion — e.g., "email
-  us at X and we will delete your account and associated data within Y days" — and make sure that process
-  actually exists before publishing this policy.]</b></span></li>
+  <li><b>Export:</b> the App includes built-in CSV, Excel, and PDF export, available from Settings or the
+  Privacy Center.</li>
+  <li><b>Delete your account:</b> open Profile → Privacy Center → Delete My Account. This permanently
+  deletes your reminders, habits, financial records, and every other data type in the App, your leaderboard
+  entry, and your sign-in account itself, immediately. Note: content you previously shared with a family
+  member (a task, a shared grocery list) remains in <i>their</i> account — deleting your account doesn't
+  retract data you already sent someone, the same way deleting your email doesn't unsend mail you've sent.</li>
+  <li><b>Two-Factor Authentication:</b> you can enable or disable phone-based Two-Factor Authentication at
+  any time from the Privacy Center.</li>
+  <li><b>Analytics opt-out:</b> you can disable Google Analytics for Firebase at any time from the Privacy
+  Center. This doesn't affect the essential storage needed to keep you signed in.</li>
   <li><b>Revoke permissions:</b> you can deny or revoke location, microphone, and photo access at any time
   through your browser or device settings.</li>
   <li><b>Family sharing:</b> you control who you share tasks with and which workspaces you join.</li>
+  <li><b>Data Processing Agreement:</b> business customers can request a DPA from the Privacy Center, which
+  opens a direct email to us — a DPA requires a human on our side, not an automated form.</li>
 </ul>
 
-<h2>6. Children's Privacy</h2>
+<h2>6. Data Retention</h2>
+<p>We retain your data for as long as your account is active, so it can sync across your devices. If you
+delete your account, your primary records are removed immediately, but encrypted backup copies may persist
+on our infrastructure for up to <b>30 days</b> before being permanently overwritten. Anonymized, aggregated
+usage analytics (not linked to your identity) may be retained indefinitely to help us improve the App.</p>
+
+<h2>7. Cookie Policy</h2>
+<p>The App (as a website/PWA) uses browser storage to keep you signed in and remember your preferences.
+Essential storage required for login and security can't be disabled without signing out. Google Analytics
+for Firebase may use its own tracking identifiers if you haven't opted out (Section 5).</p>
+
+<h2>8. Children's Privacy</h2>
 <p>The App is not directed at children under <span class="placeholder"><b>[13 / 16 — pick based on your
-target markets; 13 for COPPA (US), but some jurisdictions/GDPR contexts expect 16]</b></span>, and we do
+target markets; 13 for COPPA (US), but some jurisdictions/GDPR contexts expect 16 — this wasn't specified in
+the business details provided, so it's still a decision for you to make]</b></span>, and we do
 not knowingly collect personal information from children under that age. If you believe a child has
 provided us with personal information, please contact us so we can delete it.</p>
 
-<h2>7. International Data Transfers</h2>
+<h2>9. International Data Transfers</h2>
 <p>Our service providers (Google/Firebase) may process and store data in countries other than your own.
 By using the App, you consent to this transfer, storage, and processing.</p>
 
-<h2>8. Changes to This Policy</h2>
+<h2>10. Changes to This Policy</h2>
 <p>We may update this policy from time to time. We'll update the "Last updated" date above when we do.
 Material changes will be highlighted <span class="placeholder"><b>[describe how — e.g., in-app notice]</b></span>.</p>
 
-<h2>9. Contact Us</h2>
-<p class="placeholder"><b>[Insert your business name, contact email, and physical address/jurisdiction
-here — required for most app store listings and data-protection laws.]</b></p>
+<h2>11. Contact Us</h2>
+<p>Keynote Infotech (Life reminder)<br>
+Email: <a href="mailto:rr586109@gmail.com">rr586109@gmail.com</a><br>
+Address: Vadodara, Gujarat, India</p>
 
 </body>
 </html>

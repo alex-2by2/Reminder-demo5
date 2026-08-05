@@ -38,14 +38,18 @@ const FILES_IN_ORDER = [
   "00-foundation/01-config.js",
   "00-foundation/02-logger.js",
   "00-foundation/03-services.js",
+  "00-foundation/04-privacy-analytics.js",
   "01-core/01-bootstrap.js",
   "01-core/02-navigation-auth.js",
   "01-core/03-sync-profile.js",
   "01-core/04-calendar-pomodoro.js",
   "01-core/05-premium-themes.js",
+  "01-core/06-account-deletion.js",
+  "01-core/07-two-factor-auth.js",
   "02-tasks/01-reminders-utils.js",
   "02-tasks/02-habits.js",
   "02-tasks/03-reminders-core.js",
+  "02-tasks/04-recycle-bin.js",
   "03-wellbeing/01-notifications-projects.js",
   "03-wellbeing/02-mood-sharing.js",
   "03-wellbeing/03-sleep-and-tasks.js",
@@ -62,9 +66,11 @@ const FILES_IN_ORDER = [
   "06-lifestyle/04-reports-export.js",
   "06-lifestyle/05-health-dashboard.js",
   "06-lifestyle/06-advanced-widgets.js",
+  "06-lifestyle/07-emergency-contacts.js",
   "07-automation/01-rules-notifications.js",
   "07-automation/02-analytics-search.js",
   "07-automation/03-engagement-reports.js",
+  "07-automation/04-gamification.js",
   "08-khata-family/01-khata.js",
   "08-khata-family/02-more-page.js",
   "08-khata-family/03-family-profile.js",
@@ -73,6 +79,29 @@ const FILES_IN_ORDER = [
 
 function main() {
   fs.mkdirSync(DIST_DIR, { recursive: true });
+
+  // SAFEGUARD: sw.js keeps its own copy of this same file list (it can't
+  // read index.html at install time), and cache.addAll() there rejects
+  // entirely if even one URL 404s — silently breaking offline support and
+  // blocking that SW version from ever activating. The two lists drifted
+  // out of sync for several updates after a file-reorganization pass before
+  // this check existed. Warn loudly rather than let that happen quietly again.
+  const swPath = path.join(ROOT, "sw.js");
+  const swSrc = fs.readFileSync(swPath, "utf8");
+  const swPrecached = new Set(
+    (swSrc.match(/'\/js\/[^']+\.js'/g) || []).map((s) => s.slice(2, -1))
+  );
+  const expected = new Set(FILES_IN_ORDER.map((f) => `js/${f}`));
+  const missingFromSw = [...expected].filter((f) => !swPrecached.has(f));
+  const staleInSw = [...swPrecached].filter((f) => !expected.has(f));
+  if (missingFromSw.length || staleInSw.length) {
+    console.warn("\n⚠️  sw.js PRECACHE_URLS is out of sync with this file list:");
+    if (missingFromSw.length) console.warn("  Missing from sw.js (will 404 for no one, but offline copy won't include them):", missingFromSw);
+    if (staleInSw.length) console.warn("  Stale in sw.js (files that no longer exist — THIS is the one that breaks install):", staleInSw);
+    console.warn("  Update sw.js's PRECACHE_URLS to match before deploying.\n");
+  } else {
+    console.log("✓ sw.js PRECACHE_URLS matches this file list.");
+  }
 
   let sizeBefore = 0;
   const parts = FILES_IN_ORDER.map((name) => {
