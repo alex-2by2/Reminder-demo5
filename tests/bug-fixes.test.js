@@ -36,6 +36,11 @@ function loadFunctionsInSandbox({ filePath, names, initialLocalStorage = {}, ext
     }
   };
 
+  const safeNum = function(val, fallback) {
+    const n = Number(val);
+    return isNaN(n) || !isFinite(n) ? (fallback || 0) : n;
+  };
+
   const context = Object.assign({
     localStorage,
     document,
@@ -51,6 +56,7 @@ function loadFunctionsInSandbox({ filePath, names, initialLocalStorage = {}, ext
     parseInt,
     isNaN,
     safeStorage,
+    safeNum,
     setTimeout,
     clearTimeout,
     setInterval,
