@@ -196,6 +196,8 @@
         loadSmartSettings();
         applyCalendarColors();
         applyWidgetPrefs();
+        if (typeof initAnalyticsIfAllowed === 'function') initAnalyticsIfAllowed();
+        if (typeof maybeShowCookieBanner === 'function') maybeShowCookieBanner();
         // Register for periodic background sync if supported
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage({ type: 'APP_READY' });
