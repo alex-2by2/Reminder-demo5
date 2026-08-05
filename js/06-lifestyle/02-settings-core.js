@@ -43,7 +43,7 @@
     // BACKUP & RESTORE
     // ============================================================
     function exportAllData() {
-        const keys = ['reminders','habits','finData','moodLog','sleepLog','projects','shiftConfig','studentData','journalEntries','medicines','vehicleReminders','vehicleLogs','warranties','shopData','travelData','attData','lifeEvents','subscriptions','birthdays','homeManagement','quickNotes','pomodoroHistory','savingsGoals','recurringExps','taskDeps','appTheme','appFontSize','darkMode','geminiKey','pushNotif','webhookUrl','gcalClientId','activeWorkspace'];
+        const keys = ['reminders','habits','finData','moodLog','sleepLog','projects','shiftConfig','shiftOvertime','studentData','journalEntries','medicines','vehicleReminders','vehicleLogs','warranties','shopData','travelData','attData','lifeEvents','subscriptions','birthdays','homeManagement','quickNotes','pomodoroHistory','savingsGoals','recurringExps','taskDeps','appTheme','appFontSize','darkMode','geminiKey','pushNotif','webhookUrl','gcalClientId','activeWorkspace','recycleBin','coinBalance','rewards','weeklyMissions','emergencyContacts','analyticsConsent'];
         const backup = { version:'2.0', exportedAt:new Date().toISOString() };
         keys.forEach(k => { const v = localStorage.getItem(k); if(v) backup[k] = v; });
         const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
