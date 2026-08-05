@@ -8,7 +8,13 @@
       projectId: "reminder-76588",
       storageBucket: "reminder-76588.firebasestorage.app",
       messagingSenderId: "813515230126",
-      appId: "1:813515230126:web:dde11175645257dc44d63f"
+      appId: "1:813515230126:web:dde11175645257dc44d63f",
+      // SETUP NEEDED: Firebase Analytics (js/00-foundation/04-privacy-analytics.js)
+      // won't record anything without this. Get it from Firebase Console ->
+      // Project Settings -> Integrations -> Google Analytics (link it if not
+      // already linked, which generates this ID) -> paste it here. Until then,
+      // analytics calls are harmless no-ops, not errors.
+      measurementId: "G-XXXXXXXXXX"
     };
 
     firebase.initializeApp(firebaseConfig);

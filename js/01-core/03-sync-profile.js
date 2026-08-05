@@ -32,6 +32,12 @@
                     if(data.eventColor) localStorage.setItem("eventColor", data.eventColor);
                     if(data.khataData) localStorage.setItem("khataData", JSON.stringify(data.khataData));
                     if(data.morePinnedFeatures) localStorage.setItem("morePinnedFeatures", JSON.stringify(data.morePinnedFeatures));
+                    if(data.coinBalance !== undefined) localStorage.setItem("coinBalance", String(data.coinBalance));
+                    if(data.rewards) localStorage.setItem("rewards", JSON.stringify(data.rewards));
+                    if(data.weeklyMissions) localStorage.setItem("weeklyMissions", JSON.stringify(data.weeklyMissions));
+                    if(data.emergencyContacts) localStorage.setItem("emergencyContacts", JSON.stringify(data.emergencyContacts));
+                    if(data.analyticsConsent) localStorage.setItem("analyticsConsent", data.analyticsConsent);
+                    if (typeof refreshCoinDisplay === 'function') refreshCoinDisplay();
                     if(data.familyMembers) localStorage.setItem("familyMembers", JSON.stringify(data.familyMembers));
                     if(data.smartSettings) localStorage.setItem("smartSettings", JSON.stringify(data.smartSettings));
                     updateNotifBadge();
@@ -131,6 +137,11 @@
                 // expense. Default shape matches getFinData() in 05-shifts-finance-student.js.
                 finData: safeStorage("finData", {"expenses":[],"income":[],"budgets":[],"bills":[],"emis":[],"investments":[]}),
                 morePinnedFeatures: safeStorage("morePinnedFeatures", []),
+                coinBalance: safeNum(localStorage.getItem("coinBalance"), 0),
+                rewards: safeStorage("rewards", []),
+                weeklyMissions: safeStorage("weeklyMissions", {}),
+                emergencyContacts: safeStorage("emergencyContacts", []),
+                analyticsConsent: localStorage.getItem("analyticsConsent") || null,
                 familyMembers: safeStorage("familyMembers", []),
                 smartSettings: safeStorage("smartSettings", {}),
                 holidayColor: localStorage.getItem("holidayColor") || "#ff9500",

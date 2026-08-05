@@ -168,6 +168,7 @@
         if (typeof renderHomeMoodWidget === 'function') renderHomeMoodWidget();
         if (typeof renderHealthSnapshotWidget === 'function') renderHealthSnapshotWidget();
         if (typeof renderFinanceSnapshotWidget === 'function') renderFinanceSnapshotWidget();
+        if (typeof refreshCoinDisplay === 'function') refreshCoinDisplay();
         setFontSize(localStorage.getItem("appFontSize") || "medium", false);
         const webhookInput = document.getElementById("webhookUrlInput");
         const gcalInput = document.getElementById("gcalClientIdInput");
@@ -339,7 +340,7 @@
                 update.uniqueId = generateUniqueId();
                 update.joinedAt = doc.exists && doc.data().joinedAt ? doc.data().joinedAt : new Date().toISOString();
             }
-            if (!doc.exists) { update.userLevel = 1; update.habitXP_tasks = 0; }
+            if (!doc.exists) { update.userLevel = 1; update.habitXP_tasks = 0; update.termsAcceptedAt = new Date().toISOString(); update.termsVersion = "2026-08-02"; }
             ref.set(update, { merge: true });
             db.collection("public_profiles").doc(result.user.uid).set({
                 userName: update.userName,
@@ -349,13 +350,48 @@
         });
     }).catch(err => showToast(err.message, "error"));
     
+    function passwordStrengthScore(pw) {
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^a-zA-Z0-9]/.test(pw)) score++;
+        return score; // 0-5
+    }
+
+    function updatePasswordStrengthMeter() {
+        const pw = document.getElementById('passwordInput').value;
+        const meter = document.getElementById('passwordStrengthMeter');
+        const bar = document.getElementById('passwordStrengthBar');
+        const label = document.getElementById('passwordStrengthLabel');
+        if (!pw) { meter.style.display = 'none'; return; }
+        meter.style.display = 'block';
+        const score = passwordStrengthScore(pw);
+        const pct = Math.min(100, (score / 5) * 100);
+        const [color, text] = score <= 2 ? ['#ff3b30', 'Weak — needs at least 8 characters'] : score === 3 ? ['#ff9500', 'Medium'] : ['#34c759', 'Strong'];
+        bar.style.width = pct + '%';
+        bar.style.background = color;
+        label.style.color = color;
+        label.innerText = text;
+    }
+
     function registerUser() { 
         const email = document.getElementById("emailInput").value; 
         const password = document.getElementById("passwordInput").value; 
-        if(!email || password.length < 6) return showToast("Enter valid email/password", "error"); 
+        if(!email) return showToast("Enter a valid email", "error");
+        // Minimum raised from Firebase's own bare 6-character floor to a
+        // real length+variety check — 8 chars is the length NIST 800-63B
+        // recommends focusing on, rather than arbitrary complexity rules.
+        // Only enforced here, at registration — existing accounts created
+        // under the old 6-char minimum aren't retroactively locked out at
+        // login (see loginUser(), unchanged).
+        if (passwordStrengthScore(password) < 2) {
+            return showToast("Use at least 8 characters for your password.", "error");
+        }
         auth.createUserWithEmailAndPassword(email, password).then((u) => { 
             const uid = generateUniqueId();
-            db.collection("users").doc(u.user.uid).set({ reminders: [], habits: [], userLevel: 1, habitXP_tasks: 0, userName: "User", alarmSound: userAlarmSound, voiceAlarm: false, uniqueId: uid, joinedAt: new Date().toISOString() }); 
+            db.collection("users").doc(u.user.uid).set({ reminders: [], habits: [], userLevel: 1, habitXP_tasks: 0, userName: "User", alarmSound: userAlarmSound, voiceAlarm: false, uniqueId: uid, joinedAt: new Date().toISOString(), termsAcceptedAt: new Date().toISOString(), termsVersion: "2026-08-02" }); 
             db.collection("public_profiles").doc(u.user.uid).set({ userName: "User", habitXP_tasks: 0, uniqueId: uid }).catch(() => {});
             u.user.sendEmailVerification().then(() => {
                 showToast("Account created! Check your email to verify. ✉️", "success");
@@ -369,7 +405,13 @@
         const email = document.getElementById("emailInput").value; 
         const password = document.getElementById("passwordInput").value; 
         if(!email || !password) return showToast("Enter email and password", "error"); 
-        auth.signInWithEmailAndPassword(email, password).catch((e) => showToast(e.message, "error")); 
+        auth.signInWithEmailAndPassword(email, password).catch((e) => {
+            if (e.code === 'auth/multi-factor-auth-required' && typeof handleMFASignInChallenge === 'function') {
+                handleMFASignInChallenge(e);
+            } else {
+                showToast(e.message, "error");
+            }
+        }); 
     }
     
     function resetPassword() { 
