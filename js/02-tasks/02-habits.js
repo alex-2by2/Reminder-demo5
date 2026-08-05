@@ -49,16 +49,39 @@
             let completed = parseInt(localStorage.getItem("habitXP_tasks") || "0"); 
             localStorage.setItem("habitXP_tasks", completed + 1); 
             updateAnalyticsAndGamification(); 
+            if (typeof earnCoins === 'function') earnCoins(COINS_PER_COMPLETION);
             syncToCloud(); 
         }
     }
 
     function deleteHabit(id) { 
         let habits = safeStorage("habits", []); 
+        const deleted = habits.find(h => h.id === id);
         localStorage.setItem("habits", JSON.stringify(habits.filter(h => h.id !== id))); 
-        showToast("Deleted.", "error"); 
+        // RECYCLE BIN: habit deletion used to be permanent with zero recovery
+        // path. Now lands in the same persistent bin reminders use, plus a
+        // quick 5-second undo toast matching the one deleteReminder() already has.
+        if (typeof addToRecycleBin === 'function') addToRecycleBin('habit', deleted);
         loadHabits(); 
         syncToCloud(); 
+
+        const container = document.getElementById("toastContainer");
+        if (container && deleted) {
+            const toast = document.createElement("div");
+            toast.className = "toast error";
+            toast.innerHTML = `<span>🗑️ Habit deleted</span> <button onclick="undoDeleteHabit(${id})" style="background:white; color:black; border:none; padding:4px 8px; border-radius:8px; cursor:pointer; font-weight:700; margin-left:10px;">UNDO</button>`;
+            container.appendChild(toast);
+            setTimeout(() => { if (toast) toast.remove(); }, 5000);
+        } else {
+            showToast("Deleted.", "error");
+        }
+    }
+
+    function undoDeleteHabit(id) {
+        if (typeof getRecycleBin !== 'function') return;
+        const entry = getRecycleBin().find(e => e.type === 'habit' && e.item.id === id);
+        if (entry) restoreFromRecycleBin(entry.binId);
+        document.querySelectorAll('.toast.error').forEach(t => t.remove());
     }
 
     function loadHabits() {

@@ -426,7 +426,7 @@
                         if (!reminder.notified) { 
                             playAlarm(); 
                             speakAlarm(reminder.task); 
-                            showPushNotification(reminder.task, (reminder.notes||'').replace(/<[^>]*>/g,'') || 'Time to complete this task!');
+                            showPushNotification(reminder.task, (reminder.notes||'').replace(/<[^>]*>/g,'') || 'Time to complete this task!', reminder.id, reminder.priority);
                             sendWebhookNotification(reminder);
                             reminder.notified = true; 
                             remsToSave = true; 
@@ -543,6 +543,7 @@
                     r.completedAt = new Date().toISOString(); 
                     showToast("Done!", "success"); 
                     fireConfetti(); 
+                    if (typeof earnCoins === 'function') earnCoins(COINS_PER_COMPLETION);
                     if (r.repeat && r.repeat !== "none") taskToRepeat = r; 
                 } else { 
                     r.status = "pending"; 
@@ -550,6 +551,7 @@
                     delete r.completedBy; 
                     delete r.completedAt; 
                     showToast("Restored.", "info"); 
+                    if (typeof getCoinBalance === 'function') { localStorage.setItem('coinBalance', String(Math.max(0, getCoinBalance() - COINS_PER_COMPLETION))); if (typeof refreshCoinDisplay === 'function') refreshCoinDisplay(); }
                 } 
             } 
             return r;
@@ -570,6 +572,10 @@
         let r = safeStorage("reminders", []);
         deletedTaskTemp = r.find(x => x.id === id); 
         localStorage.setItem("reminders", JSON.stringify(r.filter(x => x.id !== id))); 
+        // RECYCLE BIN: the quick-undo toast below only lasts 5 seconds and only
+        // holds this one item — also land it in the persistent bin so it's
+        // still recoverable after that window closes.
+        if (typeof addToRecycleBin === 'function') addToRecycleBin('reminder', deletedTaskTemp);
         searchReminders(); 
         syncToCloud(); 
         
@@ -591,6 +597,13 @@
             let r = safeStorage("reminders", []);
             r.push(deletedTaskTemp); 
             localStorage.setItem("reminders", JSON.stringify(r)); 
+            // Remove the just-restored item from the recycle bin too, so
+            // undoing within the 5-second window doesn't leave a duplicate
+            // sitting in the bin as well.
+            if (typeof getRecycleBin === 'function' && deletedTaskTemp) {
+                const bin = getRecycleBin().filter(e => !(e.type === 'reminder' && e.item.id === deletedTaskTemp.id));
+                localStorage.setItem('recycleBin', JSON.stringify(bin));
+            }
             deletedTaskTemp = null; 
             document.querySelectorAll('.toast.error').forEach(t => t.remove()); 
             showToast("Restored! ♻️", "success"); 
