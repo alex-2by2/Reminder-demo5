@@ -23,15 +23,54 @@
     // Alias so Settings button works
     const requestPushNotification = requestNotificationPermission;
 
-    function showPushNotification(title, body) {
-        if (Notification.permission === 'granted' && localStorage.getItem('pushNotif') === 'true') {
-            const n = new Notification('⏰ ' + title, {
-                body: body || 'Time to complete this task!',
-                requireInteraction: true,
-                tag: 'reminder-' + title
+    function showPushNotification(title, body, reminderId, priority) {
+        if (Notification.permission !== 'granted' || localStorage.getItem('pushNotif') !== 'true') return;
+
+        // NOTIFICATION IMPROVEMENT: vibration now reflects urgency instead of
+        // every notification feeling the same; icon/badge give it a branded
+        // look instead of the browser's generic placeholder.
+        const vibrate = priority === 'high' ? [200, 100, 200, 100, 200] : priority === 'low' ? [120] : [150, 75, 150];
+        const options = {
+            body: body || 'Time to complete this task!',
+            requireInteraction: true,
+            tag: 'reminder-' + title,
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            vibrate,
+            data: { reminderId: reminderId || null }
+        };
+
+        // Action buttons (Mark Done / Snooze) only work via a Service-Worker-
+        // registered notification, not the plain Notification constructor —
+        // and only make sense when there's an actual reminder to act on.
+        if (reminderId && navigator.serviceWorker) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification('⏰ ' + title, {
+                    ...options,
+                    actions: [
+                        { action: 'done', title: '✅ Mark Done' },
+                        { action: 'snooze', title: '⏰ Snooze 10m' }
+                    ]
+                });
+            }).catch(() => {
+                const n = new Notification('⏰ ' + title, options);
+                n.onclick = function() { window.focus(); n.close(); };
             });
+        } else {
+            const n = new Notification('⏰ ' + title, options);
             n.onclick = function() { window.focus(); n.close(); };
-            // Persistent: stays until user dismisses/clicks (no auto-close)
+        }
+    }
+
+    // Handles a tap on a notification's action button, relayed here via
+    // postMessage from sw.js's notificationclick listener (see index.html's
+    // service worker message handler).
+    function handleNotificationAction(action, reminderId) {
+        if (!reminderId) return;
+        if (action === 'done' && typeof toggleStatus === 'function') {
+            toggleStatus(reminderId);
+        } else if (action === 'snooze' && typeof snoozeTask === 'function') {
+            snoozeTask(reminderId, 10);
         }
     }
 

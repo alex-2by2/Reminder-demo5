@@ -87,9 +87,11 @@
     // FEATURE 5: FAMILY TASK SHARING (Firebase)
     // ============================================================
     let sharedTaskIdToShare = null;
+    let shareMode = 'task'; // 'task' | 'grocery' — which flow opened the shared modal
 
     function openShareModal(taskId) {
         sharedTaskIdToShare = taskId;
+        shareMode = 'task';
         const r = (safeStorage('reminders', [])).find(x => x.id === taskId);
         const shareTaskTitleEl = document.getElementById('shareTaskTitle');
         if (r && shareTaskTitleEl) {
@@ -98,6 +100,15 @@
         const shareEmailInput = document.getElementById('shareEmailInput');
         if (shareEmailInput) shareEmailInput.value = '';
         openModal('shareTaskModal');
+    }
+
+    function confirmShare() {
+        const email = document.getElementById('shareEmailInput')?.value.trim();
+        if (shareMode === 'grocery') {
+            shareGroceryList(email).then(() => closeModal('shareTaskModal'));
+        } else {
+            shareTaskWithFamily();
+        }
     }
 
     async function shareTaskWithFamily() {
@@ -151,18 +162,27 @@
             let html = '';
             snap.forEach(doc => {
                 const t = doc.data();
+                const isGrocery = t.itemType === 'grocery';
                 const date = new Date(t.time).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
                 const prioColor = t.priority==='high'?'#ff3b30':t.priority==='low'?'#34c759':'#ff9500';
+                let bodyHtml;
+                if (isGrocery) {
+                    let items = [];
+                    try { items = JSON.parse(t.notes || '[]'); } catch (e) { items = []; }
+                    bodyHtml = `<p style="margin:6px 0 0; font-size:12px; color:#666; background:white; padding:8px; border-radius:8px;">${items.map(i => sanitizeHTML(i.name) + (i.qty > 1 ? ' ×' + i.qty : '')).join(', ') || 'No items'}</p>`;
+                } else {
+                    bodyHtml = t.notes ? `<p style="margin:6px 0 0; font-size:12px; color:#666; background:white; padding:8px; border-radius:8px;">${sanitizeHTML(t.notes)}</p>` : '';
+                }
                 html += `
-                    <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:10px; border-left:4px solid ${prioColor};">
+                    <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:10px; border-left:4px solid ${isGrocery ? '#5e5ce6' : prioColor};">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
                             <div style="flex:1;">
                                 <h4 style="margin:0 0 4px; font-size:15px;">${sanitizeHTML(t.task||'')}</h4>
                                 <p style="margin:0; font-size:12px; color:#8e8e93;">📅 ${date}</p>
                                 <p style="margin:4px 0 0; font-size:12px; color:var(--primary); font-weight:600;">From: ${sanitizeHTML(t.fromName||'')}</p>
-                                ${t.notes ? `<p style="margin:6px 0 0; font-size:12px; color:#666; background:white; padding:8px; border-radius:8px;">${sanitizeHTML(t.notes)}</p>` : ''}
+                                ${bodyHtml}
                             </div>
-                            <button onclick="acceptSharedTask('${doc.id}')" style="background:#34c759; color:white; border:none; border-radius:10px; padding:8px 14px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0;">Add ✅</button>
+                            <button onclick="acceptSharedTask('${doc.id}')" style="background:#34c759; color:white; border:none; border-radius:10px; padding:8px 14px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; flex-shrink:0;">${isGrocery ? 'Add List ✅' : 'Add ✅'}</button>
                         </div>
                     </div>`;
             });
@@ -172,11 +192,68 @@
         }
     }
 
+    // SHARED GROCERY LIST: reuses the same shared_tasks collection/rules
+    // already proven for family task sharing (js/03-wellbeing/02-mood-sharing.js)
+    // rather than a new Firestore collection with its own rules to write and
+    // verify without a live Firebase to test against. A itemType:'grocery'
+    // marker distinguishes it from a regular shared task on accept.
+    async function shareGroceryList(email) {
+        if (!currentUser) return showToast('Login required!', 'error');
+        if (!email || !email.includes('@')) return showToast('Enter a valid email!', 'error');
+        const d = getShopData();
+        const listName = document.getElementById('shopListSelect')?.value || d.activeList;
+        const items = d.lists[listName];
+        if (!items || !items.length) return showToast('This list is empty!', 'error');
+        try {
+            await db.collection('shared_tasks').add({
+                fromUid: currentUser.uid,
+                fromName: userName || currentUser.email,
+                task: '🛒 Grocery List: ' + listName,
+                notes: JSON.stringify(items.map(i => ({ name: i.name, qty: i.qty }))),
+                itemType: 'grocery',
+                listName: listName,
+                toEmail: email.trim().toLowerCase(),
+                time: new Date().toISOString(),
+                priority: 'medium',
+                sharedAt: new Date().toISOString(),
+                status: 'pending'
+            });
+            showToast(`✅ List shared with ${email}!`, 'success');
+        } catch (e) { showToast('Share error: ' + e.message, 'error'); }
+    }
+
+    function openShareGroceryListModal() {
+        shareMode = 'grocery';
+        const d = getShopData();
+        const listName = document.getElementById('shopListSelect')?.value || d.activeList;
+        if (!listName || !d.lists[listName] || !d.lists[listName].length) {
+            return showToast('This list is empty!', 'error');
+        }
+        const shareTaskTitleEl = document.getElementById('shareTaskTitle');
+        if (shareTaskTitleEl) shareTaskTitleEl.innerText = '🛒 Share List: ' + listName;
+        const shareEmailInput = document.getElementById('shareEmailInput');
+        if (shareEmailInput) shareEmailInput.value = '';
+        openModal('shareTaskModal');
+    }
+
     async function acceptSharedTask(docId) {
         try {
             const doc = await db.collection('shared_tasks').doc(docId).get();
             if (!doc.exists) return;
             const t = doc.data();
+            if (t.itemType === 'grocery') {
+                const items = JSON.parse(t.notes || '[]');
+                const d = getShopData();
+                const listName = t.listName || 'Shared List';
+                if (!d.lists[listName]) d.lists[listName] = [];
+                items.forEach(i => d.lists[listName].push({ id: Date.now() + Math.random(), name: i.name, qty: i.qty || 1, done: false }));
+                d.activeList = listName;
+                saveShopData(d);
+                await db.collection('shared_tasks').doc(docId).update({ status: 'accepted' });
+                loadSharedWithMe();
+                showToast(`🛒 "${listName}" added to your Shopping list!`, 'success');
+                return;
+            }
             let reminders = safeStorage('reminders', []);
             reminders.push({
                 id: Date.now(), task: t.task, notes: t.notes || '', time: t.time,
