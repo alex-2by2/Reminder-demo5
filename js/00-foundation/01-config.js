@@ -135,6 +135,12 @@
         // Added by this refactor pass
         FEATURE_FLAGS: 'featureFlags',
         ERROR_LOG: 'errorLog',
+        RECYCLE_BIN: 'recycleBin',
+        COIN_BALANCE: 'coinBalance',
+        REWARDS: 'rewards',
+        WEEKLY_MISSIONS: 'weeklyMissions',
+        EMERGENCY_CONTACTS: 'emergencyContacts',
+        ANALYTICS_CONSENT: 'analyticsConsent',
 
         // Dynamic-suffix key (not a literal key on its own): actual key is
         // `healthCheck_` + a YYYY-MM-DD date string, one entry per day.
