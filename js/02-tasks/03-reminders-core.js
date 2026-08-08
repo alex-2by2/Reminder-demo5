@@ -193,6 +193,16 @@
         });
     }
 
+
+    function reminderHasTag(reminder, tag) {
+        if (!reminder || !tag || !reminder.tags) return false;
+        return String(reminder.tags)
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean)
+            .some(t => t === tag);
+    }
+
     function loadReminders(filterText = "") {
         const reminderList = document.getElementById("reminderList");
         reminderList.innerHTML = "";
@@ -256,7 +266,7 @@
             );
         }
               if (activeTagFilter) {
-            reminders = reminders.filter(r => r.tags && r.tags.includes(activeTagFilter));
+            reminders = reminders.filter(r => reminderHasTag(r, activeTagFilter));
         }
         if (activeProjectFilter !== '') {
             reminders = reminders.filter(r => String(r.project || '') === String(activeProjectFilter));

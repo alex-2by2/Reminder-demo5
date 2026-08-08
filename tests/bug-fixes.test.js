@@ -285,3 +285,18 @@ test("syncToCloud includes finData in the payload written to Firestore", () => {
     "finData must be included in the synced payload so Finance data is actually backed up"
   );
 });
+
+// Regression test for tag filtering: using String.includes() made a filter for
+// "work" also match unrelated tags like "homework". Tag chips should match
+// the comma-separated tag token exactly after trimming whitespace.
+test("reminderHasTag matches exact comma-separated tags, not substrings", () => {
+  const { context } = loadFunctionsInSandbox({
+    filePath: path.join(__dirname, "..", "js", "02-tasks", "03-reminders-core.js"),
+    names: ["reminderHasTag"],
+  });
+
+  assert.strictEqual(context.reminderHasTag({ tags: "homework, personal" }, "work"), false);
+  assert.strictEqual(context.reminderHasTag({ tags: "homework, work, personal" }, "work"), true);
+  assert.strictEqual(context.reminderHasTag({ tags: " work , personal" }, "work"), true);
+  assert.strictEqual(context.reminderHasTag({ tags: "" }, "work"), false);
+});
