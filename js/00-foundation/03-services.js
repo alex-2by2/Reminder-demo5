@@ -126,6 +126,7 @@
 
         /** Top N public profiles ordered by task XP, for the leaderboard. */
         getLeaderboard: function (limit) {
+            if (!currentUser) return Promise.reject(new Error('Please sign in to view the leaderboard.'));
             return db.collection('public_profiles')
                 .orderBy('habitXP_tasks', 'desc')
                 .limit(limit || 10)
