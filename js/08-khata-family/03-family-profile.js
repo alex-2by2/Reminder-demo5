@@ -304,8 +304,8 @@
             const overdue = reminders.filter(r => r.status !== 'completed' && !r.archived && r.time && new Date(r.time) < now);
             if (overdue.length) {
                 addNotifLog('Overdue Tasks', overdue.length + ' task(s) need attention', 'error');
-                if (Notification.permission === 'granted' && overdue.length > 0) {
-                    new Notification('Master App', { body: overdue.length + ' overdue task(s)!', icon: '/icon-192.png' });
+                if (Notification.permission === 'granted' && overdue.length > 0 && typeof showPushNotification === 'function') {
+                    showPushNotification('Master App', overdue.length + ' overdue task(s)!');
                 }
             }
         }
