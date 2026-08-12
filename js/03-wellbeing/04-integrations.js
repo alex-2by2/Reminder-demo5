@@ -4,19 +4,25 @@
     // ============================================================
     function sendWebhookNotification(reminder) {
         const url = (localStorage.getItem('webhookUrl') || '').trim();
-        if (!url) return;
         const plainNotes = (reminder.notes || '').replace(/<[^>]*>/g, '');
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: `⏰ Reminder: ${reminder.task}`,
-                task: reminder.task,
-                notes: plainNotes,
-                time: reminder.time,
-                priority: reminder.priority || 'medium'
-            })
-        }).catch(() => {});
+        if (url) {
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: `⏰ Reminder: ${reminder.task}`,
+                    task: reminder.task,
+                    notes: plainNotes,
+                    time: reminder.time,
+                    priority: reminder.priority || 'medium'
+                })
+            }).catch(() => {});
+        }
+        // Multi-webhook event system (js/09-new-features/04-webhooks.js) — additive,
+        // fires independently of the single legacy URL above.
+        if (typeof fireWebhookEvent === 'function') {
+            fireWebhookEvent('reminder.due', { task: reminder.task, notes: plainNotes, time: reminder.time, priority: reminder.priority || 'medium' });
+        }
     }
 
     // ============================================================

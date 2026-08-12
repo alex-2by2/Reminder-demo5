@@ -12,7 +12,7 @@
                 localStorage.setItem('pushNotif', 'true');
                 const btn = document.getElementById('notifBtn');
                 if (btn) { btn.innerText = '✅ On'; btn.style.background = '#34c759'; }
-                new Notification('Master App', { body: 'Notifications are now active! ✅' });
+                showPushNotification('Master App', 'Notifications are now active! ✅');
                 showToast('Push Notifications Enabled!', 'success');
             } else {
                 localStorage.setItem('pushNotif', 'false');
@@ -39,26 +39,41 @@
             vibrate,
             data: { reminderId: reminderId || null }
         };
+        // Action buttons (Mark Done / Snooze) only make sense when there's
+        // an actual single reminder to act on (not e.g. a multi-task summary).
+        if (reminderId) {
+            options.actions = [
+                { action: 'done', title: '✅ Mark Done' },
+                { action: 'snooze', title: '⏰ Snooze 10m' }
+            ];
+        }
 
-        // Action buttons (Mark Done / Snooze) only work via a Service-Worker-
-        // registered notification, not the plain Notification constructor —
-        // and only make sense when there's an actual reminder to act on.
-        if (reminderId && navigator.serviceWorker) {
+        // BUGFIX: this used to fall back to `new Notification(...)` when the
+        // service worker wasn't ready yet. Confirmed via a real production
+        // error that this fallback was broken: once a service worker is
+        // controlling the page (which this PWA always has, unconditionally
+        // registered — see index.html), Chrome-family browsers throw
+        // "Failed to construct 'Notification': Illegal constructor" — and
+        // it's a *synchronous* throw, not something the .catch() on the SW
+        // promise below could ever actually reach. Always going through the
+        // service worker is both the reliable path and the recommended one.
+        if (navigator.serviceWorker) {
             navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification('⏰ ' + title, {
-                    ...options,
-                    actions: [
-                        { action: 'done', title: '✅ Mark Done' },
-                        { action: 'snooze', title: '⏰ Snooze 10m' }
-                    ]
-                });
+                reg.showNotification('⏰ ' + title, options);
             }).catch(() => {
-                const n = new Notification('⏰ ' + title, options);
-                n.onclick = function() { window.focus(); n.close(); };
+                // No working service worker at all (very old browser) — a
+                // last-resort attempt, wrapped so a failure here can't crash
+                // the caller the way the unwrapped version used to.
+                try {
+                    const n = new Notification('⏰ ' + title, options);
+                    n.onclick = function() { window.focus(); n.close(); };
+                } catch (e) { /* nothing more we can safely do */ }
             });
         } else {
-            const n = new Notification('⏰ ' + title, options);
-            n.onclick = function() { window.focus(); n.close(); };
+            try {
+                const n = new Notification('⏰ ' + title, options);
+                n.onclick = function() { window.focus(); n.close(); };
+            } catch (e) { /* nothing more we can safely do */ }
         }
     }
 
