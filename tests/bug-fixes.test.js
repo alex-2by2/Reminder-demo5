@@ -2,6 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("node:path");
+const fs = require("node:fs");
 const vm = require("node:vm");
 const { extractFunction } = require("./extract-fn");
 
@@ -283,5 +284,25 @@ test("syncToCloud includes finData in the payload written to Firestore", () => {
     savedDocs.users.finData,
     { expenses: [{ id: 1, name: "Groceries", amount: 500 }], income: [], budgets: [], bills: [], emis: [], investments: [] },
     "finData must be included in the synced payload so Finance data is actually backed up"
+  );
+});
+
+// Regression test for a real production bug (caught via the app's own error
+// log, not by testing): getHealthSnapshot()/logWaterCup() in
+// js/06-lifestyle/05-health-dashboard.js read and wrote `waterDate` as a
+// bare variable, on the mistaken assumption it was declared alongside
+// waterCount in js/01-core/02-navigation-auth.js — it never was, only
+// waterCount was, and reading a variable nothing has ever declared throws
+// ReferenceError. The earlier test for getHealthSnapshot above didn't catch
+// this because it supplies waterDate/waterCount via extraContext, which
+// papers over exactly this class of bug — a mock stands in for the missing
+// piece instead of exposing that it's missing. This test deliberately does
+// NOT mock them: it checks the real declaration exists in the real file.
+test("waterDate is actually declared where logWaterCup/getHealthSnapshot expect it", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "js", "01-core", "02-navigation-auth.js"), "utf8");
+  assert.match(
+    source,
+    /^\s*let\s+waterDate\s*=/m,
+    "waterDate must be declared as a top-level `let` here (alongside waterCount), or any code that reads it bare (getHealthSnapshot, logWaterCup) will throw ReferenceError on first load"
   );
 });
