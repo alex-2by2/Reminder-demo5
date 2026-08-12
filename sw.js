@@ -8,6 +8,33 @@
 // data while the app is fully closed. True "check reminders while closed" needs either a
 // migration to IndexedDB (which a service worker CAN read) or a real backend push service.
 
+// --- WEB PUSH (Firebase Cloud Messaging) — background message handling ---
+// Needed so a push arriving while no tab is open still shows a notification.
+// Service workers can't read variables from the page, so the (non-secret)
+// Firebase web config is duplicated here — this is Firebase's own documented
+// pattern for background messaging, not a special exception for this app.
+importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
+firebase.initializeApp({
+  apiKey: "AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY",
+  authDomain: "reminder-76588.firebaseapp.com",
+  projectId: "reminder-76588",
+  storageBucket: "reminder-76588.firebasestorage.app",
+  messagingSenderId: "813515230126",
+  appId: "1:813515230126:web:dde11175645257dc44d63f"
+});
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage((payload) => {
+  const title = (payload.notification && payload.notification.title) || 'Master Reminder App';
+  const options = {
+    body: (payload.notification && payload.notification.body) || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    data: payload.data || {}
+  };
+  self.registration.showNotification(title, options);
+});
+
 const CACHE_VERSION = 'v1';
 const CACHE_NAME = `master-app-${CACHE_VERSION}`;
 
@@ -57,7 +84,23 @@ const PRECACHE_URLS = [
   '/js/08-khata-family/01-khata.js',
   '/js/08-khata-family/02-more-page.js',
   '/js/08-khata-family/03-family-profile.js',
-  '/js/08-khata-family/04-planning.js'
+  '/js/08-khata-family/04-planning.js',
+  '/js/09-new-features/00-glue.js',
+  '/js/09-new-features/01-cycle-tracker.js',
+  '/js/09-new-features/02-family-wallet.js',
+  '/js/09-new-features/03-fitness-log.js',
+  '/js/09-new-features/04-webhooks.js',
+  '/js/09-new-features/05-widget-page.js',
+  '/js/09-new-features/06-recipe-planner.js',
+  '/js/09-new-features/08-extra-themes.js',
+  '/js/09-new-features/09-crash-monitoring.js',
+  '/js/09-new-features/10-tos-gate.js',
+  '/js/09-new-features/11-web-push.js',
+  '/js/09-new-features/13-payments.js',
+  '/js/09-new-features/14-subscription-page.js',
+  '/js/09-new-features/15-free-tier-limits.js',
+  '/js/09-new-features/16-referral.js',
+  '/js/09-new-features/17-rating-prompt.js'
   // MAINTENANCE: this list MUST match every <script src="js/..."> tag in
   // index.html exactly, or cache.addAll() below rejects entirely (even one
   // 404 fails the whole install) — silently breaking offline support and

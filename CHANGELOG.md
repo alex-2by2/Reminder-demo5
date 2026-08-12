@@ -398,7 +398,29 @@ Registration only ever checked `password.length < 6` — Firebase's own bare min
 
 ---
 
-## 17. What to look at next (not done here, on purpose)
+## 17. Three real production bugs, found via the app's own error log (eleventh update)
+
+You pasted the actual error log from the app running live — this is exactly what the local error logging built in §4 is for, and it worked: three genuine, confirmed bugs, not hypothetical ones.
+
+### 17.1 `waterDate is not defined` — a variable that was never actually declared
+`getHealthSnapshot()`/`logWaterCup()` (§11.3) read and wrote `waterDate` as a bare variable, on the assumption it was declared alongside `waterCount` in `js/01-core/02-navigation-auth.js` — it never was; only `waterCount` was. Reading a variable nothing has ever declared throws `ReferenceError` immediately, which is exactly what fired on every load, before the water button was ever tapped. Declared it properly now, and the cloud-restore logic (which already correctly computed the right `waterCount` for today) now also sets `waterDate` to match.
+
+Added a regression test that's deliberately different in kind from the existing `getHealthSnapshot` test: that one supplies `waterDate`/`waterCount` via mocked context, which is exactly why it didn't catch this — a mock stands in for the missing piece instead of exposing that it's missing. The new test checks the real declaration exists in the real file instead.
+
+### 17.2 `Failed to construct 'Notification': Illegal constructor`
+A real browser-enforced restriction, not a typo: once a service worker is controlling the page (which this PWA always has — it's unconditionally registered), Chrome-family browsers disallow the bare `new Notification(...)` constructor entirely and require `ServiceWorkerRegistration.showNotification()` instead. `showPushNotification()` (§14.3) already had a service-worker path, but with a fallback to the plain constructor that turned out to be fundamentally broken on this exact browser: the failure is a **synchronous throw**, not something the `.catch()` on the service-worker promise could ever actually reach — so it surfaced as "Uncaught," crashing out instead of falling back. Also found two more direct `new Notification(...)` calls that bypassed the shared function entirely and had the identical bug: the permission-confirmation toast, and an "overdue tasks" summary notification in `checkSmartReminders()`. All three now go through the same, fixed `showPushNotification()` — the fallback path is now wrapped in `try/catch` and only used if no service worker exists at all (very old browsers), rather than being an unwrapped call that a modern browser would reliably throw on.
+
+### 17.3 Leaderboard: "Missing or insufficient permissions"
+`getLeaderboard()` didn't check that a user was actually signed in before querying — added that check, matching the same pattern already used by `saveUserData`/`getUserData` in the same file, so this now fails with a clear "please sign in" message instead of a raw Firestore permission error if it's ever called before auth state is confirmed.
+
+**Worth flagging directly, since I can't rule it out from here:** this specific error can also mean the deployed Firestore rules don't match what's in this project's `firestore.rules` — that only takes effect once you actually run `firebase deploy --only firestore:rules`. If the sign-in check above doesn't resolve it, that's the next thing to check.
+
+### 17.4 An operational detail worth confirming
+The error log's URLs are `alex-2by2.github.io/Reminder-demo5/` — **GitHub Pages**, not Firebase Hosting. This matters for the security headers added in §16.4 (`X-Frame-Options`, the `frame-ancestors` CSP, HSTS, etc.): those live in `firebase.json`, which only takes effect if this app is actually served *through* Firebase Hosting. GitHub Pages doesn't support custom response headers the way Firebase Hosting's config does, so if GitHub Pages is the real, permanent hosting target rather than a mirror, those specific fixes aren't reaching production right now — worth confirming which one is the actual deployment target going forward.
+
+---
+
+## 18. What to look at next (not done here, on purpose)
 
 - **CSP still allows `script-src 'unsafe-inline'`.** This is required because the app uses hundreds of inline `onclick="..."` attributes throughout `index.html` and in dynamically-generated HTML strings. Removing it means converting every one of those to `addEventListener`-based event delegation — a large, mechanical, but genuinely risky rewrite to do blind (no browser here to click through and confirm nothing silently stopped working). Worth a dedicated pass with real testing, not a line item inside this one.
 - **Full DI / ES modules** — see §4.

@@ -27,6 +27,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-functions-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-analytics-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js" defer></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.7/Sortable.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/rrule@2.6.8/dist/es5/rrule.min.js" defer></script>
@@ -135,7 +137,10 @@
     <button class="add-btn" onclick="loginUser()" style="margin-bottom:10px;">Login</button>
     <button class="add-btn" onclick="registerUser()" style="background: #f2f2f7; color: #1c1c1e; box-shadow: none; margin-bottom:10px;">Create Account</button>
     <button onclick="resetPassword()" style="background: none; border: none; color: var(--primary); font-size: 14px; width: 100%; font-weight: 600; padding: 10px;">Forgot Password?</button>
-    <p style="text-align:center; font-size:11px; color:#8e8e93; margin:10px 0 0; line-height:1.5;">By creating an account, you agree to our<br><a href="terms-of-service.html" target="_blank" style="color:var(--primary); text-decoration:none;">Terms of Service</a> and <a href="privacy-policy.html" target="_blank" style="color:var(--primary); text-decoration:none;">Privacy Policy</a></p>
+    <label style="display:flex; align-items:flex-start; gap:8px; font-size:11px; color:#8e8e93; margin:10px 0 0; line-height:1.5; text-align:left;">
+        <input type="checkbox" id="signupTosCheckbox" style="margin-top:2px; flex-shrink:0;">
+        <span>I agree to the <a href="terms-of-service.html" target="_blank" style="color:var(--primary); text-decoration:none;">Terms of Service</a> and <a href="privacy-policy.html" target="_blank" style="color:var(--primary); text-decoration:none;">Privacy Policy</a></span>
+    </label>
 </div>
 
 <!-- Offline Banner -->
@@ -621,6 +626,11 @@
                     <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#0d9488,#0a6d64);" onclick="tryApplyPremiumTheme('Emerald Noir','#0d9488','#0a6d64','#e6f7f5','#f0fffe')" title="Emerald Noir"><span class="theme-swatch-lock">🔒</span></div>
                     <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#475569,#334155);" onclick="tryApplyPremiumTheme('Slate','#475569','#334155','#eef1f4','#f5f7f9')" title="Slate"><span class="theme-swatch-lock">🔒</span></div>
                     <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#f472b6,#db2777);" onclick="tryApplyPremiumTheme('Sakura','#f472b6','#db2777','#fdf1f7','#fff5fa')" title="Sakura"><span class="theme-swatch-lock">🔒</span></div>
+                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#ff6b6b,#ffa06b);" onclick="applyThemeSunset()" title="Sunset"><span class="theme-swatch-lock">🔒</span></div>
+                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#2d6a4f,#40916c);" onclick="applyThemeForest()" title="Forest"><span class="theme-swatch-lock">🔒</span></div>
+                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#0077b6,#00b4d8);" onclick="applyThemeOcean()" title="Ocean"><span class="theme-swatch-lock">🔒</span></div>
+                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#7c5cbf,#a78bda);" onclick="applyThemeLavender()" title="Lavender"><span class="theme-swatch-lock">🔒</span></div>
+                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#2b2b2b,#5a5a5a);" onclick="applyThemeMonochrome()" title="Monochrome"><span class="theme-swatch-lock">🔒</span></div>
                 </div>
 
                 <label style="font-size:12px;font-weight:700;color:#8e8e93;margin-bottom:6px;display:block;">📅 Calendar Colors</label>
@@ -747,6 +757,15 @@
             <div class="feature-tile" onclick="openEMICalcModal()"><span class="ft-icon">🧮</span><span class="ft-label">EMI Calc</span></div>
             <div class="feature-tile" data-label="Shift Schedule Rotation Work" onclick="openShiftModal()"><span class="ft-icon">🔄</span><span class="ft-label">Shift Schedule</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('shift','🔄','Shift Schedule','openShiftModal()')">☆</span></div>
             <div class="feature-tile" data-label="Focus Mode Concentrate Pomodoro Full Screen" onclick="openFocusModeFromHome()"><span class="ft-icon">🎯</span><span class="ft-label">Focus Mode</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('focus','🎯','Focus Mode','openFocusModeFromHome()')">☆</span></div>
+            <div class="feature-tile" data-label="Cycle Tracker Period Ovulation" onclick="openCycleModal()"><span class="ft-icon">🌸</span><span class="ft-label">Cycle Tracker</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('cycle','🌸','Cycle Tracker',&quot;openCycleModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Shared Family Wallet Expenses Split" onclick="openFamilyWalletModal()"><span class="ft-icon">👪</span><span class="ft-label">Family Wallet</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('famwallet','👪','Family Wallet',&quot;openFamilyWalletModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Fitness Log Steps Calories Activity" onclick="openFitnessModal()"><span class="ft-icon">🏃</span><span class="ft-label">Fitness Log</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('fitness','🏃','Fitness Log',&quot;openFitnessModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Widget Dashboard Home Screen" onclick="openModal('widgetPageModal'); if(typeof renderWidgetPage==='function') renderWidgetPage();"><span class="ft-icon">🧩</span><span class="ft-label">Widgets</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('widgets','🧩','Widgets',&quot;openModal('widgetPageModal')&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Recipe Meal Planner Shopping List" onclick="openRecipePlannerModal()"><span class="ft-icon">🍲</span><span class="ft-label">Meal Planner</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('meals','🍲','Meal Planner',&quot;openRecipePlannerModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Zapier IFTTT Webhooks Automation" onclick="openWebhooksModal()"><span class="ft-icon">🔗</span><span class="ft-label">Webhooks</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('webhooks2','🔗','Webhooks',&quot;openWebhooksModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="My Plan Subscription Billing" onclick="openSubscriptionModal()"><span class="ft-icon">👑</span><span class="ft-label">My Plan</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('myplan','👑','My Plan',&quot;openSubscriptionModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Refer a Friend Invite Coins" onclick="openReferralModal()"><span class="ft-icon">🎁</span><span class="ft-label">Refer & Earn</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('referral','🎁','Refer & Earn',&quot;openReferralModal()&quot;)">☆</span></div>
+            <div class="feature-tile" data-label="Push Notifications Background Alerts" onclick="openModal('webPushModal'); if(typeof refreshWebPushStatus==='function') refreshWebPushStatus();"><span class="ft-icon">🔔</span><span class="ft-label">Push Alerts</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('webpush','🔔','Push Alerts',&quot;openModal('webPushModal')&quot;)">☆</span></div>
         </div>
         <input type="file" id="restoreFileInput" accept=".json" style="display:none;" onchange="restoreAllData(event)">
 
@@ -1139,8 +1158,8 @@
                 <li>🪄 Unlimited AI Assistant</li>
                 <li>☁️ Advanced Backup</li>
             </ul>
-            <button class="add-btn" onclick="activatePro()" style="background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: white;">Upgrade for $4.99/mo</button>
-            <p style="font-size: 11px; color: #8e8e93; margin-top: 10px;">(This is a demo. Clicking upgrades for free!)</p>
+            <button class="add-btn" onclick="startProUpgrade()" style="background: linear-gradient(135deg, #ffd60a, #ff9f0a); color: white;">Upgrade — ₹499/year</button>
+            <p style="font-size: 11px; color: #8e8e93; margin-top: 10px;">Secure payment via Razorpay (UPI, cards, netbanking).</p>
         </div>
     </div>
 
@@ -2648,6 +2667,231 @@
 <script src="js/08-khata-family/02-more-page.js" defer></script>
 <script src="js/08-khata-family/03-family-profile.js" defer></script>
 <script src="js/08-khata-family/04-planning.js" defer></script>
+
+<!-- ============================================================ -->
+<!-- js/09-new-features/* modals — period tracker, family wallet,  -->
+<!-- fitness log, webhooks, widgets, meal planner, recurring        -->
+<!-- expenses, ToS re-gate, web push, subscription, referral,       -->
+<!-- rating prompt. See each module's own header comment for what   -->
+<!-- it does and any one-time setup (VAPID key, Razorpay key, etc). -->
+<!-- ============================================================ -->
+
+<div class="modal-overlay" id="cycleTrackerModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('cycleTrackerModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🌸 Cycle Tracker</h2>
+        <p style="margin:0 0 14px; font-size:12px; color:#8e8e93;">Period, symptoms, and predictions.</p>
+        <div id="cycleTrackerContent"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="familyWalletModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('familyWalletModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">👪 Family Wallet</h2>
+        <div id="familyWalletSetup">
+            <p style="font-size:12px; color:#8e8e93; margin:0 0 12px;">Create a shared wallet or join one with a code.</p>
+            <input type="text" id="familyWalletNameInput" placeholder="Wallet name (e.g. Home Expenses)">
+            <button class="add-btn" onclick="createFamilyWallet()">Create Wallet</button>
+            <div style="text-align:center; font-size:11px; color:#8e8e93; margin:14px 0;">— OR —</div>
+            <input type="text" id="familyWalletJoinCode" placeholder="Enter 6-character code" style="text-transform:uppercase;">
+            <button class="add-btn" onclick="joinFamilyWallet()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Join Wallet</button>
+        </div>
+        <div id="familyWalletActive" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <div>
+                    <b id="familyWalletActiveName" style="font-size:16px;"></b>
+                    <div style="font-size:11px; color:#8e8e93;">Code: <b id="familyWalletActiveCode"></b> · <span id="familyWalletMemberCount">0</span> members</div>
+                </div>
+                <span onclick="leaveFamilyWallet()" role="button" tabindex="0" style="font-size:12px; color:#ff3b30; cursor:pointer;">Leave</span>
+            </div>
+            <div id="familyWalletBalances" style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:10px 12px; margin-bottom:14px;"></div>
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+                <input type="text" id="familyWalletDescInput" placeholder="What was it for?" style="flex:2;">
+                <input type="number" id="familyWalletAmtInput" placeholder="₹" style="flex:1;">
+            </div>
+            <button class="add-btn" onclick="addWalletEntry()">Add Expense</button>
+            <div id="familyWalletEntries" style="margin-top:14px; max-height:240px; overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fitnessLogModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('fitnessLogModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🏃 Fitness Log</h2>
+        <p style="margin:0 0 14px; font-size:11px; color:#8e8e93;">Manual entry — automatic Google Fit/Apple Health sync isn't possible from a web browser (Apple never exposes HealthKit to the web; Google Fit's API is being retired). This keeps your activity data tracked and charted regardless.</p>
+        <div id="fitnessWeekSummary"></div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div style="flex:1;"><label style="font-size:11px; color:#8e8e93;">Steps</label><input type="number" id="fitStepsInput" placeholder="0"></div>
+            <div style="flex:1;"><label style="font-size:11px; color:#8e8e93;">Calories</label><input type="number" id="fitCaloriesInput" placeholder="0"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div style="flex:1;"><label style="font-size:11px; color:#8e8e93;">Active minutes</label><input type="number" id="fitActiveMinInput" placeholder="0"></div>
+            <div style="flex:1;"><label style="font-size:11px; color:#8e8e93;">Workout type</label><input type="text" id="fitWorkoutTypeInput" placeholder="e.g. Walk"></div>
+        </div>
+        <button class="add-btn" onclick="logFitnessToday()">Save Today's Activity</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="webhooksModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('webhooksModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🔗 Webhooks (IFTTT / Zapier / Make)</h2>
+        <p style="margin:0 0 12px; font-size:11px; color:#8e8e93;">Paste a Webhooks by Zapier / IFTTT Maker / Make.com URL, pick what should trigger it, and this app will POST a JSON payload there.</p>
+        <input type="text" id="webhookLabelInput" placeholder="Label (e.g. Notify Slack)">
+        <input type="text" id="newWebhookUrlInput" placeholder="https://hooks.zapier.com/...">
+        <select id="webhookEventInput" style="margin-bottom:10px;">
+            <option value="any">Any event</option>
+            <option value="reminder.due">Reminder due</option>
+            <option value="task.completed">Task completed</option>
+            <option value="habit.checkedIn">Habit checked in</option>
+            <option value="expense.added">Expense added</option>
+            <option value="budget.exceeded">Budget exceeded</option>
+            <option value="period.logged">Period logged</option>
+        </select>
+        <button class="add-btn" onclick="addWebhook()">Add Webhook</button>
+        <div id="webhooksList" style="margin-top:14px;"></div>
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:16px 0 8px;">Delivery Log</h5>
+        <div id="webhookLogList"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="widgetPageModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('widgetPageModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🧩 Widget Dashboard</h2>
+        <div id="widgetPageGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;"></div>
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:0 0 8px;">Pin / Unpin</h5>
+        <div id="widgetPagePicker"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="recipePlannerModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('recipePlannerModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🍲 Recipes & Meal Planner</h2>
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:0 0 8px;">New Recipe</h5>
+        <input type="text" id="recipeNameInput" placeholder="Recipe name">
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+            <input type="text" id="recipeIngNameInput" placeholder="Ingredient" style="flex:2;">
+            <input type="number" id="recipeIngQtyInput" placeholder="Qty" style="flex:1;">
+            <input type="text" id="recipeIngUnitInput" placeholder="Unit" style="flex:1;">
+            <button onclick="addRecipeIngredientRow()" style="flex-shrink:0; padding:0 12px;">+</button>
+        </div>
+        <div id="recipeIngredientDraftList" style="margin-bottom:8px;"></div>
+        <textarea id="recipeNotesInput" placeholder="Notes (optional)" style="min-height:50px;"></textarea>
+        <button class="add-btn" onclick="saveRecipe()">Save Recipe</button>
+        <div id="recipeLibraryList" style="margin:14px 0;"></div>
+
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:16px 0 8px;">This Week's Plan</h5>
+        <div id="mealPlanGrid"></div>
+        <button class="add-btn" onclick="generateShoppingListFromPlan()" style="background:#34c759; margin-top:8px;">🛒 Generate Shopping List from Plan</button>
+
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:16px 0 8px;">Shopping List</h5>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input type="text" id="shoppingItemInput" placeholder="Add item manually" style="flex:1;">
+            <button onclick="addManualShoppingItem()" style="flex-shrink:0; padding:0 14px;">+</button>
+        </div>
+        <div id="shoppingListContainer"></div>
+        <span onclick="clearCheckedShoppingItems()" role="button" tabindex="0" style="display:block; text-align:right; font-size:11px; color:#8e8e93; cursor:pointer; margin-top:6px;">Clear checked items</span>
+    </div>
+</div>
+
+<div class="modal-overlay" id="tosGateModal">
+    <div class="modal-content">
+        <h2 style="margin-top:0; font-size:20px;">📋 Updated Terms</h2>
+        <p style="font-size:13px; color:#3a3a3c; margin-bottom:14px;">Our Terms of Service and/or Privacy Policy have been updated. Please review and accept to continue.</p>
+        <p style="font-size:12px;">
+            <a href="terms-of-service.html" target="_blank" style="color:var(--primary);">Read Terms of Service</a> ·
+            <a href="privacy-policy.html" target="_blank" style="color:var(--primary);">Read Privacy Policy</a>
+        </p>
+        <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; margin:14px 0; line-height:1.5;">
+            <input type="checkbox" id="tosGateCheckbox" style="margin-top:2px; flex-shrink:0;">
+            <span>I have read and agree to the updated Terms of Service and Privacy Policy.</span>
+        </label>
+        <button class="add-btn" onclick="acceptTosGate()">Accept & Continue</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="webPushModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('webPushModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🔔 Push Notifications</h2>
+        <p style="margin:0 0 12px; font-size:12px; color:#8e8e93;">Get reminders even when the app is closed (not just while a tab is open).</p>
+        <p id="webPushStatus" style="font-weight:600; margin-bottom:14px;">🔕 Not enabled on this device</p>
+        <button class="add-btn" onclick="requestWebPushPermission()">Enable Push Notifications</button>
+        <button class="add-btn" onclick="disableWebPush()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Disable</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="subscriptionModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('subscriptionModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">👑 My Plan</h2>
+        <div id="subscriptionStatusCard"></div>
+        <h5 style="font-size:11px; text-transform:uppercase; color:#8e8e93; margin:16px 0 8px;">Billing History</h5>
+        <div id="billingHistoryList"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="referralModal">
+    <div class="modal-content">
+        <span class="close-modal-btn" onclick="closeModal('referralModal')">✖</span>
+        <h2 style="margin-top:0; font-size:20px;">🎁 Refer & Earn</h2>
+        <p style="margin:0 0 12px; font-size:12px; color:#8e8e93;">Share your link — you both earn coins when a friend joins.</p>
+        <div style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:12px; margin-bottom:10px; word-break:break-all; font-size:12px;" id="referralLinkDisplay"></div>
+        <p style="font-size:12px; color:#8e8e93;">Your code: <b id="referralCodeDisplay" style="color:#1c1c1e;"></b></p>
+        <button class="add-btn" onclick="shareReferralLink()">Share Link</button>
+        <button class="add-btn" onclick="copyReferralLink()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Copy Link</button>
+        <p id="referralStatsDisplay" style="text-align:center; font-size:12px; color:#8e8e93; margin-top:14px;"></p>
+    </div>
+</div>
+
+<div class="modal-overlay" id="ratingPromptModal">
+    <div class="modal-content" style="text-align:center;">
+        <div id="ratingPromptHappyView" style="display:none;">
+            <h2 style="margin-top:0;">🌟 Enjoying the app?</h2>
+            <p style="font-size:13px; color:#8e8e93;">A store rating helps a lot — got a minute?</p>
+            <button class="add-btn" onclick="openStoreForRating()">Rate on Store</button>
+            <span onclick="snoozeRatingPrompt()" role="button" tabindex="0" style="display:block; margin-top:10px; font-size:12px; color:#8e8e93; cursor:pointer;">Maybe later</span>
+        </div>
+        <div id="ratingPromptFeedbackView" style="display:none;">
+            <h2 style="margin-top:0;">🙏 Help us improve</h2>
+            <textarea id="ratingPromptFeedbackInput" placeholder="What's not working well for you?" style="min-height:70px;"></textarea>
+            <button class="add-btn" onclick="submitRatingFeedback()">Send Feedback</button>
+            <span onclick="snoozeRatingPrompt()" role="button" tabindex="0" style="display:block; margin-top:10px; font-size:12px; color:#8e8e93; cursor:pointer;">Skip</span>
+        </div>
+        <div id="ratingPromptStarsView">
+            <h2 style="margin-top:0;">How's your experience so far?</h2>
+            <div style="font-size:32px; margin:14px 0;">
+                <span onclick="submitRatingPromptStars(1)" role="button" tabindex="0" style="cursor:pointer;">⭐</span>
+                <span onclick="submitRatingPromptStars(2)" role="button" tabindex="0" style="cursor:pointer;">⭐</span>
+                <span onclick="submitRatingPromptStars(3)" role="button" tabindex="0" style="cursor:pointer;">⭐</span>
+                <span onclick="submitRatingPromptStars(4)" role="button" tabindex="0" style="cursor:pointer;">⭐</span>
+                <span onclick="submitRatingPromptStars(5)" role="button" tabindex="0" style="cursor:pointer;">⭐</span>
+            </div>
+            <span onclick="snoozeRatingPrompt()" role="button" tabindex="0" style="font-size:12px; color:#8e8e93; cursor:pointer;">Not now</span>
+        </div>
+    </div>
+</div>
+
+<script src="js/09-new-features/00-glue.js" defer></script>
+<script src="js/09-new-features/01-cycle-tracker.js" defer></script>
+<script src="js/09-new-features/02-family-wallet.js" defer></script>
+<script src="js/09-new-features/03-fitness-log.js" defer></script>
+<script src="js/09-new-features/04-webhooks.js" defer></script>
+<script src="js/09-new-features/05-widget-page.js" defer></script>
+<script src="js/09-new-features/06-recipe-planner.js" defer></script>
+<script src="js/09-new-features/08-extra-themes.js" defer></script>
+<script src="js/09-new-features/09-crash-monitoring.js" defer></script>
+<script src="js/09-new-features/10-tos-gate.js" defer></script>
+<script src="js/09-new-features/11-web-push.js" defer></script>
+<script src="js/09-new-features/13-payments.js" defer></script>
+<script src="js/09-new-features/14-subscription-page.js" defer></script>
+<script src="js/09-new-features/15-free-tier-limits.js" defer></script>
+<script src="js/09-new-features/16-referral.js" defer></script>
+<script src="js/09-new-features/17-rating-prompt.js" defer></script>
 
 </body>
 </html>

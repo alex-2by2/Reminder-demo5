@@ -21,6 +21,16 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // payments/{paymentId} — billing history, written ONLY by the
+      // verifyRazorpayPayment Cloud Function via the Admin SDK (which
+      // bypasses these rules). Owner can read their own history for the
+      // Subscription Management page; nobody can write it from the client
+      // (that would let someone grant themselves Pro for free).
+      match /payments/{paymentId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
     }
 
     // ------------------------------------------------------------------------
@@ -104,6 +114,41 @@ service cloud.firestore {
                         || request.auth.token.email.lower() in request.resource.data.members);
 
       allow delete: if false; // not used by the app
+    }
+
+    // ------------------------------------------------------------------------
+    // family_wallets/{code} — shared expense ledger, same code-based-join
+    // pattern as workspaces/{code} above (same KNOWN LIMITATION applies:
+    // `entries` is one array field, so rules can confirm a request comes from
+    // a legitimate member but can't fully stop a member from editing another
+    // member's entry — fixing that needs a subcollection, a real data-model
+    // change, not just a rules tweak).
+    // ------------------------------------------------------------------------
+    match /family_wallets/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if request.auth != null
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.members == [request.auth.token.email.lower()];
+
+      allow update: if request.auth != null
+                    && (request.auth.token.email.lower() in resource.data.members
+                        || request.auth.token.email.lower() in request.resource.data.members);
+
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------------------
+    // crash_reports/{reportId} — write-only from the client (js/09-new-features/
+    // 09-crash-monitoring.js). Deliberately create-only and unreadable from the
+    // client, even for your own reports — nobody should be able to browse
+    // crash data through the app itself. View these in the Firebase Console
+    // (Firestore data tab) instead.
+    // ------------------------------------------------------------------------
+    match /crash_reports/{reportId} {
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if false;
     }
 
     // ------------------------------------------------------------------------
