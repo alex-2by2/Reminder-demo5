@@ -46,6 +46,13 @@
     let wakeLock = null; 
     let activeTagFilter = ""; 
     let waterCount = 0;
+    // BUGFIX: waterDate was read/written as a bare variable in
+    // js/06-lifestyle/05-health-dashboard.js (logWaterCup/getHealthSnapshot)
+    // on the mistaken assumption it was already declared here alongside
+    // waterCount, matching the pair already synced to the cloud (see
+    // js/01-core/03-sync-profile.js). It never was — confirmed via a real
+    // ReferenceError in production.
+    let waterDate = null;
     let mediaRecorder; 
     let audioChunks = [];
     let voiceMemoBase64 = null;
@@ -298,6 +305,7 @@
             }
             startCloudSync();
             loadSharedWithMe();
+            if (typeof runPostLoginHooks === 'function') runPostLoginHooks();
         } else {
             currentUser = null; 
             localStorage.setItem("loggedIn", "false");
@@ -377,6 +385,7 @@
     }
 
     function registerUser() { 
+        if (typeof tosCheckboxOk === 'function' && !tosCheckboxOk()) return;
         const email = document.getElementById("emailInput").value; 
         const password = document.getElementById("passwordInput").value; 
         if(!email) return showToast("Enter a valid email", "error");

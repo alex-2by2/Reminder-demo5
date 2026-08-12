@@ -23,6 +23,7 @@
                     } else { 
                         waterCount = 0; 
                     } 
+                    waterDate = getTodayStr();
                     if(data.theme) setThemeColor(data.theme.p, data.theme.ph, data.theme.b1, data.theme.b2, false);
                     if(data.customTemplates) localStorage.setItem("customTemplates", JSON.stringify(data.customTemplates));
                     if(data.projects) localStorage.setItem("projects", JSON.stringify(data.projects));
@@ -58,6 +59,25 @@
                         localStorage.setItem("isPro", "true"); 
                         const _pb=document.getElementById("proBadgeDisplay"); if(_pb) _pb.style.display="inline-flex"; 
                     }
+                    if(data.proExpiresAt) localStorage.setItem("proExpiresAt", data.proExpiresAt);
+                    // js/09-new-features/* — new feature data, synced the same way as everything above.
+                    if(data.cyclePeriods) localStorage.setItem("cyclePeriods", JSON.stringify(data.cyclePeriods));
+                    if(data.cycleSymptoms) localStorage.setItem("cycleSymptoms", JSON.stringify(data.cycleSymptoms));
+                    if(data.cycleSettings) localStorage.setItem("cycleSettings", JSON.stringify(data.cycleSettings));
+                    if(data.myFamilyWalletCodes) localStorage.setItem("myFamilyWalletCodes", JSON.stringify(data.myFamilyWalletCodes));
+                    if(data.fitnessLog) localStorage.setItem("fitnessLog", JSON.stringify(data.fitnessLog));
+                    if(data.webhooks) localStorage.setItem("webhooks", JSON.stringify(data.webhooks));
+                    if(data.pinnedWidgets) localStorage.setItem("pinnedWidgets", JSON.stringify(data.pinnedWidgets));
+                    if(data.recipes) localStorage.setItem("recipes", JSON.stringify(data.recipes));
+                    if(data.mealPlan) localStorage.setItem("mealPlan", JSON.stringify(data.mealPlan));
+                    if(data.shoppingList) localStorage.setItem("shoppingList", JSON.stringify(data.shoppingList));
+                    // BUGFIX: recurringExps (js/07-automation/03-engagement-reports.js's
+                    // recurring bills/EMI feature) had no cloud sync at all — same class of
+                    // gap as the finData fix above. Switching devices silently lost every
+                    // recurring-expense rule.
+                    if(data.recurringExps) localStorage.setItem("recurringExps", JSON.stringify(data.recurringExps));
+                    if(data.ratingFeedback) localStorage.setItem("ratingFeedback", JSON.stringify(data.ratingFeedback));
+                    if(typeof renderFreeTierBadges === 'function') renderFreeTierBadges();
 
                     // Unique ID - retroactive backfill for existing accounts
                     let uid = data.uniqueId;
@@ -158,7 +178,20 @@
                 waterCount: waterCount, 
                 waterDate: getTodayStr(), 
                 isProUser: isProUser,
-                dailyTaskGoal: parseInt(localStorage.getItem("dailyTaskGoal")) || 5
+                dailyTaskGoal: parseInt(localStorage.getItem("dailyTaskGoal")) || 5,
+                // js/09-new-features/* — new feature data, same upload pattern as everything above.
+                cyclePeriods: safeStorage("cyclePeriods", []),
+                cycleSymptoms: safeStorage("cycleSymptoms", {}),
+                cycleSettings: safeStorage("cycleSettings", {}),
+                myFamilyWalletCodes: safeStorage("myFamilyWalletCodes", []),
+                fitnessLog: safeStorage("fitnessLog", {}),
+                webhooks: safeStorage("webhooks", []),
+                pinnedWidgets: safeStorage("pinnedWidgets", ["tasks","habits","finance","mood"]),
+                recipes: safeStorage("recipes", []),
+                mealPlan: safeStorage("mealPlan", {}),
+                shoppingList: safeStorage("shoppingList", []),
+                recurringExps: safeStorage("recurringExps", []),
+                ratingFeedback: safeStorage("ratingFeedback", [])
             };
             db.collection("users").doc(currentUser.uid).set(dataToSave, {merge: true}).then(() => { 
                 const _sst1=document.getElementById("syncStatusText"); if(_sst1) _sst1.innerText = "Synced"; 
