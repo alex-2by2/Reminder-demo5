@@ -418,6 +418,7 @@
     function openRecurringExpModal() { renderRecurringExpList(); openModal('recurringExpModal'); }
 
     function addRecurringExpense() {
+        if (typeof checkFreeTierLimit === 'function' && !checkFreeTierLimit('recurringExpenses')) return;
         const name = document.getElementById('recExpName').value.trim();
         const amt = Number(document.getElementById('recExpAmt').value);
         const cat = document.getElementById('recExpCat').value;
@@ -451,7 +452,7 @@
         renderRecurringExpList();
     }
 
-    function processRecurringExpenses() {
+    function processRecurringExpenses(silent) {
         const exps = getRecurringExps();
         const today = getTodayStr();
         let processed = 0;
@@ -476,6 +477,13 @@
         saveRecurringExps(exps);
         renderRecurringExpList();
         renderFinanceDashboard();
+        // silent=true (used by the auto-run-on-login hook, see
+        // js/09-new-features/00-glue.js) only speaks up when something
+        // actually happened — no point telling someone "nothing was due"
+        // every single time they open the app. The manual "Process Due
+        // Expenses" button still calls this with no argument, so it keeps
+        // reporting either way exactly like it always has.
+        if (silent && processed === 0) return;
         hapticFeedback(processed > 0 ? 'success' : 'light');
         showToast(processed > 0 ? processed + ' recurring expense(s) processed!' : 'No expenses due today.', processed > 0 ? 'success' : 'info');
     }
