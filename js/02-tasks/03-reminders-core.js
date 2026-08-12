@@ -2,6 +2,7 @@
 // Split from the original monolithic js/ files for maintainability — see CHANGELOG.md § "Project split".
     // --- Reminders Core ---
     function addOrUpdateReminder() {
+        if (!editId && typeof checkFreeTierLimit === 'function' && !checkFreeTierLimit('reminders')) return;
         const task = document.getElementById("taskInput").value.trim();
         const notes = (document.getElementById("notesInput").innerText || '').trim();
         const time = document.getElementById("timeInput").value; 

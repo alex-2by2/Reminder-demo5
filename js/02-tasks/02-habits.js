@@ -2,6 +2,7 @@
 // Split from the original monolithic js/ files for maintainability — see CHANGELOG.md § "Project split".
     // --- Habits Core ---
     function addHabit() { 
+        if (typeof checkFreeTierLimit === 'function' && !checkFreeTierLimit('habits')) return;
         const raw = document.getElementById("habitInput").value.trim(); 
         if(!raw) return showToast("Enter habit name.", "error");
         const name = raw.slice(0, 80);
