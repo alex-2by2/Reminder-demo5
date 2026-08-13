@@ -149,7 +149,6 @@
         const isOpen = panel.style.display === 'block';
         panel.style.display = isOpen ? 'none' : 'block';
         if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
-        if (!isOpen && typeof refreshPremiumThemeLocks === 'function') refreshPremiumThemeLocks();
     }
 
     // ============================================================

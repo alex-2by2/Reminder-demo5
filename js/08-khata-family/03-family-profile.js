@@ -39,7 +39,30 @@
         const myIdEl = document.getElementById('familyMyId');
         if (myIdEl) myIdEl.innerText = localStorage.getItem('uniqueId') || 'Generate in Settings first';
         renderFamilyMembersList();
+        switchFamilyTab('members');
         openModal('familyModal');
+    }
+
+    // Family (roster) and Family Wallet (shared money) used to be two
+    // separate modals/tiles — merged into one "Family" modal with tabs.
+    // Kept as two DATA MODELS underneath rather than forcing one: Members
+    // uses this app's own Unique ID system (js/08-khata-family/03-family-
+    // profile.js, right above), Wallet uses email + invite code (js/09-new-
+    // features/02-family-wallet.js) — appropriate since money-sharing
+    // reasonably includes people who use a different member-lookup method
+    // than task-sharing does. Merged the UI, not the two ID systems.
+    function switchFamilyTab(tab) {
+        const membersPane = document.getElementById('familyTab-members');
+        const walletPane = document.getElementById('familyTab-wallet');
+        const membersBtn = document.getElementById('familyTabBtn-members');
+        const walletBtn = document.getElementById('familyTabBtn-wallet');
+        if (!membersPane || !walletPane) return;
+        const showWallet = tab === 'wallet';
+        membersPane.style.display = showWallet ? 'none' : 'block';
+        walletPane.style.display = showWallet ? 'block' : 'none';
+        if (membersBtn) { membersBtn.style.background = showWallet ? 'transparent' : '#fff'; membersBtn.style.boxShadow = showWallet ? 'none' : '0 2px 6px rgba(0,0,0,0.06)'; membersBtn.style.color = showWallet ? '#8e8e93' : 'inherit'; }
+        if (walletBtn) { walletBtn.style.background = showWallet ? '#fff' : 'transparent'; walletBtn.style.boxShadow = showWallet ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'; walletBtn.style.color = showWallet ? 'inherit' : '#8e8e93'; }
+        if (showWallet && typeof loadActiveWallet === 'function') loadActiveWallet();
     }
 
     function addFamilyMember() {
