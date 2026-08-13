@@ -23,9 +23,15 @@
         return code;
     }
 
+    // Kept for backward compatibility — anyone who already pinned the old
+    // standalone "Family Wallet" shortcut before the merge still has this
+    // exact function name stored in their pin action, so it needs to keep
+    // working. Now opens the unified Family modal straight to its Wallet tab
+    // instead of a separate modal.
     async function openFamilyWalletModal() {
-        openModal('familyWalletModal');
-        await loadActiveWallet();
+        openModal('familyModal');
+        if (typeof switchFamilyTab === 'function') switchFamilyTab('wallet');
+        else await loadActiveWallet();
     }
 
     async function loadActiveWallet() {

@@ -10,14 +10,17 @@
         return `${window.location.origin}${window.location.pathname}?ref=${uid}`;
     }
 
-    function openReferralModal() {
+    // Now a tab inside the merged Achievements modal (leaderboardModal) —
+    // see switchAchieveTab() in js/09-new-features/00-glue.js.
+    function openReferralModal() { openModal('leaderboardModal'); switchAchieveTab('refer'); }
+
+    function renderReferralTab() {
         const link = getReferralLink();
         const linkEl = document.getElementById('referralLinkDisplay');
         if (linkEl) linkEl.innerText = link;
         const codeEl = document.getElementById('referralCodeDisplay');
         if (codeEl) codeEl.innerText = localStorage.getItem('uniqueId') || '—';
         renderReferralStats();
-        openModal('referralModal');
     }
 
     function copyReferralLink() {

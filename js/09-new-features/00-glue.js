@@ -22,3 +22,29 @@
         if (typeof refreshWebPushStatus === 'function') refreshWebPushStatus();
         if (typeof maybeShowRatingPrompt === 'function') maybeShowRatingPrompt();
     }
+
+    // ============================================================
+    // ACHIEVEMENTS HUB — merges what used to be 4 separate tiles/modals
+    // (Leaderboard, Weekly Missions, Share Win, Refer & Earn) into one
+    // "leaderboardModal" with 4 tabs. Each original function (openLeaderboard,
+    // openWeeklyMissionsModal, shareAchievement, openReferralModal) still
+    // exists under its original name, still opens something when called
+    // directly, and now delegates here to switch to its tab.
+    // ============================================================
+    function switchAchieveTab(tab) {
+        ['rank', 'missions', 'share', 'refer'].forEach(t => {
+            const pane = document.getElementById('achieveTab-' + t);
+            const btn = document.getElementById('achieveTabBtn-' + t);
+            const active = (t === tab);
+            if (pane) pane.style.display = active ? 'block' : 'none';
+            if (btn) {
+                btn.style.background = active ? '#fff' : 'transparent';
+                btn.style.boxShadow = active ? '0 2px 6px rgba(0,0,0,0.06)' : 'none';
+                btn.style.color = active ? 'inherit' : '#8e8e93';
+            }
+        });
+        if (tab === 'rank' && typeof loadLeaderboardData === 'function') loadLeaderboardData();
+        else if (tab === 'missions' && typeof renderWeeklyMissions === 'function') renderWeeklyMissions();
+        else if (tab === 'share' && typeof renderAchievementCard === 'function') renderAchievementCard();
+        else if (tab === 'refer' && typeof renderReferralTab === 'function') renderReferralTab();
+    }

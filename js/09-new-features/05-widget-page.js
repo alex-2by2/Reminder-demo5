@@ -10,8 +10,7 @@
         mood: { label: '😊 Mood', render: renderMoodWidget },
         fitness: { label: '🏃 Fitness', render: renderFitnessWidget },
         cycle: { label: '🌸 Cycle', render: renderCycleWidget },
-        coins: { label: '🪙 Coins & Level', render: renderCoinsWidget },
-        weather: { label: '🌤️ Weather', render: renderWeatherWidgetTile }
+        coins: { label: '🪙 Coins & Level', render: renderCoinsWidget }
     };
 
     function getPinnedWidgets() {
@@ -87,8 +86,4 @@
         const coins = safeNum(localStorage.getItem('coinBalance'), 0);
         const level = safeStorage('userLevel', 1);
         return `<div style="font-size:20px; font-weight:700;">🪙 ${coins}</div><div style="font-size:11px; color:#8e8e93;">Level ${level}</div>`;
-    }
-    function renderWeatherWidgetTile() {
-        const w = safeStorage('lastWeather', null);
-        return w ? `<div style="font-size:18px; font-weight:700;">${w.temp}° ${w.icon || ''}</div>` : `<div style="font-size:11px; color:#8e8e93;">Open Weather widget to load</div>`;
     }
