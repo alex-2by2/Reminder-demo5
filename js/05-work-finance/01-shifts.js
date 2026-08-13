@@ -94,11 +94,14 @@
         const setupEl = document.getElementById('shiftTabSetup');
         const calendarEl = document.getElementById('shiftTabCalendar');
         const summaryEl = document.getElementById('shiftTabSummary');
+        const attendanceEl = document.getElementById('shiftTabAttendance');
         if (setupEl) setupEl.style.display = (tab === 'setup') ? 'block' : 'none';
         if (calendarEl) calendarEl.style.display = (tab === 'calendar') ? 'block' : 'none';
         if (summaryEl) summaryEl.style.display = (tab === 'summary') ? 'block' : 'none';
+        if (attendanceEl) attendanceEl.style.display = (tab === 'attendance') ? 'block' : 'none';
         if (tab === 'calendar') { renderShiftCalendar(); renderUpcomingShifts(); }
         if (tab === 'summary') renderShiftSummary();
+        if (tab === 'attendance' && typeof renderAttSubjectList === 'function') renderAttSubjectList();
     }
 
     // --- Shift Types ---
