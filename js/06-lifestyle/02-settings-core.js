@@ -1,49 +1,13 @@
-// Secret space (hidden notes), weather widget, backup & restore, haptic feedback, PWA install prompt, auto dark mode schedule, home-screen widget customization, birthday tracker, home management, quick notes, Pomodoro history, QR code share.
+// Secret space (hidden notes), backup & restore, haptic feedback, PWA install prompt, auto dark mode schedule, home-screen widget customization, birthday tracker, home management, quick notes, Pomodoro history, QR code share.
 // Split from the original monolithic js/ files for maintainability — see CHANGELOG.md § "Project split".
-    // WEATHER
-    function openWeatherModal(){
-        const apiInput = document.getElementById('weatherApiKeyInput');
-        const cityInput = document.getElementById('weatherCityInput');
-        if(apiInput) apiInput.value = localStorage.getItem('weatherApiKey')||'';
-        if(cityInput) cityInput.value = localStorage.getItem('weatherCity')||'';
-        openModal('weatherModal');
-    }
-    function saveWeatherKey(){
-        const apiInput = document.getElementById('weatherApiKeyInput');
-        if(!apiInput) return showToast('Weather API form unavailable.', 'error');
-        localStorage.setItem('weatherApiKey',apiInput.value.trim());
-        showToast('API Key saved! 🌤️','success');
-    }
-    async function fetchWeather(){
-        const cityInput = document.getElementById('weatherCityInput');
-        const apiInput = document.getElementById('weatherApiKeyInput');
-        const resultEl = document.getElementById('weatherResult');
-        if(!cityInput || !apiInput || !resultEl) return showToast('Weather widget unavailable.', 'error');
-        const city = cityInput.value.trim();
-        const apiKey = apiInput.value.trim()||localStorage.getItem('weatherApiKey');
-        if(!city) return showToast('Enter city!','error');
-        if(!apiKey) return showToast('Add free API Key from openweathermap.org!','error');
-        localStorage.setItem('weatherCity',city);
-        resultEl.innerHTML='<p style="color:#8e8e93;font-size:13px">Loading... ⏳</p>';
-        try{
-            const res=await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`);
-            const data=await res.json();
-            if(data.cod!==200){
-                resultEl.innerHTML=`<p style="color:#ff3b30;font-size:13px">⚠️ ${sanitizeHTML(data.message||'')}</p>`;
-                return;
-            }
-            resultEl.innerHTML=`<div class="weather-widget" style="text-align:left"><div style="display:flex;align-items:center;gap:12px"><img src="https://openweathermap.org/img/wn/${encodeURIComponent(data.weather[0].icon)}@2x.png" style="width:60px;height:60px" alt="${sanitizeHTML(data.weather[0].description||'Weather icon')}"><div><div style="font-size:22px;font-weight:800">${Math.round(data.main.temp)}°C</div><div style="font-size:14px;opacity:0.9">${sanitizeHTML(data.weather[0].description||'')}</div><div style="font-size:12px;opacity:0.8">📍 ${sanitizeHTML(data.name||'')},${sanitizeHTML(data.sys.country||'')}</div></div></div><div style="display:flex;gap:15px;margin-top:12px;font-size:12px;opacity:0.9"><span>💧${data.main.humidity}%</span><span>🌬️${Math.round(data.wind.speed)}m/s</span><span>🌡️Feels ${Math.round(data.main.feels_like)}°C</span></div></div>`
-        }catch(e){
-            resultEl.innerHTML='<p style="color:#ff3b30;font-size:13px">⚠️ Error. Check internet.</p>'
-        }
-    }
+// NOTE: the weather widget (OpenWeatherMap) that used to live here was removed by request.
 
 
     // ============================================================
     // BACKUP & RESTORE
     // ============================================================
     function exportAllData() {
-        const keys = ['reminders','habits','finData','moodLog','sleepLog','projects','shiftConfig','shiftOvertime','studentData','journalEntries','medicines','vehicleReminders','vehicleLogs','warranties','shopData','travelData','attData','lifeEvents','subscriptions','birthdays','homeManagement','quickNotes','pomodoroHistory','savingsGoals','recurringExps','taskDeps','appTheme','appFontSize','darkMode','geminiKey','pushNotif','webhookUrl','gcalClientId','activeWorkspace','recycleBin','coinBalance','rewards','weeklyMissions','emergencyContacts','analyticsConsent'];
+        const keys = ['reminders','habits','finData','moodLog','sleepLog','projects','shiftConfig','shiftOvertime','studentData','journalEntries','medicines','vehicleReminders','vehicleLogs','warranties','shopData','travelData','attData','lifeEvents','subscriptions','birthdays','homeManagement','quickNotes','pomodoroHistory','savingsGoals','recurringExps','taskDeps','appFontSize','darkMode','geminiKey','pushNotif','webhookUrl','gcalClientId','activeWorkspace','recycleBin','coinBalance','rewards','weeklyMissions','emergencyContacts','analyticsConsent'];
         const backup = { version:'2.0', exportedAt:new Date().toISOString() };
         keys.forEach(k => { const v = localStorage.getItem(k); if(v) backup[k] = v; });
         const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
@@ -315,27 +279,6 @@
         hist.unshift({id:Date.now(), task:taskName||'Focus Session', mins, date:getTodayStr(), time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})});
         localStorage.setItem('pomodoroHistory', JSON.stringify(hist.slice(0,100)));
         syncToCloud();
-    }
-
-    function openPomoHistoryModal() { renderPomoHistory(); openModal('pomoHistoryModal'); }
-
-    function renderPomoHistory() {
-        const hist = getPomoHistory();
-        const sumEl = document.getElementById('pomoHistSummary');
-        const listEl = document.getElementById('pomoHistList');
-        if(!sumEl || !listEl) return;
-        const totalSessions = hist.length;
-        const totalMins = hist.reduce((s,h)=>s+h.mins,0);
-        const todaySessions = hist.filter(h=>h.date===getTodayStr()).length;
-        sumEl.innerHTML = `
-            <div style="background:#e5f1ff;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:var(--primary)">${totalSessions}</div><div style="font-size:11px;color:#8e8e93;font-weight:600">Total Sessions</div></div>
-            <div style="background:#e5f9e9;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#34c759">${Math.round(totalMins/60)}h</div><div style="font-size:11px;color:#8e8e93;font-weight:600">Total Focus</div></div>
-            <div style="background:#fff8e8;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:22px;font-weight:800;color:#ff9500">${todaySessions}</div><div style="font-size:11px;color:#8e8e93;font-weight:600">Today</div></div>`;
-        listEl.innerHTML = hist.slice(0,30).map(h=>`
-            <div class="pomo-hist-item">
-                <div><b>${sanitizeHTML(h.task||'')}</b><br><span style="color:#8e8e93">${h.date} · ${h.time}</span></div>
-                <span style="font-weight:700;color:#ff3b30">${h.mins}m 🍅</span>
-            </div>`).join('') || emptyStateHTML('🍅', 'No sessions yet. Start a Pomodoro!');
     }
 
     // ============================================================

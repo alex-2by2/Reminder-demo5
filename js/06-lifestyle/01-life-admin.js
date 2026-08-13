@@ -193,7 +193,10 @@
 
     // ATTENDANCE
     function getAttData(){return safeStorage('attData',{"subjects":[]})}    function saveAttData(d){localStorage.setItem('attData',JSON.stringify(d));syncToCloud()}
-    function openAttendanceModal(){renderAttSubjectList();openModal('attendanceModal')}
+    // Merged into the Shift Schedule modal as its "Attendance" tab — kept
+    // under its original name for anyone who already pinned it before the
+    // merge.
+    function openAttendanceModal(){ openShiftModal(); setShiftTab('attendance'); }
     function addAttSubject(){
         const nameInput = document.getElementById('attSubjectInput');
         if(!nameInput) return showToast('Attendance form unavailable.', 'error');
@@ -207,7 +210,24 @@
         showToast('Subject added!','success')
     }
     function renderAttSubjectList(){const c=document.getElementById('attSubjectList');if(!c)return;const d=getAttData();const ts=getTodayStr();c.innerHTML=d.subjects.map(s=>{const total=Object.keys(s.log).filter(k=>s.log[k]).length;const present=Object.values(s.log).filter(v=>v==='P').length;const pct=total>0?Math.round((present/total)*100):0;const tv=s.log[ts]||'';return`<div style="background:#f2f2f7;border-radius:14px;padding:12px;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><b style="font-size:14px">${sanitizeHTML(s.name||'')}</b><br><span style="font-size:11px;color:${pct>=75?'#34c759':'#ff3b30'};font-weight:700">${pct}% (${present}/${total})</span></div><button onclick="deleteAttSubject(${s.id})" style="background:none;border:none;color:#ff3b30;cursor:pointer;font-size:15px">✖</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px"><button onclick="markAtt(${s.id},'${ts}','P')" class="att-day ${tv==='P'?'att-present':'att-unmarked'}">✅ P</button><button onclick="markAtt(${s.id},'${ts}','A')" class="att-day ${tv==='A'?'att-absent':'att-unmarked'}">❌ A</button><button onclick="markAtt(${s.id},'${ts}','H')" class="att-day ${tv==='H'?'att-holiday':'att-unmarked'}">🏖️ H</button></div><div class="project-progress-track"><div class="project-progress-fill" style="width:${pct}%;background:${pct>=75?'#34c759':'#ff3b30'}"></div></div></div>`}).join('')||emptyStateHTML('📚', 'No subjects.')}
-    function markAtt(subId,dateStr,status){const d=getAttData();const s=d.subjects.find(x=>x.id===subId);if(s)s.log[dateStr]=(s.log[dateStr]===status?'':status);saveAttData(d);renderAttSubjectList()}
+    function markAtt(subId,dateStr,status){
+        const d=getAttData();
+        const s=d.subjects.find(x=>x.id===subId);
+        if(!s) return;
+        s.log[dateStr]=(s.log[dateStr]===status?'':status);
+        saveAttData(d);
+        renderAttSubjectList();
+        // IMPROVEMENT: the % was already computed and color-coded on render,
+        // but nothing ever told you when a subject actually crossed below
+        // the 75% line — you'd only notice by eyeballing every row. Now it
+        // says so once, right when a mark pushes it under.
+        const total=Object.keys(s.log).filter(k=>s.log[k]).length;
+        const present=Object.values(s.log).filter(v=>v==='P').length;
+        const pct=total>0?Math.round((present/total)*100):0;
+        if(total>=3 && pct<75 && status){
+            showToast(`⚠️ ${s.name} attendance is ${pct}% — below the usual 75% requirement.`, 'error');
+        }
+    }
     function deleteAttSubject(id){const d=getAttData();d.subjects=d.subjects.filter(x=>x.id!==id);saveAttData(d);renderAttSubjectList()}
 
     // LIFE EVENTS

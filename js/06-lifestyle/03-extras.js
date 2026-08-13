@@ -2,42 +2,67 @@
 // Split from the original monolithic js/ files for maintainability — see CHANGELOG.md § "Project split".
     // FINANCE CHARTS
     // ============================================================
-    let expPieChart = null, incExpChart = null;
+    // Merged into the Finance page's own tab bar (setFinTab('charts')) —
+    // kept as the name people click from the tile before the merge.
+    //
+    // BUGFIX found while relocating this: the render function below used to
+    // look for canvas ids "expensePieChart" / "incomeExpenseChart" and a
+    // "finInsightsAI" div. None of those ever existed anywhere in index.html
+    // — the actual markup always used finChartBar / finChartDoughnut /
+    // finChartSavings / finChartSummary. Every optional-chained ?.getContext
+    // silently returned undefined, so every "if(ctx)" guard just skipped
+    // drawing — no error, no chart, ever. Rewritten to match the real ids,
+    // and added the "Monthly Net Savings" chart the markup already titled
+    // but never had any code behind.
+    let expPieChart = null, incExpChart = null, savingsChart = null;
     function openFinanceChartsModal() {
-        openModal('financeChartsModal');
-        setTimeout(renderFinanceCharts, 200);
+        switchPage('finance');
+        setFinTab('charts');
     }
 
     function renderFinanceCharts() {
         const d = getFinData();
         const catTotals = {};
         d.expenses.forEach(e => { catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
-        const pieCtx = document.getElementById('expensePieChart')?.getContext('2d');
+
+        const now = new Date();
+        const months = []; const incData = []; const expData = []; const netData = [];
+        for(let i=5;i>=0;i--) {
+            const d2 = new Date(now.getFullYear(), now.getMonth()-i, 1);
+            const ms = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;
+            months.push(ms.slice(5));
+            const inc = d.income.filter(e=>e.date?.startsWith(ms)).reduce((s,e)=>s+Number(e.amount),0);
+            const exp = d.expenses.filter(e=>e.date?.startsWith(ms)).reduce((s,e)=>s+Number(e.amount),0);
+            incData.push(inc); expData.push(exp); netData.push(inc - exp);
+        }
+
+        const summaryEl = document.getElementById('finChartSummary');
+        if(summaryEl) {
+            const total6moExp = expData.reduce((a,b)=>a+b,0);
+            const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
+            summaryEl.innerHTML = `
+                <div style="background:#ffe5e5;border-radius:12px;padding:12px;text-align:center;"><h3 style="margin:0;font-size:18px;color:#ff3b30">₹${total6moExp.toLocaleString('en-IN')}</h3><p style="margin:2px 0 0;font-size:10px;color:#8e8e93;font-weight:700">6-MONTH SPEND</p></div>
+                <div style="background:#e5f9e9;border-radius:12px;padding:12px;text-align:center;"><h3 style="margin:0;font-size:16px;color:#34c759">${topCat ? sanitizeHTML(topCat[0]) : '—'}</h3><p style="margin:2px 0 0;font-size:10px;color:#8e8e93;font-weight:700">TOP CATEGORY</p></div>`;
+        }
+
+        const pieCtx = document.getElementById('finChartDoughnut')?.getContext('2d');
         if(pieCtx) {
             if(expPieChart) expPieChart.destroy();
             const cats = Object.keys(catTotals);
             const colors = ['#ff3b30','#ff9500','#ffcc00','#34c759','#5ac8fa','#007aff','#5e5ce6','#af52de','#ff2d55'];
             expPieChart = new Chart(pieCtx, { type:'doughnut', data:{labels:cats, datasets:[{data:cats.map(c=>catTotals[c]), backgroundColor:colors.slice(0,cats.length), borderWidth:0}]}, options:{plugins:{legend:{position:'right',labels:{font:{size:11}}}},cutout:'60%'} });
         }
-        const now = new Date();
-        const months = []; const incData = []; const expData = [];
-        for(let i=5;i>=0;i--) {
-            const d2 = new Date(now.getFullYear(), now.getMonth()-i, 1);
-            const ms = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;
-            months.push(ms.slice(5));
-            incData.push(d.income.filter(e=>e.date?.startsWith(ms)).reduce((s,e)=>s+Number(e.amount),0));
-            expData.push(d.expenses.filter(e=>e.date?.startsWith(ms)).reduce((s,e)=>s+Number(e.amount),0));
-        }
-        const barCtx = document.getElementById('incomeExpenseChart')?.getContext('2d');
+
+        const barCtx = document.getElementById('finChartBar')?.getContext('2d');
         if(barCtx) {
             if(incExpChart) incExpChart.destroy();
             incExpChart = new Chart(barCtx, { type:'bar', data:{labels:months, datasets:[{label:'Income',data:incData,backgroundColor:'#34c759',borderRadius:6},{label:'Expense',data:expData,backgroundColor:'#ff3b30',borderRadius:6}]}, options:{scales:{y:{beginAtZero:true}},plugins:{legend:{labels:{font:{size:11}}}}} });
         }
-        const el = document.getElementById('finInsightsAI');
-        if(el) {
-            const total = d.expenses.reduce((s,e)=>s+Number(e.amount),0);
-            const topCat = Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0];
-            el.innerHTML = `<b>💡 Quick Insights</b><br>Total expenses: ₹${total.toLocaleString('en-IN')}<br>${topCat?`Top category: ${topCat[0]} (₹${topCat[1].toLocaleString('en-IN')})`:''}`;
+
+        const savingsCtx = document.getElementById('finChartSavings')?.getContext('2d');
+        if(savingsCtx) {
+            if(savingsChart) savingsChart.destroy();
+            savingsChart = new Chart(savingsCtx, { type:'line', data:{labels:months, datasets:[{label:'Net Savings',data:netData,borderColor:'#007aff',backgroundColor:'rgba(0,122,255,0.1)',fill:true,tension:0.3,pointBackgroundColor:netData.map(v=>v>=0?'#34c759':'#ff3b30')}]}, options:{scales:{y:{beginAtZero:false}},plugins:{legend:{display:false}}} });
         }
     }
 
