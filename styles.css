@@ -10,20 +10,24 @@
                Deliberately NOT applied to dense data surfaces (widget cards,
                list rows, forms) — Apple's own Liquid Glass language reserves
                this for navigational chrome, not content, precisely because
-               heavy blur/translucency over small text hurts legibility. */
-            --glass-bg: rgba(255, 255, 255, 0.72);
-            --glass-bg-strong: rgba(255, 255, 255, 0.82);
-            --glass-border: rgba(255, 255, 255, 0.6);
-            --glass-highlight: rgba(255, 255, 255, 0.8);
-            --glass-blur: blur(24px) saturate(180%);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+               heavy blur/translucency over small text hurts legibility.
+               REVISED: more translucent, brighter specular edge, layered
+               shadow for real depth — matches iOS 26's heavier blur/refraction
+               rather than the flatter frosted look this started as. */
+            --glass-bg: rgba(255, 255, 255, 0.68);
+            --glass-bg-strong: rgba(255, 255, 255, 0.78);
+            --glass-border: rgba(255, 255, 255, 0.75);
+            --glass-highlight: rgba(255, 255, 255, 0.9);
+            --glass-blur: blur(28px) saturate(190%);
+            --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.05);
+            --radius-lg: 28px;
         }
         body.dark-mode {
-            --glass-bg: rgba(28, 28, 30, 0.72);
-            --glass-bg-strong: rgba(28, 28, 30, 0.82);
-            --glass-border: rgba(255, 255, 255, 0.14);
-            --glass-highlight: rgba(255, 255, 255, 0.18);
-            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --glass-bg: rgba(28, 28, 30, 0.68);
+            --glass-bg-strong: rgba(28, 28, 30, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.16);
+            --glass-highlight: rgba(255, 255, 255, 0.22);
+            --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
         }
         
         /* Base Body Styles */
@@ -94,7 +98,7 @@
         /* Layout Containers */
         .app-container { 
             background: #ffffff;
-            border-radius: 24px; 
+            border-radius: var(--radius-lg); 
             border: none; 
             padding: 25px 20px; 
             width: 100%; 
@@ -517,6 +521,16 @@
             box-shadow: inset 0 1px 0 var(--glass-highlight), 0 -8px 32px rgba(0,0,0,0.06);
             z-index: 9000; 
         }
+        /* Liquid Glass signature: a soft light sweep across the top edge of
+           the two surfaces people see most (nav + sheets) — the detail that
+           reads as "glass" rather than just "blurred panel". Skipped on
+           smaller glass elements (FAB items, toasts) where it'd be too dense
+           to read as anything but noise. */
+        .bottom-nav::before, .modal-content::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--glass-highlight) 35%, var(--glass-highlight) 65%, transparent);
+            pointer-events: none;
+        }
         .nav-item { 
             display: flex; 
             flex-direction: column;
@@ -572,7 +586,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             padding: 25px 20px 40px; 
-            border-radius: 24px 24px 0 0; 
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0; 
             border-top: 0.5px solid var(--glass-border);
             box-shadow: inset 0 1px 0 var(--glass-highlight), var(--glass-shadow);
             transform: translateY(100%); 
@@ -809,14 +823,8 @@
         }
         body.dark-mode .mood-tracker-card h5 { color: #8e8e93; }
 
-        /* Theme/Wallpaper Presets */
-        .theme-presets-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:20px; }
-        .theme-presets-row::-webkit-scrollbar { display:none; }
-        .theme-swatch { width:42px; height:42px; border-radius:12px; flex-shrink:0; cursor:pointer; border:2px solid transparent; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
-        .theme-swatch:active { transform: scale(0.92); }
-        .premium-theme-swatch { position:relative; display:flex; align-items:flex-end; justify-content:flex-end; }
-        .theme-swatch-lock { font-size:11px; background:rgba(255,255,255,0.9); border-radius:6px; padding:1px 3px; margin:2px; line-height:1; }
-        body.is-pro-user .theme-swatch-lock { display:none; }
+        /* Theme swatches removed — the app now ships one deliberate Liquid
+           Glass identity instead of user-selectable accent colors. */
 
         /* Font Size buttons */
         .font-size-btn {

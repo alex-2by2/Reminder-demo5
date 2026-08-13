@@ -603,34 +603,10 @@
             <div id="advancedSettingsPanel" style="display:none;">
 
                 <h5 style="font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin:0 0 8px;">🎨 Appearance</h5>
-                <div style="display:flex;gap:8px;margin-bottom:15px;justify-content:space-between;">
+                <div style="display:flex;gap:8px;margin-bottom:20px;justify-content:space-between;">
                     <button class="font-size-btn" id="fontBtn-small" onclick="setFontSize('small')" style="font-size:12px;flex:1;">Aa</button>
                     <button class="font-size-btn" id="fontBtn-medium" onclick="setFontSize('medium')" style="font-size:16px;flex:1;">Aa</button>
                     <button class="font-size-btn" id="fontBtn-large" onclick="setFontSize('large')" style="font-size:20px;flex:1;">Aa</button>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#007aff,#0051d4);" onclick="setThemeColor('#007aff','#0051d4','#e5f1ff','#f0f7ff')"></div>
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#34c759,#248a3d);" onclick="setThemeColor('#34c759','#248a3d','#e5f9e9','#f0fff4')"></div>
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#ff9500,#c77700);" onclick="setThemeColor('#ff9500','#c77700','#fff8e8','#fffdf0')"></div>
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#ff2d55,#c7002b);" onclick="setThemeColor('#ff2d55','#c7002b','#ffe5ea','#fff0f3')"></div>
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#af52de,#8944ab);" onclick="setThemeColor('#af52de','#8944ab','#f3e5fa','#f9f0ff')"></div>
-                    <div class="theme-swatch" style="background:linear-gradient(135deg,#00c7be,#009b94);" onclick="setThemeColor('#00c7be','#009b94','#d0f5f3','#e8fbfa')"></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
-                    <span style="font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">🎨 Premium Themes</span>
-                    <span id="premiumThemesBadge" style="font-size:9px;background:linear-gradient(135deg,#ffd60a,#ff9f0a);color:#5c4200;font-weight:800;padding:2px 6px;border-radius:6px;">PRO</span>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#5e5ce6,#3634a3);" onclick="tryApplyPremiumTheme('Midnight','#5e5ce6','#3634a3','#e8e8f5','#f5f0ff')" title="Midnight"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#e8927c,#c96b52);" onclick="tryApplyPremiumTheme('Rose Gold','#e8927c','#c96b52','#fdf0ec','#fff8f5')" title="Rose Gold"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#0d9488,#0a6d64);" onclick="tryApplyPremiumTheme('Emerald Noir','#0d9488','#0a6d64','#e6f7f5','#f0fffe')" title="Emerald Noir"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#475569,#334155);" onclick="tryApplyPremiumTheme('Slate','#475569','#334155','#eef1f4','#f5f7f9')" title="Slate"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#f472b6,#db2777);" onclick="tryApplyPremiumTheme('Sakura','#f472b6','#db2777','#fdf1f7','#fff5fa')" title="Sakura"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#ff6b6b,#ffa06b);" onclick="applyThemeSunset()" title="Sunset"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#2d6a4f,#40916c);" onclick="applyThemeForest()" title="Forest"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#0077b6,#00b4d8);" onclick="applyThemeOcean()" title="Ocean"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#7c5cbf,#a78bda);" onclick="applyThemeLavender()" title="Lavender"><span class="theme-swatch-lock">🔒</span></div>
-                    <div class="theme-swatch premium-theme-swatch" style="background:linear-gradient(135deg,#2b2b2b,#5a5a5a);" onclick="applyThemeMonochrome()" title="Monochrome"><span class="theme-swatch-lock">🔒</span></div>
                 </div>
 
                 <label style="font-size:12px;font-weight:700;color:#8e8e93;margin-bottom:6px;display:block;">📅 Calendar Colors</label>
@@ -716,31 +692,25 @@
             <div class="feature-tile" data-label="Vehicle Car Log Fuel" onclick="openVehicleModal()"><span class="ft-icon">🚗</span><span class="ft-label">Vehicle</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('vehicle','🚗','Vehicle',&quot;openVehicleModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Shopping List" onclick="openShoppingModal()"><span class="ft-icon">🛒</span><span class="ft-label">Shopping</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('shopping','🛒','Shopping',&quot;openShoppingModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Travel Trip" onclick="openTravelModal()"><span class="ft-icon">✈️</span><span class="ft-label">Travel</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('travel','✈️','Travel',&quot;openTravelModal()&quot;)">☆</span></div>
-            <div class="feature-tile" data-label="Attendance" onclick="openAttendanceModal()"><span class="ft-icon">📋</span><span class="ft-label">Attendance</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('attendance','📋','Attendance',&quot;openAttendanceModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Life Events" onclick="openLifeEventsModal()"><span class="ft-icon">🌟</span><span class="ft-label">Life Events</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('lifeevents','🌟','Life Events',&quot;openLifeEventsModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Subscriptions" onclick="openSubModal()"><span class="ft-icon">🔄</span><span class="ft-label">Subscriptions</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('subscriptions','🔄','Subscriptions',&quot;openSubModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Secret Space" onclick="openSecretModal()"><span class="ft-icon">🔐</span><span class="ft-label">Secret Space</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('secret','🔐','Secret Space',&quot;openSecretModal()&quot;)">☆</span></div>
-            <div class="feature-tile" data-label="Weather" onclick="openWeatherModal()"><span class="ft-icon">🌤️</span><span class="ft-label">Weather</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('weather','🌤️','Weather',&quot;openWeatherModal()&quot;)">☆</span></div>
             <div class="feature-tile" onclick="openBirthdayModal()"><span class="ft-icon">🎂</span><span class="ft-label">Birthdays</span></div>
             <div class="feature-tile" onclick="openHomeManagementModal()"><span class="ft-icon">🏠</span><span class="ft-label">Home Mgmt</span></div>
             <div class="feature-tile" onclick="openQuickNotesModal()"><span class="ft-icon">📝</span><span class="ft-label">Quick Notes</span></div>
-            <div class="feature-tile" onclick="openPomoHistoryModal()"><span class="ft-icon">🍅</span><span class="ft-label">Focus Log</span></div>
             <div class="feature-tile" onclick="exportAllData()"><span class="ft-icon">📦</span><span class="ft-label">Backup</span></div>
             <div class="feature-tile" onclick="document.getElementById('restoreFileInput').click()"><span class="ft-icon">♻️</span><span class="ft-label">Restore</span></div>
             <div class="feature-tile" onclick="openQRModal()"><span class="ft-icon">📱</span><span class="ft-label">QR Share</span></div>
             <div class="feature-tile" onclick="startVoiceCommand()"><span class="ft-icon">🎤</span><span class="ft-label">Voice Add</span></div>
-            <div class="feature-tile" onclick="openFinanceChartsModal()"><span class="ft-icon">📊</span><span class="ft-label">Fin Charts</span></div>
             <div class="feature-tile" onclick="openAICoachModal()"><span class="ft-icon">🧠</span><span class="ft-label">AI Coach</span></div>
             <div class="feature-tile" onclick="openAppStatsModal()"><span class="ft-icon">📈</span><span class="ft-label">App Stats</span></div>
-            <div class="feature-tile" onclick="openLeaderboard()"><span class="ft-icon">🏆</span><span class="ft-label">Leaderboard</span></div>
+            <div class="feature-tile" data-label="Leaderboard Weekly Missions Share Win Refer Earn" onclick="openLeaderboard()"><span class="ft-icon">🏆</span><span class="ft-label">Achievements</span></div>
             <div class="feature-tile" onclick="openHealthDashboard()"><span class="ft-icon">❤️</span><span class="ft-label">Health Dashboard</span></div>
             <div class="feature-tile" onclick="openRewardsModal()"><span class="ft-icon">🎁</span><span class="ft-label">Rewards</span></div>
-            <div class="feature-tile" onclick="openWeeklyMissionsModal()"><span class="ft-icon">🏆</span><span class="ft-label">Weekly Missions</span></div>
             <div class="feature-tile" onclick="openEmergencyContactsModal()"><span class="ft-icon">🚨</span><span class="ft-label">Emergency Contacts</span></div>
             <div class="feature-tile" onclick="openAutomationModal()"><span class="ft-icon">⚙️</span><span class="ft-label">Automation</span></div>
             <div class="feature-tile" onclick="openNotifCentreModal()"><span class="ft-icon">🔔</span><span class="ft-label">Notifications</span></div>
             <div class="feature-tile" onclick="openSavingsGoalModal()"><span class="ft-icon">🎯</span><span class="ft-label">Savings Goal</span></div>
-            <div class="feature-tile" onclick="openStudyAnalyticsModal()"><span class="ft-icon">📖</span><span class="ft-label">Study Charts</span></div>
             <div class="feature-tile" onclick="openGlobalSearch()"><span class="ft-icon">🔍</span><span class="ft-label">Search All</span></div>
             <div class="feature-tile" onclick="openTaskDepsModal()"><span class="ft-icon">🔗</span><span class="ft-label">Task Deps</span></div>
             <div class="feature-tile" data-label="Smart Import Paste Clipboard Auto Task" onclick="openModal('smartImportModal')"><span class="ft-icon">📥</span><span class="ft-label">Smart Import</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('import','📥','Smart Import',&quot;openModal('smartImportModal')&quot;)">☆</span></div>
@@ -749,22 +719,19 @@
             <div class="feature-tile" data-label="Full Month Calendar View" onclick="openFullCalendarModal()"><span class="ft-icon">📆</span><span class="ft-label">Full Calendar</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('fullcal','📆','Full Calendar','openFullCalendarModal()')">☆</span></div>
             <div class="feature-tile" data-label="Task Statistics Analytics Report" onclick="openTaskStatsModal()"><span class="ft-icon">📊</span><span class="ft-label">Task Stats</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('taskstats','📊','Task Stats','openTaskStatsModal()')">☆</span></div>
             <div class="feature-tile" onclick="openModal('aiRecommendModal')"><span class="ft-icon">✨</span><span class="ft-label">AI Ideas</span></div>
-            <div class="feature-tile" onclick="shareAchievement()"><span class="ft-icon">🏆</span><span class="ft-label">Share Win</span></div>
             <div class="feature-tile" data-label="Health Tips AI Wellness" onclick="openHealthTipsModal()"><span class="ft-icon">💪</span><span class="ft-label">Health Tips</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('health','💪','Health Tips','openHealthTipsModal()')">☆</span></div>
-            <div class="feature-tile" data-label="Family Members Share Tasks" onclick="openFamilyModal()"><span class="ft-icon">👨‍👩‍👧</span><span class="ft-label">Family</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('family','👨‍👩‍👧','Family','openFamilyModal()')">☆</span></div>
+            <div class="feature-tile" data-label="Family Members Share Tasks Wallet Expenses" onclick="openFamilyModal()"><span class="ft-icon">👨‍👩‍👧</span><span class="ft-label">Family</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('family','👨‍👩‍👧','Family','openFamilyModal()')">☆</span></div>
             <div class="feature-tile" data-label="Smart Reminders AI Intelligent Alert" onclick="openModal('smartReminderModal')"><span class="ft-icon">🧠</span><span class="ft-label">Smart Alerts</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('smart','🧠','Smart Alerts',&quot;openModal('smartReminderModal')&quot;)">☆</span></div>
             <div class="feature-tile" onclick="openWarrantyModal()"><span class="ft-icon">🛡️</span><span class="ft-label">Warranty</span></div>
             <div class="feature-tile" onclick="openEMICalcModal()"><span class="ft-icon">🧮</span><span class="ft-label">EMI Calc</span></div>
-            <div class="feature-tile" data-label="Shift Schedule Rotation Work" onclick="openShiftModal()"><span class="ft-icon">🔄</span><span class="ft-label">Shift Schedule</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('shift','🔄','Shift Schedule','openShiftModal()')">☆</span></div>
+            <div class="feature-tile" data-label="Shift Schedule Rotation Work Attendance" onclick="openShiftModal()"><span class="ft-icon">🔄</span><span class="ft-label">Shifts & Attendance</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('shift','🔄','Shifts & Attendance','openShiftModal()')">☆</span></div>
             <div class="feature-tile" data-label="Focus Mode Concentrate Pomodoro Full Screen" onclick="openFocusModeFromHome()"><span class="ft-icon">🎯</span><span class="ft-label">Focus Mode</span><span class="ft-pin" onclick="event.stopPropagation();toggleMorePin('focus','🎯','Focus Mode','openFocusModeFromHome()')">☆</span></div>
             <div class="feature-tile" data-label="Cycle Tracker Period Ovulation" onclick="openCycleModal()"><span class="ft-icon">🌸</span><span class="ft-label">Cycle Tracker</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('cycle','🌸','Cycle Tracker',&quot;openCycleModal()&quot;)">☆</span></div>
-            <div class="feature-tile" data-label="Shared Family Wallet Expenses Split" onclick="openFamilyWalletModal()"><span class="ft-icon">👪</span><span class="ft-label">Family Wallet</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('famwallet','👪','Family Wallet',&quot;openFamilyWalletModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Fitness Log Steps Calories Activity" onclick="openFitnessModal()"><span class="ft-icon">🏃</span><span class="ft-label">Fitness Log</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('fitness','🏃','Fitness Log',&quot;openFitnessModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Widget Dashboard Home Screen" onclick="openModal('widgetPageModal'); if(typeof renderWidgetPage==='function') renderWidgetPage();"><span class="ft-icon">🧩</span><span class="ft-label">Widgets</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('widgets','🧩','Widgets',&quot;openModal('widgetPageModal')&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Recipe Meal Planner Shopping List" onclick="openRecipePlannerModal()"><span class="ft-icon">🍲</span><span class="ft-label">Meal Planner</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('meals','🍲','Meal Planner',&quot;openRecipePlannerModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Zapier IFTTT Webhooks Automation" onclick="openWebhooksModal()"><span class="ft-icon">🔗</span><span class="ft-label">Webhooks</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('webhooks2','🔗','Webhooks',&quot;openWebhooksModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="My Plan Subscription Billing" onclick="openSubscriptionModal()"><span class="ft-icon">👑</span><span class="ft-label">My Plan</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('myplan','👑','My Plan',&quot;openSubscriptionModal()&quot;)">☆</span></div>
-            <div class="feature-tile" data-label="Refer a Friend Invite Coins" onclick="openReferralModal()"><span class="ft-icon">🎁</span><span class="ft-label">Refer & Earn</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('referral','🎁','Refer & Earn',&quot;openReferralModal()&quot;)">☆</span></div>
             <div class="feature-tile" data-label="Push Notifications Background Alerts" onclick="openModal('webPushModal'); if(typeof refreshWebPushStatus==='function') refreshWebPushStatus();"><span class="ft-icon">🔔</span><span class="ft-label">Push Alerts</span><span class="ft-pin" onclick="event.stopPropagation(); toggleMorePin('webpush','🔔','Push Alerts',&quot;openModal('webPushModal')&quot;)">☆</span></div>
         </div>
         <input type="file" id="restoreFileInput" accept=".json" style="display:none;" onchange="restoreAllData(event)">
@@ -806,7 +773,6 @@
         <div style="display:flex;justify-content:space-between;align-items:center;background:#f2f2f7;border-radius:12px;padding:10px 14px;margin-bottom:12px;">
             <span id="finMonthSummary" style="font-size:12px;color:#8e8e93;font-weight:600;">Loading...</span>
             <div style="display:flex;gap:6px;">
-                <button onclick="openFinanceChartsModal()" style="background:var(--primary);color:white;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">📊 Charts</button>
                 <button onclick="openRecurringExpModal()" style="background:#5e5ce6;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;">🔁 Recurring</button>
             </div>
         </div>
@@ -820,6 +786,7 @@
             <button class="fin-tab-btn" onclick="setFinTab('invest')">📈 Invest</button>
             <button class="fin-tab-btn" onclick="setFinTab('tax')">🧾 Tax</button>
             <button class="fin-tab-btn" onclick="setFinTab('khata')">🤝 Khata</button>
+            <button class="fin-tab-btn" onclick="setFinTab('charts')">📊 Charts</button>
         </div>
 
         <!-- Expenses -->
@@ -960,6 +927,31 @@
 
             <div id="khataPartyList"></div>
         </div>
+
+        <!-- Charts — merged in from the old standalone "Fin Charts" modal.
+             While relocating this, found it was fully broken: the render
+             function targeted canvas ids (expensePieChart, incomeExpenseChart)
+             and a #finInsightsAI div that didn't exist anywhere in this file
+             — every chart here has silently rendered nothing since this was
+             built. Fixed to match the ids the markup below actually uses,
+             and added the "Monthly Net Savings" chart the modal already
+             titled but never had code behind. -->
+        <div id="finTab-charts" style="display:none;">
+            <div id="finChartSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px;"></div>
+            <div class="fin-chart-wrap">
+                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Income vs Expense (6 months)</h5>
+                <canvas id="finChartBar" height="160"></canvas>
+            </div>
+            <div class="fin-chart-wrap">
+                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Expense by Category</h5>
+                <canvas id="finChartDoughnut" height="200"></canvas>
+            </div>
+            <div class="fin-chart-wrap">
+                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Monthly Net Savings</h5>
+                <canvas id="finChartSavings" height="130"></canvas>
+            </div>
+            <button onclick="exportToCSV()" style="background:#34c759;color:white;border:none;border-radius:10px;padding:12px;width:100%;font-weight:700;cursor:pointer;margin-top:5px;">📥 Export Data as CSV</button>
+        </div>
     </div>
 
     <!-- Khata Party Detail Modal -->
@@ -1024,13 +1016,32 @@
         </div>
 
         <!-- Daily Study Goal -->
-        <div style="background:#f2f2f7; border-radius:14px; padding:12px;">
+        <div style="background:#f2f2f7; border-radius:14px; padding:12px; margin-bottom:20px;">
             <h5 style="margin:0 0 8px; font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700;">⏱️ Study Pomodoro</h5>
             <select id="studySubjectSelect" style="margin-bottom:10px;">
                 <option value="">Select Subject</option>
             </select>
             <button onclick="openPomoModal()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; cursor:pointer;">🍅 Start Study Session</button>
         </div>
+
+        <!-- Study Analytics — merged in from the old standalone "Study
+             Charts" modal/tile. Same studentData this page already edits
+             above, so it belongs on this page rather than a separate popup
+             behind its own tile. -->
+        <h5 style="font-size:11px; color:#8e8e93; text-transform:uppercase; font-weight:700; letter-spacing:0.5px; margin:0 0 8px;">📖 Study Analytics</h5>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">
+            <div style="background:#e5f1ff;border-radius:12px;padding:12px;text-align:center;"><h3 id="studyTotalHours" style="margin:0;font-size:22px;color:var(--primary)">0h</h3><p style="margin:2px 0 0;font-size:11px;color:#8e8e93;font-weight:700">Total Studied</p></div>
+            <div style="background:#e5f9e9;border-radius:12px;padding:12px;text-align:center;"><h3 id="studyTopSubject" style="margin:0;font-size:16px;color:#34c759">—</h3><p style="margin:2px 0 0;font-size:11px;color:#8e8e93;font-weight:700">Top Subject</p></div>
+        </div>
+        <div class="fin-chart-wrap">
+            <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Hours per Subject</h5>
+            <canvas id="studySubjectChart" height="180"></canvas>
+        </div>
+        <div class="fin-chart-wrap">
+            <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Daily Study (Last 7 days)</h5>
+            <canvas id="studyDailyChart" height="140"></canvas>
+        </div>
+        <div id="examReadinessContainer"></div>
     </div>
 
     <!-- ===== JOURNAL PAGE ===== -->
@@ -1153,7 +1164,8 @@
             <h1 style="margin-top: 0; font-size: 50px; margin-bottom: 10px;">👑</h1>
             <h2 style="color: #ff9500; margin-top:0;">Master PRO</h2>
             <ul style="text-align: left; font-size: 15px; line-height: 2; margin-bottom: 25px; padding-left: 20px; font-weight:600; color:#666;">
-                <li>✨ Exclusive Gold Theme</li>
+                <li>♾️ Unlimited reminders, habits & recipes</li>
+                <li>👪 More family wallets & webhooks</li>
                 <li>👑 PRO Badge on profile</li>
                 <li>🪄 Unlimited AI Assistant</li>
                 <li>☁️ Advanced Backup</li>
@@ -1218,9 +1230,42 @@
     <div class="modal-overlay" id="leaderboardModal">
         <div class="modal-content">
             <span class="close-modal-btn" onclick="closeModal('leaderboardModal')">✖</span>
-            <h2 style="margin-top: 0; margin-bottom: 15px; font-size:20px;">🏆 Leaderboard</h2>
-            <div id="leaderboardContainer" style="background: #f2f2f7; border-radius: 16px; padding: 15px; min-height: 100px;">
-                <p style="text-align:center; color:#8e8e93; font-size:13px;">Loading Top Users...</p>
+            <h2 style="margin-top: 0; margin-bottom: 12px; font-size:20px;">🏆 Achievements</h2>
+            <div style="display:flex; gap:4px; margin-bottom:16px; background:#f2f2f7; border-radius:12px; padding:4px;">
+                <button id="achieveTabBtn-rank" onclick="switchAchieveTab('rank')" style="flex:1; border:none; background:#fff; border-radius:9px; padding:8px 2px; font-weight:700; font-size:11px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.06);">Rank</button>
+                <button id="achieveTabBtn-missions" onclick="switchAchieveTab('missions')" style="flex:1; border:none; background:transparent; border-radius:9px; padding:8px 2px; font-weight:700; font-size:11px; cursor:pointer; color:#8e8e93;">Missions</button>
+                <button id="achieveTabBtn-share" onclick="switchAchieveTab('share')" style="flex:1; border:none; background:transparent; border-radius:9px; padding:8px 2px; font-weight:700; font-size:11px; cursor:pointer; color:#8e8e93;">Share</button>
+                <button id="achieveTabBtn-refer" onclick="switchAchieveTab('refer')" style="flex:1; border:none; background:transparent; border-radius:9px; padding:8px 2px; font-weight:700; font-size:11px; cursor:pointer; color:#8e8e93;">Refer</button>
+            </div>
+
+            <div id="achieveTab-rank">
+                <div id="leaderboardContainer" style="background: #f2f2f7; border-radius: 16px; padding: 15px; min-height: 100px;">
+                    <p style="text-align:center; color:#8e8e93; font-size:13px;">Loading Top Users...</p>
+                </div>
+            </div>
+
+            <div id="achieveTab-missions" style="display:none;">
+                <p style="margin:0 0 14px; font-size:12px; color:#8e8e93;">Resets every Monday. Complete a mission to claim its coin bonus.</p>
+                <div id="weeklyMissionsList"></div>
+            </div>
+
+            <div id="achieveTab-share" style="display:none; text-align:center;">
+                <div id="achievementCard" style="background:linear-gradient(135deg,#007aff,#5e5ce6);color:white;border-radius:20px;padding:24px;margin:0 0 15px;">
+                    <div style="font-size:48px;margin-bottom:10px;" id="achieveBadge">🏆</div>
+                    <h3 id="achieveTitle" style="margin:0 0 6px;font-size:20px;"></h3>
+                    <p id="achieveDesc" style="margin:0;font-size:13px;opacity:0.9;"></p>
+                    <div style="margin-top:15px;font-size:12px;opacity:0.8;">Master Reminder App</div>
+                </div>
+                <button onclick="copyAchievementText()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:700;cursor:pointer;width:100%;">Copy to Share</button>
+            </div>
+
+            <div id="achieveTab-refer" style="display:none;">
+                <p style="margin:0 0 12px; font-size:12px; color:#8e8e93;">Share your link — you both earn coins when a friend joins.</p>
+                <div style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:12px; margin-bottom:10px; word-break:break-all; font-size:12px;" id="referralLinkDisplay"></div>
+                <p style="font-size:12px; color:#8e8e93;">Your code: <b id="referralCodeDisplay" style="color:#1c1c1e;"></b></p>
+                <button class="add-btn" onclick="shareReferralLink()">Share Link</button>
+                <button class="add-btn" onclick="copyReferralLink()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Copy Link</button>
+                <p id="referralStatsDisplay" style="text-align:center; font-size:12px; color:#8e8e93; margin-top:14px;"></p>
             </div>
         </div>
     </div>
@@ -1346,17 +1391,6 @@
     </div>
 
     <!-- Family Calendar Modal -->
-    <div class="modal-overlay" id="familyModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('familyModal')">✖</span>
-            <h2 style="margin-top:0; margin-bottom:5px; font-size:20px;">👨‍👩‍👧 Family Calendar</h2>
-            <p style="font-size:12px; color:#8e8e93; margin:0 0 15px;">Tasks shared between you & family members</p>
-            <div id="familyContainer">
-                <p style="text-align:center; color:#8e8e93; font-size:13px; padding:20px;">Loading...</p>
-            </div>
-        </div>
-    </div>
-
     <!-- Habit Detail Modal -->
     <div class="modal-overlay" id="habitDetailModal">
         <div class="modal-content">
@@ -1486,6 +1520,7 @@
                 <button class="cal-view-btn shift-view-btn active" id="shifttab-setup" onclick="setShiftTab('setup')">⚙️ Setup</button>
                 <button class="cal-view-btn shift-view-btn" id="shifttab-calendar" onclick="setShiftTab('calendar')">📅 Calendar</button>
                 <button class="cal-view-btn shift-view-btn" id="shifttab-summary" onclick="setShiftTab('summary')">📊 Summary</button>
+                <button class="cal-view-btn shift-view-btn" id="shifttab-attendance" onclick="setShiftTab('attendance')">📋 Attendance</button>
             </div>
 
             <!-- SETUP TAB -->
@@ -1589,6 +1624,20 @@
                 </div>
                 <button onclick="addShiftIncomeToFinance()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:12px; width:100%; font-weight:700; cursor:pointer;">💰 Add This Month's Income to Finance</button>
             </div>
+
+            <!-- ATTENDANCE TAB — merged in from the old standalone Attendance
+                 feature. Same presence-tracking idea as shifts (were you there
+                 or not, on which day), just for classes/courses instead of
+                 work shifts, so it lives as a 4th tab here instead of its own
+                 modal + tile. -->
+            <div id="shiftTabAttendance" style="display:none;">
+                <p style="margin:0 0 12px; font-size:12px; color:#8e8e93;">Track attendance by subject or course — 75%+ shows green, below shows red.</p>
+                <div style="display:flex; gap:8px; margin-bottom:15px;">
+                    <input type="text" id="attSubjectInput" placeholder="Subject / Course" style="flex:1; margin:0;">
+                    <button onclick="addAttSubject()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
+                </div>
+                <div id="attSubjectList"></div>
+            </div>
         </div>
     </div>
 
@@ -1661,15 +1710,6 @@
                 <button onclick="addReward()" style="background:#ffd60a; color:#5c4200; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
             </div>
             <div id="rewardsList"></div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="weeklyMissionsModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('weeklyMissionsModal')">✖</span>
-            <h2 style="margin-top:0; margin-bottom:6px; font-size:20px;">🏆 Weekly Missions</h2>
-            <p style="margin:0 0 14px; font-size:12px; color:#8e8e93;">Resets every Monday. Complete a mission to claim its coin bonus.</p>
-            <div id="weeklyMissionsList"></div>
         </div>
     </div>
 
@@ -1830,18 +1870,6 @@
     </div>
 
     <!-- Attendance Tracker Modal -->
-    <div class="modal-overlay" id="attendanceModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('attendanceModal')">✖</span>
-            <h2 style="margin-top:0; font-size:20px;">📋 Attendance Tracker</h2>
-            <div style="display:flex; gap:8px; margin-bottom:15px;">
-                <input type="text" id="attSubjectInput" placeholder="Subject / Course" style="flex:1; margin:0;">
-                <button onclick="addAttSubject()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 14px; font-weight:700; cursor:pointer;">Add</button>
-            </div>
-            <div id="attSubjectList"></div>
-        </div>
-    </div>
-
     <!-- Life Events Timeline Modal -->
     <div class="modal-overlay" id="lifeEventsModal">
         <div class="modal-content">
@@ -1902,22 +1930,6 @@
                     <button onclick="lockSecret()" style="flex:1; background:#f2f2f7; border:none; border-radius:10px; padding:12px; font-weight:700; cursor:pointer; color:#8e8e93;">Lock</button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Weather Modal -->
-    <div class="modal-overlay" id="weatherModal">
-        <div class="modal-content" style="text-align:center;">
-            <span class="close-modal-btn" onclick="closeModal('weatherModal')">✖</span>
-            <h2 style="margin-top:0; font-size:20px;">🌤️ Weather</h2>
-            <div style="display:flex; gap:8px; margin-bottom:15px;">
-                <input type="text" id="weatherCityInput" placeholder="City name (e.g. Surat)" style="flex:1; margin:0;">
-                <button onclick="fetchWeather()" style="background:var(--primary); color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer;">Get</button>
-            </div>
-            <p style="font-size:11px; color:#8e8e93; margin:-8px 0 15px;">Free API: openweathermap.org → get key → Settings → add below</p>
-            <input type="text" id="weatherApiKeyInput" placeholder="OpenWeatherMap API Key" style="margin-bottom:10px;">
-            <button onclick="saveWeatherKey()" style="background:#f2f2f7; border:none; border-radius:10px; padding:10px; width:100%; font-weight:700; cursor:pointer; color:#8e8e93; margin-bottom:15px;">Save API Key</button>
-            <div id="weatherResult"></div>
         </div>
     </div>
 
@@ -2006,16 +2018,6 @@
         </div>
     </div>
 
-    <!-- Pomodoro History Modal -->
-    <div class="modal-overlay" id="pomoHistoryModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('pomoHistoryModal')">✖</span>
-            <h2 style="margin-top:0;font-size:20px;">🍅 Focus History</h2>
-            <div id="pomoHistSummary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px;"></div>
-            <div id="pomoHistList"></div>
-        </div>
-    </div>
-
     <!-- QR Share Modal -->
     <div class="modal-overlay" id="qrModal">
         <div class="modal-content" style="text-align:center;">
@@ -2026,28 +2028,6 @@
             <div id="qrCodeDisplay" style="display:flex;justify-content:center;padding:20px 0;"></div>
             <p id="qrTaskText" style="font-size:12px;color:#8e8e93;margin:0;"></p>
             <button onclick="downloadQR()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer;margin-top:12px;">⬇️ Download QR</button>
-        </div>
-    </div>
-
-    <!-- Finance Charts Modal -->
-    <div class="modal-overlay" id="financeChartsModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('financeChartsModal')">✖</span>
-            <h2 style="margin-top:0;font-size:20px;">📊 Finance Charts</h2>
-            <div id="finChartSummary" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px;"></div>
-            <div class="fin-chart-wrap">
-                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Income vs Expense (6 months)</h5>
-                <canvas id="finChartBar" height="160"></canvas>
-            </div>
-            <div class="fin-chart-wrap">
-                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Expense by Category</h5>
-                <canvas id="finChartDoughnut" height="200"></canvas>
-            </div>
-            <div class="fin-chart-wrap">
-                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Monthly Net Savings</h5>
-                <canvas id="finChartSavings" height="130"></canvas>
-            </div>
-            <button onclick="exportToCSV()" style="background:#34c759;color:white;border:none;border-radius:10px;padding:12px;width:100%;font-weight:700;cursor:pointer;margin-top:5px;">📥 Export Data as CSV</button>
         </div>
     </div>
 
@@ -2162,26 +2142,6 @@
     </div>
 
     <!-- Study Analytics Modal -->
-    <div class="modal-overlay" id="studyAnalyticsModal">
-        <div class="modal-content">
-            <span class="close-modal-btn" onclick="closeModal('studyAnalyticsModal')">✖</span>
-            <h2 style="margin-top:0;font-size:20px;">📖 Study Analytics</h2>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">
-                <div style="background:#e5f1ff;border-radius:12px;padding:12px;text-align:center;"><h3 id="studyTotalHours" style="margin:0;font-size:22px;color:var(--primary)">0h</h3><p style="margin:2px 0 0;font-size:11px;color:#8e8e93;font-weight:700">Total Studied</p></div>
-                <div style="background:#e5f9e9;border-radius:12px;padding:12px;text-align:center;"><h3 id="studyTopSubject" style="margin:0;font-size:16px;color:#34c759">—</h3><p style="margin:2px 0 0;font-size:11px;color:#8e8e93;font-weight:700">Top Subject</p></div>
-            </div>
-            <div class="fin-chart-wrap">
-                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Hours per Subject</h5>
-                <canvas id="studySubjectChart" height="180"></canvas>
-            </div>
-            <div class="fin-chart-wrap">
-                <h5 style="margin:0 0 10px;font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;">Daily Study (Last 7 days)</h5>
-                <canvas id="studyDailyChart" height="140"></canvas>
-            </div>
-            <div id="examReadinessContainer"></div>
-        </div>
-    </div>
-
     <!-- Global Search Modal -->
     <div class="modal-overlay" id="globalSearchModal">
         <div class="modal-content">
@@ -2258,22 +2218,6 @@
             </div>
             <h5 style="font-size:11px;color:#8e8e93;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin:0 0 8px;">Daily Health Checklist</h5>
             <div id="healthChecklist"></div>
-        </div>
-    </div>
-
-    <!-- Achievement Share Modal -->
-    <div class="modal-overlay" id="achievementModal">
-        <div class="modal-content" style="text-align:center;">
-            <span class="close-modal-btn" onclick="closeModal('achievementModal')">✖</span>
-            <h2 style="margin-top:0;font-size:20px;">Your Achievement</h2>
-            <div id="achievementCard" style="background:linear-gradient(135deg,#007aff,#5e5ce6);color:white;border-radius:20px;padding:24px;margin:15px 0;">
-                <div style="font-size:48px;margin-bottom:10px;" id="achieveBadge">🏆</div>
-                <h3 id="achieveTitle" style="margin:0 0 6px;font-size:20px;"></h3>
-                <p id="achieveDesc" style="margin:0;font-size:13px;opacity:0.9;"></p>
-                <div style="margin-top:15px;font-size:12px;opacity:0.8;">Master Reminder App</div>
-            </div>
-            <button onclick="copyAchievementText()" style="background:var(--primary);color:white;border:none;border-radius:10px;padding:12px 24px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px;">Copy to Share</button>
-            <button onclick="closeModal('achievementModal')" style="background:#f2f2f7;border:none;border-radius:10px;padding:12px 24px;font-weight:700;cursor:pointer;width:100%;color:#8e8e93;">Close</button>
         </div>
     </div>
 
@@ -2479,26 +2423,60 @@
     <div class="modal-overlay" id="familyModal">
         <div class="modal-content">
             <span class="close-modal-btn" onclick="closeModal('familyModal')">✖</span>
-            <h2 style="margin-top:0; font-size:20px;">👨‍👩‍👧‍👦 Family Members</h2>
-            <p style="font-size:12px; color:#8e8e93; margin-top:-10px; margin-bottom:15px;">Add family members using their Unique ID to share tasks</p>
+            <h2 style="margin-top:0; margin-bottom:5px; font-size:20px;">👪 Family</h2>
+            <div style="display:flex; gap:6px; margin-bottom:16px; background:#f2f2f7; border-radius:12px; padding:4px;">
+                <button id="familyTabBtn-members" onclick="switchFamilyTab('members')" style="flex:1; border:none; background:#fff; border-radius:10px; padding:8px; font-weight:700; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.06);">👨‍👩‍👧 Members</button>
+                <button id="familyTabBtn-wallet" onclick="switchFamilyTab('wallet')" style="flex:1; border:none; background:transparent; border-radius:10px; padding:8px; font-weight:700; font-size:12px; cursor:pointer; color:#8e8e93;">💰 Wallet</button>
+            </div>
 
-            <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:15px;">
-                <p style="margin:0 0 6px; font-size:11px; color:#8e8e93; font-weight:700;">YOUR UNIQUE ID</p>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span id="familyMyId" style="font-size:16px; font-weight:800; color:var(--primary); letter-spacing:1px;">...</span>
-                    <button onclick="copyProfileId()" style="background:var(--primary); color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:700; cursor:pointer; font-size:12px;">Copy</button>
+            <div id="familyTab-members">
+                <p style="font-size:12px; color:#8e8e93; margin-top:-4px; margin-bottom:15px;">Add family members using their Unique ID to share tasks</p>
+
+                <div style="background:#f2f2f7; border-radius:14px; padding:14px; margin-bottom:15px;">
+                    <p style="margin:0 0 6px; font-size:11px; color:#8e8e93; font-weight:700;">YOUR UNIQUE ID</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span id="familyMyId" style="font-size:16px; font-weight:800; color:var(--primary); letter-spacing:1px;">...</span>
+                        <button onclick="copyProfileId()" style="background:var(--primary); color:white; border:none; border-radius:8px; padding:6px 12px; font-weight:700; cursor:pointer; font-size:12px;">Copy</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-bottom:15px;">
+                    <input type="text" id="familyMemberIdInput" placeholder="Enter member's Unique ID (e.g. 202606AA001)" maxlength="12" style="flex:1; margin:0; text-transform:uppercase; letter-spacing:1px;">
+                    <button onclick="addFamilyMember()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer; flex-shrink:0;">Add</button>
+                </div>
+
+                <div id="familyMembersList"></div>
+
+                <div style="background:#e5f1ff; border-radius:12px; padding:12px; margin-top:15px;">
+                    <p style="margin:0; font-size:12px; color:var(--primary);">ℹ️ Family sharing lets members see & help complete your shared tasks. Find your ID in Settings → Profile.</p>
                 </div>
             </div>
 
-            <div style="display:flex; gap:8px; margin-bottom:15px;">
-                <input type="text" id="familyMemberIdInput" placeholder="Enter member's Unique ID (e.g. 202606AA001)" maxlength="12" style="flex:1; margin:0; text-transform:uppercase; letter-spacing:1px;">
-                <button onclick="addFamilyMember()" style="background:#34c759; color:white; border:none; border-radius:10px; padding:0 16px; font-weight:700; cursor:pointer; flex-shrink:0;">Add</button>
-            </div>
-
-            <div id="familyMembersList"></div>
-
-            <div style="background:#e5f1ff; border-radius:12px; padding:12px; margin-top:15px;">
-                <p style="margin:0; font-size:12px; color:var(--primary);">ℹ️ Family sharing lets members see & help complete your shared tasks. Find your ID in Settings → Profile.</p>
+            <div id="familyTab-wallet" style="display:none;">
+                <div id="familyWalletSetup">
+                    <p style="font-size:12px; color:#8e8e93; margin:0 0 12px;">Create a shared wallet or join one with a code — separate from the Members list above, since money-sharing works best tied to email rather than the app's own Unique ID.</p>
+                    <input type="text" id="familyWalletNameInput" placeholder="Wallet name (e.g. Home Expenses)">
+                    <button class="add-btn" onclick="createFamilyWallet()">Create Wallet</button>
+                    <div style="text-align:center; font-size:11px; color:#8e8e93; margin:14px 0;">— OR —</div>
+                    <input type="text" id="familyWalletJoinCode" placeholder="Enter 6-character code" style="text-transform:uppercase;">
+                    <button class="add-btn" onclick="joinFamilyWallet()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Join Wallet</button>
+                </div>
+                <div id="familyWalletActive" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <div>
+                            <b id="familyWalletActiveName" style="font-size:16px;"></b>
+                            <div style="font-size:11px; color:#8e8e93;">Code: <b id="familyWalletActiveCode"></b> · <span id="familyWalletMemberCount">0</span> members</div>
+                        </div>
+                        <span onclick="leaveFamilyWallet()" role="button" tabindex="0" style="font-size:12px; color:#ff3b30; cursor:pointer;">Leave</span>
+                    </div>
+                    <div id="familyWalletBalances" style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:10px 12px; margin-bottom:14px;"></div>
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                        <input type="text" id="familyWalletDescInput" placeholder="What was it for?" style="flex:2;">
+                        <input type="number" id="familyWalletAmtInput" placeholder="₹" style="flex:1;">
+                    </div>
+                    <button class="add-btn" onclick="addWalletEntry()">Add Expense</button>
+                    <div id="familyWalletEntries" style="margin-top:14px; max-height:240px; overflow-y:auto;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -2635,7 +2613,6 @@
 <script src="js/01-core/02-navigation-auth.js" defer></script>
 <script src="js/01-core/03-sync-profile.js" defer></script>
 <script src="js/01-core/04-calendar-pomodoro.js" defer></script>
-<script src="js/01-core/05-premium-themes.js" defer></script>
 <script src="js/01-core/06-account-deletion.js" defer></script>
 <script src="js/01-core/07-two-factor-auth.js" defer></script>
 <script src="js/02-tasks/01-reminders-utils.js" defer></script>
@@ -2685,36 +2662,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="familyWalletModal">
-    <div class="modal-content">
-        <span class="close-modal-btn" onclick="closeModal('familyWalletModal')">✖</span>
-        <h2 style="margin-top:0; font-size:20px;">👪 Family Wallet</h2>
-        <div id="familyWalletSetup">
-            <p style="font-size:12px; color:#8e8e93; margin:0 0 12px;">Create a shared wallet or join one with a code.</p>
-            <input type="text" id="familyWalletNameInput" placeholder="Wallet name (e.g. Home Expenses)">
-            <button class="add-btn" onclick="createFamilyWallet()">Create Wallet</button>
-            <div style="text-align:center; font-size:11px; color:#8e8e93; margin:14px 0;">— OR —</div>
-            <input type="text" id="familyWalletJoinCode" placeholder="Enter 6-character code" style="text-transform:uppercase;">
-            <button class="add-btn" onclick="joinFamilyWallet()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Join Wallet</button>
-        </div>
-        <div id="familyWalletActive" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <div>
-                    <b id="familyWalletActiveName" style="font-size:16px;"></b>
-                    <div style="font-size:11px; color:#8e8e93;">Code: <b id="familyWalletActiveCode"></b> · <span id="familyWalletMemberCount">0</span> members</div>
-                </div>
-                <span onclick="leaveFamilyWallet()" role="button" tabindex="0" style="font-size:12px; color:#ff3b30; cursor:pointer;">Leave</span>
-            </div>
-            <div id="familyWalletBalances" style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:10px 12px; margin-bottom:14px;"></div>
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-                <input type="text" id="familyWalletDescInput" placeholder="What was it for?" style="flex:2;">
-                <input type="number" id="familyWalletAmtInput" placeholder="₹" style="flex:1;">
-            </div>
-            <button class="add-btn" onclick="addWalletEntry()">Add Expense</button>
-            <div id="familyWalletEntries" style="margin-top:14px; max-height:240px; overflow-y:auto;"></div>
-        </div>
-    </div>
-</div>
 
 <div class="modal-overlay" id="fitnessLogModal">
     <div class="modal-content">
@@ -2835,18 +2782,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="referralModal">
-    <div class="modal-content">
-        <span class="close-modal-btn" onclick="closeModal('referralModal')">✖</span>
-        <h2 style="margin-top:0; font-size:20px;">🎁 Refer & Earn</h2>
-        <p style="margin:0 0 12px; font-size:12px; color:#8e8e93;">Share your link — you both earn coins when a friend joins.</p>
-        <div style="background:var(--card-bg,#f7f7f9); border-radius:12px; padding:12px; margin-bottom:10px; word-break:break-all; font-size:12px;" id="referralLinkDisplay"></div>
-        <p style="font-size:12px; color:#8e8e93;">Your code: <b id="referralCodeDisplay" style="color:#1c1c1e;"></b></p>
-        <button class="add-btn" onclick="shareReferralLink()">Share Link</button>
-        <button class="add-btn" onclick="copyReferralLink()" style="background:#f2f2f7; color:#1c1c1e; box-shadow:none;">Copy Link</button>
-        <p id="referralStatsDisplay" style="text-align:center; font-size:12px; color:#8e8e93; margin-top:14px;"></p>
-    </div>
-</div>
 
 <div class="modal-overlay" id="ratingPromptModal">
     <div class="modal-content" style="text-align:center;">
@@ -2883,7 +2818,6 @@
 <script src="js/09-new-features/04-webhooks.js" defer></script>
 <script src="js/09-new-features/05-widget-page.js" defer></script>
 <script src="js/09-new-features/06-recipe-planner.js" defer></script>
-<script src="js/09-new-features/08-extra-themes.js" defer></script>
 <script src="js/09-new-features/09-crash-monitoring.js" defer></script>
 <script src="js/09-new-features/10-tos-gate.js" defer></script>
 <script src="js/09-new-features/11-web-push.js" defer></script>
