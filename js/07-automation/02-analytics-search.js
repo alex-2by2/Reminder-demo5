@@ -72,9 +72,13 @@
     // ============================================================
     let studySubjectChartInst = null, studyDailyChartInst = null;
 
+    // Merged into the Student Mode page (same studentData, no reason for a
+    // separate modal) — kept under its original name for anyone who already
+    // pinned it before the merge. switchPage('student') already triggers
+    // renderStudyAnalytics() itself (see js/01-core/02-navigation-auth.js),
+    // so nothing further needed here.
     function openStudyAnalyticsModal() {
-        openModal('studyAnalyticsModal');
-        setTimeout(renderStudyAnalytics, 150);
+        switchPage('student');
     }
 
     function renderStudyAnalytics() {

@@ -151,7 +151,14 @@
     // ============================================================
     // ACHIEVEMENT SHARING
     // ============================================================
-    function shareAchievement() {
+    // Now a tab inside the merged Achievements modal (leaderboardModal) —
+    // see switchAchieveTab() in js/09-new-features/00-glue.js. Split into an
+    // opener (kept for the feature tile's onclick) and the actual compute +
+    // render, since the tab-switcher needs to call the render half directly
+    // without re-opening a modal that's already open.
+    function shareAchievement() { openModal('leaderboardModal'); switchAchieveTab('share'); }
+
+    function renderAchievementCard() {
         const reminders = safeStorage('reminders', []);
         const habits = safeStorage('habits', []);
         const pomoHist = safeStorage('pomodoroHistory', []);
@@ -174,8 +181,6 @@
         if(badgeEl) badgeEl.innerText = badge;
         if(titleEl) titleEl.innerText = title;
         if(descEl) descEl.innerText = desc;
-
-        openModal('achievementModal');
         hapticFeedback('success');
     }
 

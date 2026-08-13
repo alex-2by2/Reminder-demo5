@@ -137,7 +137,9 @@
         ];
     }
 
-    function openWeeklyMissionsModal() { renderWeeklyMissions(); openModal('weeklyMissionsModal'); }
+    // Now a tab inside the merged Achievements modal (leaderboardModal) —
+    // see switchAchieveTab() in js/09-new-features/00-glue.js.
+    function openWeeklyMissionsModal() { openModal('leaderboardModal'); switchAchieveTab('missions'); }
 
     function renderWeeklyMissions() {
         const c = document.getElementById('weeklyMissionsList');
