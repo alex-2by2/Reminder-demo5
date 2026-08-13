@@ -105,7 +105,7 @@
             updateCategoryPreview();
         }
         if (pageId === 'finance') { renderFinanceDashboard(); setFinTab('expenses'); }
-        if (pageId === 'student') { renderExamCountdowns(); renderSubjects(); updateStudySubjectSelect(); }
+        if (pageId === 'student') { renderExamCountdowns(); renderSubjects(); updateStudySubjectSelect(); setTimeout(renderStudyAnalytics, 150); }
         if (pageId === 'journal') {
             setTxt('journalTodayLabel', new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}));
             renderJournalEntries();

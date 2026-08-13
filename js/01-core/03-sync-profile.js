@@ -24,7 +24,6 @@
                         waterCount = 0; 
                     } 
                     waterDate = getTodayStr();
-                    if(data.theme) setThemeColor(data.theme.p, data.theme.ph, data.theme.b1, data.theme.b2, false);
                     if(data.customTemplates) localStorage.setItem("customTemplates", JSON.stringify(data.customTemplates));
                     if(data.projects) localStorage.setItem("projects", JSON.stringify(data.projects));
                     if(data.moodLog) localStorage.setItem("moodLog", JSON.stringify(data.moodLog));
@@ -143,7 +142,6 @@
                 userName: userName, 
                 alarmSound: userAlarmSound, 
                 voiceAlarm: voiceAlarmEnabled, 
-                theme: safeStorage("appTheme", null),
                 customTemplates: safeStorage("customTemplates", []), 
                 projects: safeStorage("projects", []),
                 moodLog: safeStorage("moodLog", {}),
@@ -234,25 +232,14 @@
         if(hInput) hInput.value = holidayColor;
     }
 
-    function setThemeColor(p, ph, b1, b2, sync=true) { 
-        document.documentElement.style.setProperty('--primary', p); 
-        document.documentElement.style.setProperty('--primary-hover', ph); 
-        document.documentElement.style.setProperty('--bg-grad-1', b1); 
-        document.documentElement.style.setProperty('--bg-grad-2', b2); 
-        localStorage.setItem("appTheme", JSON.stringify({p, ph, b1, b2})); 
-        if(sync) { 
-            syncToCloud(); 
-            showToast("Theme saved!", "success"); 
-        } 
-    }
-    
+    // Applies the saved dark-mode preference on load. Used to also restore a
+    // saved accent-color theme here too, before themes were removed in favor
+    // of one fixed Liquid Glass identity — that branch is gone, this now only
+    // does the one thing its name still promises.
     function applyTimeOfDayTheme() { 
         if (localStorage.getItem("darkMode") === "true") { 
             document.body.classList.add("dark-mode"); 
-            return; 
         } 
-        const savedTheme = safeStorage("appTheme", null); 
-        if(savedTheme) return; 
     }
     
     function saveProfileSettings() { 
@@ -391,8 +378,16 @@
     });
 
     // --- Leaderboard ---
+    // Now one tab (of four) inside the merged Achievements modal — see
+    // switchAchieveTab() in js/09-new-features/00-glue.js for the others
+    // (Weekly Missions, Share Win, Refer & Earn). openLeaderboard() is kept
+    // as the name people click from the single remaining feature tile.
     function openLeaderboard() {
         openModal('leaderboardModal');
+        switchAchieveTab('rank');
+    }
+
+    function loadLeaderboardData() {
         const cont = $id("leaderboardContainer");
         if (!cont) return;
         cont.innerHTML = "<p style='text-align:center;'>Fetching...</p>";
