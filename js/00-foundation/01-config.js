@@ -61,7 +61,6 @@
         SECRET_NOTE: 'secretNote',
 
         // Appearance
-        APP_THEME: 'appTheme',
         APP_FONT_SIZE: 'appFontSize',
         DARK_MODE: 'darkMode',
         AUTO_DARK: 'autoDark',
@@ -116,8 +115,6 @@
 
         // Integrations
         GCAL_CLIENT_ID: 'gcalClientId',
-        WEATHER_API_KEY: 'weatherApiKey',
-        WEATHER_CITY: 'weatherCity',
 
         // Templates / customization
         CUSTOM_TEMPLATES: 'customTemplates',
