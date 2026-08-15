@@ -126,6 +126,11 @@
         log.unshift({id:Date.now(), title, body, type, time:new Date().toISOString(), read:false});
         localStorage.setItem('notifLog', JSON.stringify(log.slice(0,100)));
         showPushNotification(title, body);
+        // Keeps the nav notification badge (js/08-khata-family/03-family-profile.js) in
+        // sync with every new entry. Previously a separate `addNotifLog = function(...)`
+        // reassignment elsewhere silently shadowed this function; merged in here so
+        // there's one definition of addNotifLog, not two.
+        if (typeof updateNotifBadge === 'function') updateNotifBadge();
     }
 
     function openNotifCentreModal() {

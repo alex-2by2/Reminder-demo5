@@ -199,31 +199,15 @@
     // ============================================================
 
     // KEYBOARD SHORTCUTS: handled by the single global keydown listener in
-    // js/08-khata-family-final.js (this file used to register a second,
+    // js/08-khata-family/04-planning.js (this file used to register a second,
     // overlapping one — both '/' and Escape were firing their action twice
     // per keypress; see CHANGELOG.md).
 
-    // ============================================================
-    // FINANCE TABS FIX (use event.currentTarget instead of event.target)
-    // ============================================================
-    // setFinTab defined earlier - this override fixes tab highlighting
-    window.setFinTab = function(tab) {
-        document.querySelectorAll('.fin-tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('[id^="finTab-"]').forEach(el => el.style.display='none');
-        document.querySelectorAll('.fin-tab-btn').forEach(btn => {
-            const oc = btn.getAttribute('onclick') || '';
-            if(oc.includes("'"+tab+"'") || oc.includes('"'+tab+'"')) btn.classList.add('active');
-        });
-        const tabEl = document.getElementById('finTab-'+tab);
-        if(tabEl) tabEl.style.display = 'block';
-        if(tab==='expenses') renderExpenses();
-        else if(tab==='income') renderIncome();
-        else if(tab==='budget') renderBudgets();
-        else if(tab==='bills') renderBills();
-        else if(tab==='emi') renderEMIs();
-        else if(tab==='invest') renderInvestments();
-        else if(tab==='khata') renderKhataPartyList();
-    };
+    // FINANCE TABS FIX: merged into the real setFinTab in
+    // js/05-work-finance/02-finance.js — this used to be a same-named
+    // `window.setFinTab = function(){...}` override that silently replaced
+    // the original (and had dropped its Charts-tab rendering call in the
+    // process). See the comment there for details.
 
     // ============================================================
     // WEEKLY REVIEW AUTO-PROMPT (Sunday evening)
@@ -511,13 +495,9 @@
     // ============================================================
     // INIT PATCHES ON APP READY
     // ============================================================
-    // Update next task widget whenever reminders load
-    const _origLoadRem = loadReminders;
-    loadReminders = function(...args) {
-        const result = _origLoadRem.apply(this, args);
-        setTimeout(updateNextTaskWidget, 200);
-        return result;
-    };
+    // Update next task widget whenever reminders load: this now happens
+    // directly inside loadReminders (js/02-tasks/03-reminders-core.js) —
+    // used to be a separate reassignment here, removed as a duplicate.
 
     // Generate challenge on home page load
     document.addEventListener('DOMContentLoaded', () => {
