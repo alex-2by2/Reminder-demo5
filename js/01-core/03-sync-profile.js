@@ -152,7 +152,7 @@
                 // BUGFIX: finData (expenses/income/budgets/bills/EMIs/investments) was
                 // never included here, so the Finance feature had no cloud backup at all —
                 // reinstalling the app or switching devices silently lost every recorded
-                // expense. Default shape matches getFinData() in 05-shifts-finance-student.js.
+                // expense. Default shape matches getFinData() in 05-work-finance/02-finance.js.
                 finData: safeStorage("finData", {"expenses":[],"income":[],"budgets":[],"bills":[],"emis":[],"investments":[]}),
                 morePinnedFeatures: safeStorage("morePinnedFeatures", []),
                 coinBalance: safeNum(localStorage.getItem("coinBalance"), 0),
