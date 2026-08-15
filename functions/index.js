@@ -17,7 +17,7 @@
  *   firebase functions:secrets:set GEMINI_API_KEY
  *   firebase deploy --only functions
  *
- * CLIENT-SIDE STATUS: already migrated. js/04-ai-features-calendar.js's
+ * CLIENT-SIDE STATUS: already migrated. js/04-ai-calendar/01-ai-assistant.js's
  * callGeminiAI() calls this function via functions.httpsCallable('callGeminiProxy')
  * — there is no direct generativelanguage.googleapis.com call left in the
  * client, and no API key ships to the browser. Nothing further to do here.
