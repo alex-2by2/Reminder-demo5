@@ -13,12 +13,12 @@
 //      (see integration notes) and this app registered as a valid messaging
 //      sender (already true — it uses the same firebaseConfig as everything else).
 
-    const FCM_VAPID_KEY = 'PASTE_YOUR_VAPID_KEY_HERE';
+    const FCM_VAPID_KEY = 'BFG9RxWVk2iaPw2eD6zOkGf2MwvBrMDT2SP7FMKpxo3lxHBIXHY9efXGTdd83i8E8o7UUwSaIupxVepny6scSEI';
 
     async function requestWebPushPermission() {
         if (!('Notification' in window)) return showToast('Push notifications are not supported in this browser.', 'error');
         if (!currentUser) return showToast('Login required!', 'error');
-        if (FCM_VAPID_KEY === 'PASTE_YOUR_VAPID_KEY_HERE') {
+        if (FCM_VAPID_KEY === 'BFG9RxWVk2iaPw2eD6zOkGf2MwvBrMDT2SP7FMKpxo3lxHBIXHY9efXGTdd83i8E8o7UUwSaIupxVepny6scSEI') {
             return showToast('Push isn\'t configured yet — add your VAPID key first (see 11-web-push.js).', 'error');
         }
         try {
