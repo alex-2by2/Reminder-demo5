@@ -177,19 +177,15 @@
     }
 
     // OFFLINE BACKGROUND SYNC: handled by the consolidated online/offline
-    // listener in js/01-core-init.js (this file used to register its own
-    // third copy — see CHANGELOG.md — which meant syncToCloud() and the
-    // background sync request both ran redundantly on every reconnect).
+    // listener in js/01-core/02-navigation-auth.js (this file used to
+    // register its own third copy — see CHANGELOG.md — which meant
+    // syncToCloud() and the background sync request both ran redundantly on
+    // every reconnect).
 
-    // ============================================================
-    // PERFORMANCE: Lazy-load app stats chart
-    // ============================================================
-    let _appStatsRendered = false;
-    const _origOpenAppStats = openAppStatsModal;
-    openAppStatsModal = function() {
-        _origOpenAppStats();
-        _appStatsRendered = true;
-    };
+    // Note: an earlier pass here reassigned openAppStatsModal to set an
+    // "_appStatsRendered" flag that nothing ever read — a dead duplicate of
+    // the real function in js/06-lifestyle/03-extras.js. Removed; the real
+    // openAppStatsModal (with its setTimeout(renderAppStats, 150)) is unchanged.
 
     // ============================================================
     // CONFLICT RESOLUTION (improved)
@@ -267,12 +263,9 @@
         updateNotifBadge();
     }
 
-    // Update badge after every notification
-    const _origAddNotif = addNotifLog;
-    addNotifLog = function(title, body, type) {
-        _origAddNotif(title, body, type);
-        updateNotifBadge();
-    };
+    // Badge update after every notification now happens directly inside
+    // addNotifLog (js/07-automation/01-rules-notifications.js) — used to be
+    // a separate reassignment here, removed as a duplicate.
 
     // ============================================================
     // MORNING BRIEFING SCHEDULER
@@ -421,10 +414,10 @@
     const MAX_VISIBLE_TASKS = 50; // Show max 50 tasks at once
 
     // PERFORMANCE: syncToCloud debouncing lives in ONE place now — its own
-    // definition in js/01-core-init.js (2000ms). This file used to wrap it
-    // in a second, independent 1500ms debounce, so every call actually
-    // waited ~3.5s end-to-end across two files for no added benefit — see
-    // CHANGELOG.md.
+    // definition in js/01-core/03-sync-profile.js (2000ms). This file used
+    // to wrap it in a second, independent 1500ms debounce, so every call
+    // actually waited ~3.5s end-to-end across two files for no added
+    // benefit — see CHANGELOG.md.
 
     // ============================================================
     // INIT: Run all startup checks
