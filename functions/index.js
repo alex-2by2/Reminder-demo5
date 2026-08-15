@@ -36,7 +36,7 @@ const db = admin.firestore();
 
 setGlobalOptions({ maxInstances: 10, region: "us-central1" });
 
-const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+const GEMINI_API_KEY = defineSecret("AQ.Ab8RN6LZI2HSJXksIKneViRq9cubI6wX464zSkv2krZtVm3StQ");
 
 const DAILY_LIMIT = 50; // calls per user per day — generous for real use, cheap to raise/lower later
 const MAX_PROMPT_CHARS = 8000; // defensive cap so nobody can send a huge prompt and inflate cost
