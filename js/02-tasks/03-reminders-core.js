@@ -391,6 +391,12 @@
         updateTimers(); 
         timerInterval = setInterval(updateTimers, 1000); 
         initSortable();
+        // Keeps the home "Next Task" widget (js/07-automation/03-engagement-reports.js)
+        // in sync whenever the reminder list re-renders. Previously a separate
+        // `loadReminders = function(...) {...}` reassignment 300+ lines away in that
+        // file silently shadowed this function; merged in here so there's one
+        // definition of loadReminders, not two racing to be "the real one".
+        if (typeof updateNextTaskWidget === 'function') setTimeout(updateNextTaskWidget, 200);
     }
 
 
