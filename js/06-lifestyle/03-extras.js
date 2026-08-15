@@ -183,9 +183,9 @@
 
 
     // OFFLINE BANNER: handled by the consolidated online/offline listener in
-    // js/01-core-init.js (this file used to register its own second copy,
-    // which meant the banner toggle and syncToCloud() ran twice on every
-    // connectivity change — see CHANGELOG.md).
+    // js/01-core/02-navigation-auth.js (this file used to register its own
+    // second copy, which meant the banner toggle and syncToCloud() ran twice
+    // on every connectivity change — see CHANGELOG.md).
 
     // ============================================================
     // POMODORO AUTO-LOG (patch existing pomo complete)
