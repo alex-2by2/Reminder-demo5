@@ -94,10 +94,11 @@
     // API LAYER
     // ------------------------------------------------------------------
     // NOTE: these read `db` / `auth` / `functions` / `currentUser` at CALL
-    // time, not at file-load time. This file loads before 01-core-init.js
-    // (which is where those are declared), but every script on the page
-    // shares one global scope, and none of these functions run until well
-    // after all 8 files have finished loading — so the lookup always
+    // time, not at file-load time. This file loads before
+    // js/01-core/01-bootstrap.js (which is where those are declared), but
+    // every script on the page shares one global scope, and none of these
+    // functions run until well after all files have finished loading — so
+    // the lookup always
     // succeeds. (Verified: `let`/`const` declared at the top level of any
     // classic <script> is visible to every other classic <script> on the
     // page once it has executed, regardless of load order in the source.)

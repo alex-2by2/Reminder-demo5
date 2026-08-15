@@ -2,9 +2,9 @@
 // 00-LOGGER.JS — Error Logging & Crash Reporting
 // ============================================================================
 // This app already had a global window.onerror / window.onunhandledrejection
-// pair (previously in js/02-reminders-habits.js) that console.log'd crashes.
-// That code has been removed from js/02 — this file is its replacement, and
-// does three things the old version didn't:
+// pair (previously in what's now the js/02-tasks/ folder) that console.log'd
+// crashes. That old pair has been removed entirely — this file is its
+// replacement, and does three things the old version didn't:
 //
 //   1. Persists a rolling log of the last 50 errors to localStorage, so a
 //      crash survives a reload/relaunch instead of vanishing the moment the
@@ -115,9 +115,9 @@
     // so this coexists safely with anything else that might listen for
     // these events, rather than silently clobbering/being clobbered.
     // This replaces the equivalent window.onerror/onunhandledrejection pair
-    // that used to live in js/02-reminders-habits.js, including its toast
-    // (with the same noise filter for extension/ResizeObserver errors that
-    // aren't actionable or the app's fault).
+    // that used to live in what's now the js/02-tasks/ folder, including its
+    // toast (with the same noise filter for extension/ResizeObserver errors
+    // that aren't actionable or the app's fault).
     window.addEventListener('error', function (e) {
         const msg = e.message || 'Unknown error';
         window.AppLogger.error(msg, (e.filename || '') + ':' + (e.lineno || '?'));

@@ -150,7 +150,7 @@
     // ------------------------------------------------------------------
     const APP_CONFIG = Object.freeze({
         SYNC: Object.freeze({
-            // syncToCloud()'s own internal debounce (js/01-core-init.js).
+            // syncToCloud()'s own internal debounce (js/01-core/03-sync-profile.js).
             // A second, redundant 1500ms debounce used to wrap this same
             // function from js/08 — removed in this pass; see CHANGELOG.
             DEBOUNCE_MS: 2000
