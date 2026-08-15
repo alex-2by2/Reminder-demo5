@@ -32,8 +32,14 @@ const DIST_DIR = path.join(ROOT, "dist");
 
 // Exact load order matters (00-foundation must run before 01-core, etc.,
 // since later files reference earlier ones' top-level functions/variables
-// at call time). This list is the split's 30 files across 9 folders —
-// see CHANGELOG.md for how each maps back to the original 8 monolithic files.
+// at call time). Kept in sync with index.html's actual <script> tag order —
+// see CHANGELOG.md for how the 00-08 folders map back to the original 8
+// monolithic files. (Previously listed a "01-core/05-premium-themes.js"
+// that doesn't exist in this project and isn't referenced by index.html —
+// that entry made every `node build.js` run crash with ENOENT. Removed.
+// Also previously omitted js/09-new-features entirely, even though
+// index.html loads all 15 of those files — added below, in the same order
+// index.html uses.)
 const FILES_IN_ORDER = [
   "00-foundation/01-config.js",
   "00-foundation/02-logger.js",
@@ -43,7 +49,6 @@ const FILES_IN_ORDER = [
   "01-core/02-navigation-auth.js",
   "01-core/03-sync-profile.js",
   "01-core/04-calendar-pomodoro.js",
-  "01-core/05-premium-themes.js",
   "01-core/06-account-deletion.js",
   "01-core/07-two-factor-auth.js",
   "02-tasks/01-reminders-utils.js",
@@ -75,6 +80,21 @@ const FILES_IN_ORDER = [
   "08-khata-family/02-more-page.js",
   "08-khata-family/03-family-profile.js",
   "08-khata-family/04-planning.js",
+  "09-new-features/00-glue.js",
+  "09-new-features/01-cycle-tracker.js",
+  "09-new-features/02-family-wallet.js",
+  "09-new-features/03-fitness-log.js",
+  "09-new-features/04-webhooks.js",
+  "09-new-features/05-widget-page.js",
+  "09-new-features/06-recipe-planner.js",
+  "09-new-features/09-crash-monitoring.js",
+  "09-new-features/10-tos-gate.js",
+  "09-new-features/11-web-push.js",
+  "09-new-features/13-payments.js",
+  "09-new-features/14-subscription-page.js",
+  "09-new-features/15-free-tier-limits.js",
+  "09-new-features/16-referral.js",
+  "09-new-features/17-rating-prompt.js",
 ];
 
 function main() {

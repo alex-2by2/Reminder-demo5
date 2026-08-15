@@ -427,3 +427,81 @@ The error log's URLs are `alex-2by2.github.io/Reminder-demo5/` — **GitHub Page
 - **True lazy-loading / code-splitting** — see §5.
 - **Minification** — see `BUILD.md`.
 - **Firestore workspace task updates** — the rules file already documents a known limitation here (array-based updates on shared workspace tasks); a subcollection-based redesign was previously identified but not implemented, and wasn't revisited here since it's a data-model migration question, not a bug.
+
+---
+
+## 19. Duplicate-declaration & broken-build audit (twelfth update)
+
+A general "clean up duplicates/errors/dead code" pass, done systematically
+rather than by inspection: every top-level JS declaration and every CSS
+selector in the whole project was extracted and checked for collisions,
+`build.js` and every `.js` file were actually run/syntax-checked rather than
+just read, and every inline `onclick`/`onchange`/etc. handler was
+cross-referenced against real function definitions.
+
+### 19.1 `build.js` crashed on every run, and was missing 15 files even when it didn't
+`FILES_IN_ORDER` referenced `js/01-core/05-premium-themes.js`, which doesn't
+exist in this project — `node build.js` failed immediately with `ENOENT`.
+Separately, and independent of that crash, the list never included any of
+the 15 files in `js/09-new-features/` (period tracker, family wallet,
+payments, etc.) even though `index.html` loads all of them — so a
+successful build would have silently shipped a production bundle missing
+that entire feature set. Both fixed; `node build.js` now bundles all 54
+files `index.html` actually loads, and `dist/` was verified to
+syntax-check clean.
+
+### 19.2 Four functions silently overridden by a same-named declaration elsewhere
+This app shares one global scope across all 54 files by design (§10), which
+means two files declaring the same function name isn't a syntax error —
+it's a silent last-loaded-wins bug. Four were found:
+
+- **`setFinTab`** — the real bug here: a same-named override in
+  `js/07-automation/03-engagement-reports.js` (added to fix tab-highlight
+  logic) always won at runtime, but had also dropped the original's
+  `if(tab==='charts')` case, so **Finance → Charts opened to a blank
+  canvas** with no chart ever rendered. Merged into one definition in
+  `js/05-work-finance/02-finance.js` with the highlight fix, the Charts
+  render call restored, and the Khata-tab case the override had added kept.
+- **`loadReminders`** and **`addNotifLog`** — harmless wrap-and-extend
+  patterns (call the original, then an extra side effect), but still two
+  declarations of the same name 300+ lines apart in different files.
+  Folded each side effect directly into the real function
+  (`js/02-tasks/03-reminders-core.js`, `js/07-automation/01-rules-notifications.js`)
+  so there's one definition, not a function plus a patch for it elsewhere.
+- **`openAppStatsModal`** — a wrapper in `js/08-khata-family/03-family-profile.js`
+  that set a flag, `_appStatsRendered`, which nothing anywhere ever read.
+  Pure dead weight; deleted outright.
+
+### 19.3 Seven duplicate CSS rules fighting over the same selector
+`body.dark-mode .home-calendar-card`, `.journal-entry`, `.expense-item`,
+`.khata-party-card`, `.feature-tile`, `.feature-tile .ft-label`, and
+`.form-group label` were each declared twice — once in a "Fix: dark mode for
+all f2f2f7 backgrounds" sweep, and again, properly paired with their
+light-mode rule, in their own feature's section further down. Two (
+`.home-calendar-card`'s border color, `.khata-party-card`'s background) had
+actually drifted to different values between the two declarations; the rest
+were byte-identical duplicates. In every case the later-in-file rule was
+already the one winning the cascade, so removing the earlier, orphaned
+copies changes nothing about how the app currently looks — it just removes
+the ambiguity. (Checked the remaining same-selector matches after this —
+`.toast`, `.tab-btn`, `.modal-overlay.active .modal-content`, `.notif-item`,
+and the two `body.dark-mode` blocks defining unrelated properties — none of
+those set overlapping properties, so they're intentional, not duplicates.)
+
+### 19.4 Stale file-path references, and a missing README
+Several comments (in `js/00-foundation/`, `js/01-core/`, `js/06-lifestyle/`,
+`js/08-khata-family/`, `functions/index.js`, and two test files) still
+pointed at the original pre-split monolithic filenames (e.g.
+`js/01-core-init.js`) from before §10's reorganization — harmless to the
+app itself, but a dead end for anyone reading the code and trying to find
+the file being described. Updated each to the real current path.
+`CHANGELOG.md` §10 has also referred to `README.md` "for the folder map"
+since the project split — that file never actually existed. Added one.
+
+### 19.5 What this round deliberately left alone
+Several files (`05-work-finance/02-finance.js` among them) are written in a
+dense, mostly-one-line-per-function style, unlike the rest of the codebase.
+That's a readability question, not a bug, and reformatting ~600 functions
+across the project without a browser to click through and confirm nothing
+broke is exactly the kind of large mechanical change §18 already flags as
+worth a dedicated pass rather than a line item here. Left as-is.

@@ -625,16 +625,14 @@
         body.dark-mode .bday-soon { background:rgba(255,149,0,0.15) !important; }
         /* Fix: dark mode for all f2f2f7 backgrounds */
         body.dark-mode .analytics-section { background:#2c2c2e; }
-        body.dark-mode .home-calendar-card { background:#1c1c1e; border-color:rgba(255,255,255,0.08); }
         body.dark-mode .fin-stat-card { background:#2c2c2e; }
         body.dark-mode .budget-card { background:#2c2c2e; border-color:rgba(255,255,255,0.1); }
-        body.dark-mode .journal-entry { background:#2c2c2e; }
         body.dark-mode .habit-item { background:#2c2c2e; }
-        body.dark-mode .expense-item { border-color:#3a3a3c; }
         body.dark-mode .agenda-item { background:#2c2c2e; }
-        body.dark-mode .khata-party-card { background:#2c2c2e; }
-        body.dark-mode .feature-tile { background:#2c2c2e; border-color:rgba(255,255,255,0.08); }
-        body.dark-mode .feature-tile .ft-label { color:#ebebf5; }
+        /* .home-calendar-card, .journal-entry, .expense-item, .khata-party-card, .feature-tile
+           and .feature-tile .ft-label dark-mode colors live with their light-mode rules further
+           down (see "Home Page Calendar UI" / "MEGA FEATURES CSS") — removed the duplicate,
+           always-overridden copies that used to be here. */
         body.dark-mode select, body.dark-mode input, body.dark-mode textarea { background:#2c2c2e; color:#ebebf5; border-color:#3a3a3c; }
         body.dark-mode .widget-card { background:linear-gradient(135deg,#2c2c2e,#3a3a3c) !important; }
         .skeleton { background: linear-gradient(90deg, #f2f2f7 25%, #e5e5ea 50%, #f2f2f7 75%); background-size: 200% 100%; animation: skeleton-loading 1.4s infinite; border-radius: 8px; }
@@ -701,7 +699,7 @@
         .btn-secondary { background:#f2f2f7; color:#3c3c3e; border:none; border-radius:10px; padding:10px 16px; font-weight:700; cursor:pointer; font-size:13px; }
         body.dark-mode .btn-secondary { background:#3a3a3c; color:#ebebf5; }
         .form-group { margin-bottom:15px; }
-        .form-group label { font-size:12px; font-weight:700; color:#8e8e93; display:block; margin-bottom:6px; }
+        .form-group label { display:block; font-size:11px; font-weight:700; margin-bottom:6px; color:#8e8e93; text-transform:uppercase; letter-spacing:0.5px; }
         .rich-editor { background:#f2f2f7; border-radius:12px; padding:12px; min-height:70px; font-size:13px; color:inherit; line-height:1.6; border:1.5px solid transparent; }
         .rich-editor:focus { border-color:var(--primary); background:#fff; box-shadow:0 0 0 3px rgba(0,122,255,0.12); outline:none; }
         .rich-editor:empty::before { content:attr(data-placeholder); color:#8e8e93; }
@@ -863,7 +861,7 @@
            Add Event Page UI (Screenshot Design)
         ===================================== */
         .add-event-container { text-align: left; padding-bottom: 30px; }
-        .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* .form-group label's base style now lives with .form-group (~line 703) — this was a duplicate declaration. */
         body.dark-mode .form-group label { color: #636366; }
         
         /* Add Page Input Styling */
