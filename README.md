@@ -48,6 +48,15 @@ one needs).
 
 Every file's own header comment has more detail on exactly what it contains.
 
+## Admin backend
+
+`server/` is a separate, owner-only admin API + dashboard (user management,
+Pro/free stats, revenue, crash-report viewer, referral leaderboard) — see
+`server/README.md` for what it is and how to set it up. It's additive: the
+app above doesn't call it, doesn't need it running, and works exactly the
+same with or without it. It reads/writes the same Firestore project via the
+Firebase Admin SDK rather than a second database — see that file for why.
+
 ## Tests
 
 ```
