@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Master Reminder App — Admin</title>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<style>
+  :root {
+    --bg: #1c1c1e;
+    --card: #2c2c2e;
+    --card-hover: #3a3a3c;
+    --border: rgba(255,255,255,0.08);
+    --text: #ebebf5;
+    --text-dim: #8e8e93;
+    --primary: #007AFF;
+    --danger: #ff453a;
+    --success: #32d74b;
+    --warn: #ff9f0a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .hidden { display: none !important; }
+
+  /* ---- Login screen ---- */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 360px;
+  }
+  .login-card h1 { font-size: 19px; margin: 0 0 4px; }
+  .login-card p { color: var(--text-dim); font-size: 13px; margin: 0 0 24px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  input {
+    width: 100%; padding: 11px 12px; margin-bottom: 16px;
+    background: #1c1c1e; border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-size: 15px;
+  }
+  input:focus { outline: none; border-color: var(--primary); }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; padding: 11px 16px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; }
+  #loginError, #authError { color: var(--danger); font-size: 13px; margin-top: 14px; min-height: 16px; }
+
+  /* ---- Dashboard shell ---- */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 10;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; }
+  header .who { font-size: 12px; color: var(--text-dim); }
+  .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .stat-card .val { font-size: 24px; font-weight: 700; }
+  .stat-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  section { margin-bottom: 32px; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin: 0 0 12px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  tr:last-child td { border-bottom: none; }
+  td.actions { display: flex; gap: 6px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+  .pill-pro { background: rgba(50,215,75,0.15); color: var(--success); }
+  .pill-free { background: rgba(142,142,147,0.15); color: var(--text-dim); }
+  .pill-disabled { background: rgba(255,69,58,0.15); color: var(--danger); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { background: var(--card-hover); }
+  .btn-danger-outline { background: transparent; border: 1px solid rgba(255,69,58,0.4); color: var(--danger); }
+  .btn-danger-outline:hover { background: rgba(255,69,58,0.1); }
+
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  select { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: inherit; font-size: 13px; }
+  .empty { padding: 24px; text-align: center; color: var(--text-dim); font-size: 13px; }
+  .pager { display: flex; justify-content: flex-end; padding: 10px 14px; gap: 8px; }
+  code { background: #1c1c1e; padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Master Reminder App</h1>
+    <p>Admin console — sign in with the account you've designated as owner.</p>
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password" required>
+      <button type="submit" class="btn-primary" id="loginBtn">Sign In</button>
+      <div id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+  <header>
+    <h1>Admin Console</h1>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <span class="who" id="whoLabel"></span>
+      <button class="btn-ghost btn-sm" id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="authError"></div>
+
+    <div class="stat-grid" id="statGrid"></div>
+
+    <section>
+      <h2>Users</h2>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr><th>User</th><th>Email</th><th>Plan</th><th>Joined</th><th>Last sign-in</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+        <div id="usersEmpty" class="empty hidden">No users yet.</div>
+        <div class="pager"><button class="btn-outline btn-sm" id="usersNextBtn">Load more</button></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="toolbar">
+        <h2 style="margin:0;">Crash Reports</h2>
+        <select id="crashSourceFilter">
+          <option value="">All sources</option>
+          <option value="error">error</option>
+          <option value="unhandledrejection">unhandledrejection</option>
+        </select>
+      </div>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Time</th><th>Source</th><th>Message</th><th>User</th><th>App version</th></tr></thead>
+          <tbody id="crashBody"></tbody>
+        </table>
+        <div id="crashEmpty" class="empty hidden">No crash reports in this range.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Referral Leaderboard</h2>
+      <div class="panel">
+        <table>
+          <thead><tr><th>#</th><th>User</th><th>Referrals</th><th>Coins</th></tr></thead>
+          <tbody id="referralBody"></tbody>
+        </table>
+        <div id="referralEmpty" class="empty hidden">No referrals yet.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>
