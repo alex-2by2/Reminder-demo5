@@ -1,0 +1,29 @@
+# Render "Blueprint" — lets Render create the service by reading this file
+# (New -> Blueprint in the Render dashboard, pointed at your GitHub repo)
+# instead of you filling in every field by hand. Either approach works
+# equally well; see server/README.md for the manual dashboard steps too.
+#
+# Secrets are deliberately NOT in this file (sync: false means "I'll set
+# this myself in the dashboard") — a render.yaml committed to a public repo
+# should never contain real credentials.
+services:
+  - type: web
+    name: master-reminder-admin
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: OWNER_UID
+        sync: false
+      - key: OWNER_EMAIL
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
+      - key: ADMIN_ORIGIN
+        sync: false
