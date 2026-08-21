@@ -551,3 +551,101 @@ version:
   structural reason firestore.rules already flags a related limitation for
   updates to those collections. Noted in `src/routes/users.js` rather than
   silently left out.
+
+---
+
+## 21. Audit trail, real tests, and CI (fourteenth update)
+
+§20 shipped the admin backend but was honest about a real limitation: every
+file in it was verified by hand (syntax checks, careful reading) rather than
+by actually running it, since there was no way to install `firebase-admin`
+or reach a real Firebase project. This update closes that gap for the parts
+of the server where it matters most, and adds something the backend was
+missing on its own merits.
+
+### 21.1 Admin audit log
+Every `disable`/`enable`/`grant-pro`/`revoke-pro`/`delete` now writes an
+entry — action, target uid, which owner did it, when — to a new
+`admin_audit_log` collection, via `src/auditLog.js`. There's a matching
+`GET /api/audit-log` route and an "Audit Log" section on the dashboard
+itself. Nothing reads this collection to make access decisions; it exists
+so "why does this account have Pro" or "who disabled this user" has an
+actual answer six months from now instead of a shrug. A failure to *write*
+the log entry is caught and logged separately (`logSafely` in
+`routes/users.js`) rather than turning an action that actually succeeded
+into an error response to the owner.
+
+### 21.2 `requireOwner` refactored for testability — not just testing, better design
+The owner-only auth check used to `require('../firebaseAdmin')` directly,
+which meant just *importing* that file anywhere (including from a test)
+triggered a real `admin.initializeApp()` call that throws without genuine
+credentials. Refactored into `createRequireOwner({ verifyIdToken, ownerUid,
+ownerEmail })` — a factory that takes its Firebase dependency as a
+parameter instead of reaching out and grabbing it — with the actual
+Firebase wiring moved to where the app gets assembled (`src/index.js`),
+the one place that legitimately needs a real project to run. Same behavior,
+same route wiring, but now the single most security-critical piece of this
+whole server — the thing enforcing "owner only" — can be (and is) exercised
+completely in isolation. `src/auditLog.js` was written the same way from
+the start (`db` as a parameter, not an import) for the same reason.
+
+### 21.3 A real, running test suite for the server (19 tests)
+`server/tests/` now covers:
+- **`esc.test.js`** — the escaping function §20 added after nearly shipping
+  it unescaped. Pulls its real current source out of `public/admin.js` (via
+  a copy of the app's own `extract-fn.js` pattern) rather than a hand-typed
+  stand-in, and checks it against `<script>` tags, attribute-breakout/
+  `onerror` payloads, ampersands, single quotes, and null/undefined/number
+  inputs.
+- **`requireOwner.test.js`** — fails closed with no owner configured,
+  rejects missing/malformed/invalid/wrong-account tokens, accepts the
+  right one by UID *or* email (case-insensitively), and confirms an
+  unexpected internal error reaches `next(err)` rather than being silently
+  swallowed.
+- **`auditLog.test.js`** — the entry shape written to Firestore, defaults,
+  and that a write failure propagates instead of vanishing.
+
+Unlike `server/README.md`'s own honest caveat in §20, these don't need a
+real Firebase project, service account, or network access to run — that's
+the direct payoff of §21.2's refactor. `npm test` (added to
+`server/package.json`) runs all 19 in well under a second.
+
+### 21.4 CI (`.github/workflows/ci.yml`)
+Runs on every push/PR to `main`, as two jobs: syntax-check + the existing
+test suite + `node build.js` for the app, and `npm install` + syntax-check +
+`npm test` for the server — the same checks that have been run by hand,
+here in this changelog, after every single update so far. Deliberately
+needs zero secrets (see §21.2 — the server's tests don't touch real
+Firebase). GitHub doesn't enforce this on its own; turning on **Settings →
+Branches → require status checks to pass** for `main` is a one-time manual
+step this file can't do for you.
+
+### 21.5 What this update deliberately didn't touch
+`dashboard.js`, the read side of `users.js`, `crashReports.js`, and
+`referrals.js` still import `firebaseAdmin.js` directly and aren't
+unit-tested the same way §21.2–§21.3 tested the auth middleware and audit
+log. Applying the same dependency-injection treatment to every route so
+they could all be unit-tested is a bigger, more invasive refactor (every
+route file becomes a factory function, `index.js`'s wiring gets more
+involved) — reasonable to want, but a larger, separate piece of work rather
+than something to fold in here. Verifying those routes for real means
+running the server against an actual (or Firebase-emulated) Firestore
+project — which is what `server/README.md` step 3, running it locally,
+is for.
+
+### 21.6 Found while adding this: two GitHub Pages workflows deploying on every push
+Adding `.github/workflows/ci.yml` meant looking inside `.github/workflows/`
+for the first time this project — and it already had **two** separate
+workflows there, both triggering on every push to `main`, both deploying to
+the same GitHub Pages environment: `static.yml` (uploads the repo as-is)
+and `jekyll-gh-pages.yml` (runs it through a Jekyll build first). This app
+is hand-built HTML/CSS/JS with no Jekyll front-matter or `_config.yml` — it
+doesn't need Jekyll processing, and having both meant the actual live site
+depended on whichever workflow happened to finish last for a given push,
+silently. Checked first whether Jekyll's default build would even change
+anything here (it excludes `_`-prefixed paths and interprets `{{ }}` as
+Liquid template syntax) — this project has neither, so nothing was ever
+visibly broken by it. Still a real redundancy, not a hypothetical one, and
+the same "two systems doing the same job, one wins by accident" pattern as
+everything in §1–§19. Removed `jekyll-gh-pages.yml`; kept `static.yml` as
+the one deployment path.

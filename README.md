@@ -67,6 +67,12 @@ Runs `tests/*.test.js` under Node's built-in test runner. These extract and
 exercise specific functions' real source (see `tests/extract-fn.js`) rather
 than re-implementing them, so they test the actual current code.
 
+`.github/workflows/ci.yml` runs this, plus a full syntax check and
+`node build.js`, automatically on every push/PR — and does the equivalent
+for `server/` too. See `server/README.md`'s "Continuous integration"
+section for the one manual step (branch protection) GitHub doesn't turn on
+by itself.
+
 ## Production build
 
 Optional — see `BUILD.md`. `node build.js` concatenates all 54 files into
