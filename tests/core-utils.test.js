@@ -13,7 +13,7 @@
  *   - safeNum / isValidDate: small, easy to break by accident, used
  *     throughout finance and date-handling code.
  *
- * They read the CURRENT js/01-core-init.js at run time (see extract-fn.js),
+ * They read the CURRENT source under js/ at run time (see extract-fn.js),
  * so they test the real implementation, not a hand-copied stand-in.
  */
 const test = require("node:test");

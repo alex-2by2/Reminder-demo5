@@ -5,13 +5,14 @@ const fs = require("node:fs");
  * Extracts the full source text of `function <name>(...) { ... }` from a file,
  * by counting braces from the first `{` until they balance back to zero.
  *
- * Why this exists: js/01-core-init.js is a plain browser <script> file (not a
- * CommonJS/ESM module), and it initializes Firebase at the top level, so it
- * can't just be require()'d directly in Node without a real Firebase SDK and
- * network access (neither available in this test environment). Pulling out
- * only the specific function bodies we want to test — verbatim from the real
- * file — lets these tests exercise the actual current implementation, not a
- * hand-copied stand-in that could quietly drift out of sync with it.
+ * Why this exists: this app's js/ files are plain browser <script> files (not
+ * CommonJS/ESM modules), and the app initializes Firebase at the top level,
+ * so they can't just be require()'d directly in Node without a real Firebase
+ * SDK and network access (neither available in this test environment).
+ * Pulling out only the specific function bodies we want to test — verbatim
+ * from the real files — lets these tests exercise the actual current
+ * implementation, not a hand-copied stand-in that could quietly drift out of
+ * sync with it.
  */
 function extractFunction(filePath, functionName) {
   const src = fs.readFileSync(filePath, "utf8");
