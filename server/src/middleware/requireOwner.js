@@ -13,49 +13,57 @@
 // be able to do (read every user's data, disable accounts, grant Pro for
 // free). Step 2 is what actually enforces "owner only."
 //
-// Fails CLOSED: if neither OWNER_UID nor OWNER_EMAIL is configured, every
+// Fails CLOSED: if neither ownerUid nor ownerEmail is configured, every
 // request is rejected — a misconfigured deployment locks everyone out
 // rather than accidentally locking no one out.
+//
+// This file exports a FACTORY (createRequireOwner) rather than a ready-made
+// middleware, and doesn't import firebaseAdmin.js. That's deliberate: the
+// only genuinely security-critical logic here is "given a decoded token, is
+// this the owner?" — that logic shouldn't need a real Firebase project to
+// exercise in a test. Real wiring (the actual verifyIdToken call, the actual
+// env vars) lives in src/index.js, right where the app is assembled; see
+// tests/requireOwner.test.js for this file tested completely in isolation.
 
-const { auth: adminAuth } = require('../firebaseAdmin');
+function createRequireOwner({ verifyIdToken, ownerUid, ownerEmail }) {
+  const OWNER_UID = (ownerUid || '').trim();
+  const OWNER_EMAIL = (ownerEmail || '').trim().toLowerCase();
 
-const OWNER_UID = (process.env.OWNER_UID || '').trim();
-const OWNER_EMAIL = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
-
-async function requireOwner(req, res, next) {
-  try {
-    if (!OWNER_UID && !OWNER_EMAIL) {
-      return res.status(503).json({
-        error: 'Server misconfigured: set OWNER_UID and/or OWNER_EMAIL before this API can be used.',
-      });
-    }
-
-    const header = req.headers.authorization || '';
-    const [scheme, token] = header.split(' ');
-    if (scheme !== 'Bearer' || !token) {
-      return res.status(401).json({ error: 'Missing or malformed Authorization header. Expected: Bearer <Firebase ID token>.' });
-    }
-
-    let decoded;
+  return async function requireOwner(req, res, next) {
     try {
-      decoded = await adminAuth.verifyIdToken(token);
+      if (!OWNER_UID && !OWNER_EMAIL) {
+        return res.status(503).json({
+          error: 'Server misconfigured: set OWNER_UID and/or OWNER_EMAIL before this API can be used.',
+        });
+      }
+
+      const header = (req.headers && req.headers.authorization) || '';
+      const [scheme, token] = header.split(' ');
+      if (scheme !== 'Bearer' || !token) {
+        return res.status(401).json({ error: 'Missing or malformed Authorization header. Expected: Bearer <Firebase ID token>.' });
+      }
+
+      let decoded;
+      try {
+        decoded = await verifyIdToken(token);
+      } catch (e) {
+        return res.status(401).json({ error: 'Invalid or expired sign-in token. Sign in again.' });
+      }
+
+      const isOwner =
+        (OWNER_UID && decoded.uid === OWNER_UID) ||
+        (OWNER_EMAIL && (decoded.email || '').toLowerCase() === OWNER_EMAIL);
+
+      if (!isOwner) {
+        return res.status(403).json({ error: 'Forbidden: this account is not authorized to use this server.' });
+      }
+
+      req.ownerUid = decoded.uid;
+      next();
     } catch (e) {
-      return res.status(401).json({ error: 'Invalid or expired sign-in token. Sign in again.' });
+      next(e);
     }
-
-    const isOwner =
-      (OWNER_UID && decoded.uid === OWNER_UID) ||
-      (OWNER_EMAIL && (decoded.email || '').toLowerCase() === OWNER_EMAIL);
-
-    if (!isOwner) {
-      return res.status(403).json({ error: 'Forbidden: this account is not authorized to use this server.' });
-    }
-
-    req.ownerUid = decoded.uid;
-    next();
-  } catch (e) {
-    next(e);
-  }
+  };
 }
 
-module.exports = { requireOwner };
+module.exports = { createRequireOwner };
