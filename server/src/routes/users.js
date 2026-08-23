@@ -1,7 +1,18 @@
 const express = require('express');
 const { db, auth } = require('../firebaseAdmin');
+const { logAdminAction } = require('../auditLog');
 
 const router = express.Router();
+
+// Wraps logAdminAction so a logging hiccup never turns an action that
+// actually succeeded into an error response — it's a record, not a gate.
+async function logSafely(req, action, targetUid, details) {
+  try {
+    await logAdminAction(db, { action, targetUid, performedBy: req.ownerUid, details });
+  } catch (e) {
+    console.error('Failed to write admin_audit_log entry:', e);
+  }
+}
 
 // Deliberately NOT the whole users/{uid} document — that document also holds
 // reminders, habits, khataData (other real people's names and money owed),
@@ -96,6 +107,7 @@ router.get('/:uid', async (req, res, next) => {
 router.post('/:uid/disable', async (req, res, next) => {
   try {
     await auth.updateUser(req.params.uid, { disabled: true });
+    await logSafely(req, 'disable', req.params.uid);
     res.json({ success: true, uid: req.params.uid, disabled: true });
   } catch (e) {
     next(e);
@@ -106,6 +118,7 @@ router.post('/:uid/disable', async (req, res, next) => {
 router.post('/:uid/enable', async (req, res, next) => {
   try {
     await auth.updateUser(req.params.uid, { disabled: false });
+    await logSafely(req, 'enable', req.params.uid);
     res.json({ success: true, uid: req.params.uid, disabled: false });
   } catch (e) {
     next(e);
@@ -127,6 +140,7 @@ router.post('/:uid/grant-pro', async (req, res, next) => {
       proExpiresAt: expiresAt.toISOString(),
       proGrantedManually: true,
     });
+    await logSafely(req, 'grant-pro', req.params.uid, { days });
 
     res.json({ success: true, isProUser: true, proExpiresAt: expiresAt.toISOString() });
   } catch (e) {
@@ -138,6 +152,7 @@ router.post('/:uid/grant-pro', async (req, res, next) => {
 router.post('/:uid/revoke-pro', async (req, res, next) => {
   try {
     await db.collection('users').doc(req.params.uid).update({ isProUser: false });
+    await logSafely(req, 'revoke-pro', req.params.uid);
     res.json({ success: true, isProUser: false });
   } catch (e) {
     next(e);
@@ -167,6 +182,7 @@ router.delete('/:uid', async (req, res, next) => {
     await batch.commit();
 
     await auth.deleteUser(uid);
+    await logSafely(req, 'delete', uid);
 
     res.json({ success: true, uid, deleted: true });
   } catch (e) {
