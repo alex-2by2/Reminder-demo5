@@ -201,6 +201,46 @@ for the owner account. `/health` and `/admin.html` (+ its assets) don't.
 | DELETE | `/api/users/:uid` | Deletes the Auth account + their Firestore data. See the limitation noted in `src/routes/users.js`. |
 | GET | `/api/crash-reports?limit=50&source=&startAfter=` | Lists `crash_reports` — previously only viewable in the Firebase Console. |
 | GET | `/api/referrals/leaderboard?limit=20` | Top referrers by `referralCount`. |
+| GET | `/api/audit-log?limit=50&startAfter=` | Every disable/enable/grant-pro/revoke-pro/delete this server has performed, who did it, and when. |
+
+## Testing
+
+```bash
+cd server
+npm install
+npm test
+```
+
+19 tests, and — unlike the rest of this server — none of them need a real
+Firebase project, credentials, or network access. That's deliberate:
+`src/middleware/requireOwner.js` (the actual owner-only gate) and
+`src/auditLog.js` are both written to take their Firebase dependencies
+(`verifyIdToken`, `db`) as parameters instead of importing them directly, so
+tests can hand them a fake and check the logic in complete isolation — see
+`tests/requireOwner.test.js` for what that actually covers (fails closed
+with no owner configured, rejects missing/malformed/invalid/wrong-account
+tokens, accepts the right one by UID or email). `tests/esc.test.js` does the
+same for the HTML-escaping function every dashboard table depends on,
+pulling its real current source out of `public/admin.js` rather than
+re-typing a copy that could drift (see `tests/extract-fn.js`).
+
+The other routes (`dashboard.js`, `users.js`'s reads, `crashReports.js`,
+`referrals.js`) still talk to Firebase directly and aren't unit-tested the
+same way — verifying those means actually running the server against a real
+or emulated Firestore project, which is what step 3 above (running it
+locally) is for.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` (repo root) runs on every push/PR to `main`:
+syntax-checks every file in both the app's `js/` and this server's `src/`
+and `public/`, runs the app's own test suite, runs `node build.js`, installs
+this server's dependencies fresh, and runs `npm test` here — all on GitHub's
+infrastructure, no secrets required (see the comment in that file for why
+the server tests specifically don't need one). It's there from the moment
+this is pushed, but GitHub won't actually block a merge on it failing until
+you turn that on: **Settings → Branches → Branch protection rules → require
+status checks to pass** for `main`.
 
 ## Security notes
 
@@ -218,6 +258,12 @@ for the owner account. `/health` and `/admin.html` (+ its assets) don't.
   ledgers with other real people's names and money owed, mood/sleep logs,
   etc.) — see the comment in `src/routes/users.js` if you want to widen
   that.
+- Every disable/enable/grant-pro/revoke-pro/delete writes an entry to
+  `admin_audit_log` (who, what, when) — see the Audit Log section on the
+  dashboard itself, or query it directly at `GET /api/audit-log`. Nothing
+  in this system reads that collection to make access decisions; it's a
+  record, not a gate — if you delete it, nothing breaks, you just lose the
+  history.
 
 ## Troubleshooting
 
