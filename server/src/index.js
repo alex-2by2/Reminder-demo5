@@ -6,11 +6,19 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-const { requireOwner } = require('./middleware/requireOwner');
+const { createRequireOwner } = require('./middleware/requireOwner');
+const { auth: adminAuth } = require('./firebaseAdmin');
 const dashboardRoutes = require('./routes/dashboard');
 const usersRoutes = require('./routes/users');
 const crashReportsRoutes = require('./routes/crashReports');
 const referralsRoutes = require('./routes/referrals');
+const auditLogRoutes = require('./routes/auditLog');
+
+const requireOwner = createRequireOwner({
+  verifyIdToken: (token) => adminAuth.verifyIdToken(token),
+  ownerUid: process.env.OWNER_UID,
+  ownerEmail: process.env.OWNER_EMAIL,
+});
 
 const app = express();
 app.set('trust proxy', 1); // Render sits behind a proxy; needed for correct req.ip / rate limiting
@@ -92,6 +100,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/crash-reports', crashReportsRoutes);
 app.use('/api/referrals', referralsRoutes);
+app.use('/api/audit-log', auditLogRoutes);
 
 // ---- 404 + error handler -----------------------------------------------------
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
