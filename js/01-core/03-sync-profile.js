@@ -129,8 +129,12 @@
 
     function syncToCloud() {
         if(!currentUser) return;
-        if(!navigator.onLine) return;
-        document.getElementById("syncStatusText").innerText = "☁️ Saving...";
+        if(!navigator || !navigator.onLine) return;
+        const statusEl = document && document.getElementById ? document.getElementById("syncStatusText") : null;
+        if (statusEl) {
+            statusEl.innerText = "☁️ Saving...";
+            if (statusEl.dataset) statusEl.dataset.state = "saving";
+        }
         
         clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -192,9 +196,17 @@
                 ratingFeedback: safeStorage("ratingFeedback", [])
             };
             db.collection("users").doc(currentUser.uid).set(dataToSave, {merge: true}).then(() => { 
-                const _sst1=document.getElementById("syncStatusText"); if(_sst1) _sst1.innerText = "Synced"; 
+                const statusEl = document && document.getElementById ? document.getElementById("syncStatusText") : null;
+                if (statusEl) {
+                    statusEl.innerText = "Synced";
+                    if (statusEl.dataset) statusEl.dataset.state = "success";
+                }
             }).catch((e) => { 
-                const _sst3=document.getElementById("syncStatusText"); if(_sst3) _sst3.innerText = "Sync Error"; 
+                const statusEl = document && document.getElementById ? document.getElementById("syncStatusText") : null;
+                if (statusEl) {
+                    statusEl.innerText = "Sync Error";
+                    if (statusEl.dataset) statusEl.dataset.state = "error";
+                }
             });
             // SECURITY: public_profiles holds ONLY the fields other users legitimately need to read
             // (leaderboard, family-member lookup by uniqueId). Everything else above — khataData,

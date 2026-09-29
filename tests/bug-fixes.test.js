@@ -266,6 +266,62 @@ test("showToast deduplicates repeated notifications for the same message", () =>
   assert.strictEqual(container.children.length, 1, "duplicate toasts for the same message should be collapsed to a single active toast");
 });
 
+test("syncToCloud is null-safe when the sync status UI is missing", () => {
+  const savedDocs = {};
+  const fakeDb = {
+    collection(name) {
+      return {
+        doc() {
+          return {
+            set(data) {
+              savedDocs[name] = data;
+              return Promise.resolve();
+            },
+          };
+        },
+      };
+    },
+  };
+
+  const { context } = loadFunctionsInSandbox({
+    filePath: path.join(__dirname, "..", "js", "01-core", "03-sync-profile.js"),
+    names: ["syncToCloud"],
+    initialLocalStorage: {
+      finData: JSON.stringify({
+        expenses: [{ id: 1, name: "Groceries", amount: 500 }],
+        income: [], budgets: [], bills: [], emis: [], investments: [],
+      }),
+    },
+    extraContext: {
+      db: fakeDb,
+      currentUser: { uid: "u-1" },
+      navigator: { onLine: true },
+      document: {
+        getElementById() { return null; },
+      },
+      setTimeout(fn) { fn(); return 1; },
+      clearTimeout() {},
+      safeStorage: (_, fallback) => fallback,
+      safeNum: (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback,
+      userName: "Test User",
+      userAlarmSound: "beep",
+      voiceAlarmEnabled: false,
+      isProUser: false,
+      waterCount: 0,
+      waterDate: "2026-01-01",
+      getTodayStr: () => "2026-01-01",
+      showToast() {},
+      localStorage: {
+        getItem() { return null; },
+        setItem() {},
+      },
+    },
+    preamble: "let syncTimeout = null;",
+  });
+
+  assert.doesNotThrow(() => context.syncToCloud());
+});
+
 test("syncToCloud includes finData in the payload written to Firestore", () => {
   const savedDocs = {};
   const fakeDb = {
