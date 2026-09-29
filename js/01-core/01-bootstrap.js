@@ -1,6 +1,8 @@
 // Firebase init, auth/db/functions singletons, security & crash-proof utilities (safeStorage, sanitizeHTML, escInline, emptyStateHTML), localStorage schema versioning/migration, small DOM helpers.
 // Split from the original monolithic js/ files for maintainability — see CHANGELOG.md § "Project split".
 
+    const root = typeof window !== 'undefined' ? window : globalThis;
+
     // --- FIREBASE INITIALIZATION & OFFLINE PERSISTENCE ---
     const firebaseConfig = {
       apiKey: "AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY",
@@ -17,11 +19,16 @@
       measurementId: "G-XXXXXXXXXX"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-    const functions = firebase.functions();
-    db.enablePersistence().catch(err => { console.log("Offline mode error:", err.code); });
+    const firebaseLib = typeof firebase !== 'undefined' ? firebase : null;
+    if (firebaseLib && typeof firebaseLib.initializeApp === 'function') {
+      firebaseLib.initializeApp(firebaseConfig);
+    }
+    const auth = firebaseLib && typeof firebaseLib.auth === 'function' ? firebaseLib.auth() : null;
+    const db = firebaseLib && typeof firebaseLib.firestore === 'function' ? firebaseLib.firestore() : null;
+    const functions = firebaseLib && typeof firebaseLib.functions === 'function' ? firebaseLib.functions() : null;
+    if (db && typeof db.enablePersistence === 'function') {
+      db.enablePersistence().catch(err => { console.log("Offline mode error:", err && err.code); });
+    }
 
     // --- Global Variables ---
     let currentUser = null; 
@@ -32,6 +39,7 @@
     // SECURITY & CRASH-PROOF UTILITIES
     // ============================================================
     function safeStorage(key, fallback) {
+        if (typeof localStorage === 'undefined' || !localStorage || typeof localStorage.getItem !== 'function') return fallback;
         try {
             const raw = localStorage.getItem(key);
             if (raw === null || raw === undefined) return fallback;
@@ -68,6 +76,7 @@
     const SCHEMA_VERSION = 2;
 
     function runSchemaMigrations() {
+        if (typeof localStorage === 'undefined' || !localStorage || typeof localStorage.getItem !== 'function') return;
         let version = parseInt(localStorage.getItem('schemaVersion'), 10);
         if (isNaN(version)) version = 1;
         if (version >= SCHEMA_VERSION) return;
@@ -101,7 +110,7 @@
                 if (!fixed.priority) { fixed.priority = 'medium'; changed = true; }
                 return fixed;
             });
-            if (changed) {
+            if (changed && typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
                 localStorage.setItem('reminders', JSON.stringify(normalized));
                 console.log('[Migration v2] Normalized', normalized.length, 'reminder records.');
             }
@@ -191,4 +200,18 @@
     // SPEED-DIAL FLOATING ACTION BUTTON
     // ============================================================
     let fabMenuOpen = false;
+
+    if (root) {
+      root.safeStorage = safeStorage;
+      root.sanitizeHTML = sanitizeHTML;
+      root.escInline = escInline;
+      root.safeNum = safeNum;
+      root.emptyStateHTML = emptyStateHTML;
+      root.isValidDate = isValidDate;
+      root.getIndiaHoliday = getIndiaHoliday;
+      root.$id = $id;
+      root.setVal = setVal;
+      root.setTxt = setTxt;
+      root.setDisplay = setDisplay;
+    }
 

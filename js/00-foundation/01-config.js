@@ -31,6 +31,8 @@
 (function () {
     'use strict';
 
+    const root = typeof window !== 'undefined' ? window : globalThis;
+
     // ------------------------------------------------------------------
     // STORAGE KEYS — grouped by feature area. Values are the exact strings
     // already used in localStorage today; renaming any of these would
@@ -194,6 +196,7 @@
     });
 
     function loadStoredFlags() {
+        if (typeof localStorage === 'undefined' || !localStorage || typeof localStorage.getItem !== 'function') return {};
         try {
             const raw = localStorage.getItem(STORAGE_KEYS.FEATURE_FLAGS);
             return raw ? JSON.parse(raw) : {};
@@ -211,7 +214,9 @@
         set(name, enabled) {
             flags[name] = !!enabled;
             try {
-                localStorage.setItem(STORAGE_KEYS.FEATURE_FLAGS, JSON.stringify(flags));
+                if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+                    localStorage.setItem(STORAGE_KEYS.FEATURE_FLAGS, JSON.stringify(flags));
+                }
             } catch (e) { /* localStorage unavailable (private mode / full) - flag stays in-memory for this session */ }
         },
         getAll() {
@@ -219,12 +224,16 @@
         },
         reset() {
             flags = Object.assign({}, DEFAULT_FLAGS);
-            try { localStorage.removeItem(STORAGE_KEYS.FEATURE_FLAGS); } catch (e) {}
+            try {
+                if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.removeItem === 'function') {
+                    localStorage.removeItem(STORAGE_KEYS.FEATURE_FLAGS);
+                }
+            } catch (e) {}
         }
     };
 
     // Global exposure (existing architecture — see file header).
-    window.STORAGE_KEYS = STORAGE_KEYS;
-    window.APP_CONFIG = APP_CONFIG;
-    window.Features = Features;
+    root.STORAGE_KEYS = STORAGE_KEYS;
+    root.APP_CONFIG = APP_CONFIG;
+    root.Features = Features;
 })();

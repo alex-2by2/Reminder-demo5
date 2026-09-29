@@ -51,3 +51,59 @@ test("STORAGE_KEYS and APP_CONFIG are frozen (accidental mutation is a no-op, no
   assert.strictEqual(window.STORAGE_KEYS.REMINDERS, "reminders");
   assert.strictEqual(Object.isFrozen(window.APP_CONFIG), true);
 });
+
+test("config falls back to globalThis when window is unavailable", () => {
+  const store = {};
+  const localStorage = {
+    getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+  };
+  const context = { localStorage, JSON, Object, console, globalThis: {} };
+  vm.createContext(context);
+  const source = fs.readFileSync(path.join(__dirname, "..", "js", "00-foundation", "01-config.js"), "utf8");
+  assert.doesNotThrow(() => vm.runInContext(source, context));
+  assert.strictEqual(context.globalThis.Features.isEnabled("swipeToComplete"), true);
+  assert.strictEqual(context.globalThis.STORAGE_KEYS.REMINDERS, "reminders");
+});
+
+test("bootstrap tolerates a missing Firebase SDK without crashing", () => {
+  const store = {};
+  const localStorage = {
+    getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; },
+  };
+  const document = {
+    getElementById() { return null; },
+    querySelectorAll() { return []; },
+    body: { classList: { add() {}, remove() {}, toggle() {} } },
+    addEventListener() {},
+  };
+  const context = {
+    localStorage,
+    document,
+    console,
+    JSON,
+    Object,
+    Array,
+    Math,
+    Date,
+    Number,
+    String,
+    Boolean,
+    parseInt,
+    isNaN,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    navigator: { serviceWorker: null },
+    location: { href: "https://example.com" },
+    globalThis: {},
+  };
+  vm.createContext(context);
+  const source = fs.readFileSync(path.join(__dirname, "..", "js", "01-core", "01-bootstrap.js"), "utf8");
+  assert.doesNotThrow(() => vm.runInContext(source, context));
+  assert.strictEqual(context.globalThis.safeStorage("missing", "fallback"), "fallback");
+});
