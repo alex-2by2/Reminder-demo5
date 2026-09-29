@@ -96,30 +96,72 @@
     }
 
     // --- Utility Functions ---
-    function showToast(message, type = 'info') { 
+    function showToast(message, type = 'info') {
         const container = document.getElementById("toastContainer");
-        if (!container) return;
-        // Sanitize message for XSS safety
+        if (!container || !document || typeof document.createElement !== 'function') return;
+
         const safeMsg = typeof message === 'string' ? message : String(message);
-        const toast = document.createElement("div"); 
-        toast.className = `toast ${type}`; 
+        const normalized = safeMsg.trim() || 'Update';
+        const key = `${type}:${normalized.toLowerCase()}`;
+
+        if (!container.__toastRegistry) container.__toastRegistry = new Map();
+        const existing = container.__toastRegistry.get(key);
+        if (existing && existing.parentNode === container) {
+            existing.classList.add('toast-flash');
+            existing._toastResetTimer && clearTimeout(existing._toastResetTimer);
+            existing._toastResetTimer = setTimeout(() => {
+                existing.classList.remove('toast-flash');
+            }, 400);
+            existing._toastHideTimer && clearTimeout(existing._toastHideTimer);
+            existing._toastHideTimer = setTimeout(() => {
+                existing.remove && existing.remove();
+                container.__toastRegistry.delete(key);
+            }, 3100);
+            return;
+        }
+
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.dataset.toastKey = key;
         let icon = type === "success" ? "✅" : (type === "error" ? "⚠️" : (type === "warning" ? "🔔" : "💡"));
         const iconSpan = document.createElement('span'); iconSpan.textContent = icon;
-        const msgSpan = document.createElement('span'); msgSpan.textContent = safeMsg;
+        const msgSpan = document.createElement('span'); msgSpan.textContent = normalized;
         toast.appendChild(iconSpan); toast.appendChild(msgSpan);
-        container.appendChild(toast); 
+
+        while (container.childElementCount > 3) {
+            const old = container.firstElementChild;
+            if (!old) break;
+            old.remove();
+        }
+
+        container.appendChild(toast);
+        container.__toastRegistry.set(key, toast);
+
         // Auto-remove with fade
-        setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-10px)'; }, 2700);
-        setTimeout(() => toast.remove && toast.remove(), 3100);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+        }, 2700);
+        setTimeout(() => {
+            toast.remove && toast.remove();
+            container.__toastRegistry.delete(key);
+        }, 3100);
     }
 
     // Global error handler: moved to js/00-logger.js (AppLogger), which loads
     // before this file and persists a rolling crash log — see CHANGELOG.md.
     
-    function toggleTheme() { 
-        const isDark = document.body.classList.toggle("dark-mode"); 
-        localStorage.setItem("darkMode", isDark); 
-        document.getElementById("themeToggleBtn").innerText = isDark ? "☀️" : "🌙"; 
+    function toggleTheme() {
+        const body = document.body;
+        const toggleBtn = document.getElementById("themeToggleBtn");
+        if (!body || !body.classList) return;
+        const isDark = body.classList.toggle("dark-mode");
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.setItem === 'function') {
+                localStorage.setItem("darkMode", isDark);
+            }
+        } catch (e) {}
+        if (toggleBtn) toggleBtn.innerText = isDark ? "☀️" : "🌙";
     }
     
     function getTodayStr() { 

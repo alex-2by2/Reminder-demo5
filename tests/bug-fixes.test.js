@@ -230,6 +230,42 @@ test("getShiftForDate cycles through the rotation pattern correctly, with overri
   assert.strictEqual(context.getShiftForDate("2025-12-28").name, "Morning");
 });
 
+test("showToast deduplicates repeated notifications for the same message", () => {
+  const container = {
+    children: [],
+    appendChild(node) { this.children.push(node); this.childElementCount = this.children.length; },
+    __toastRegistry: new Map(),
+  };
+  const document = {
+    getElementById(id) {
+      return id === "toastContainer" ? container : null;
+    },
+    createElement(tag) {
+      return {
+        tagName: tag,
+        style: {},
+        dataset: {},
+        classList: { add() {}, remove() {} },
+        appendChild() {},
+        remove() {},
+        parentNode: container,
+      };
+    },
+  };
+
+  const { context } = loadFunctionsInSandbox({
+    filePath: path.join(__dirname, "..", "js", "02-tasks", "01-reminders-utils.js"),
+    names: ["showToast"],
+    extraContext: { document, setTimeout, clearTimeout },
+  });
+
+  context.showToast("Saved!", "success");
+  context.showToast("Saved!", "success");
+  context.showToast("Saved!", "success");
+
+  assert.strictEqual(container.children.length, 1, "duplicate toasts for the same message should be collapsed to a single active toast");
+});
+
 test("syncToCloud includes finData in the payload written to Firestore", () => {
   const savedDocs = {};
   const fakeDb = {

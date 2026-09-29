@@ -50,6 +50,18 @@
         }
     }
 
+    const consoleThrottleMs = 30000;
+    const recentConsoleKeys = new Map();
+
+    function shouldThrottleConsole(level, message, extra) {
+        const key = [level, String(message || '').slice(0, 180), String(extra || '').slice(0, 180)].join('::');
+        const now = Date.now();
+        const previous = recentConsoleKeys.get(key);
+        if (previous && (now - previous) < consoleThrottleMs) return true;
+        recentConsoleKeys.set(key, now);
+        return false;
+    }
+
     function record(level, message, extra) {
         const entry = {
             level: level,
@@ -59,9 +71,11 @@
             time: new Date().toISOString()
         };
         persist(entry);
-        if (level === 'error') console.error('[App]', message, extra || '');
-        else if (level === 'warn') console.warn('[App]', message, extra || '');
-        else console.log('[App]', message, extra || '');
+        if (!shouldThrottleConsole(level, message, extra)) {
+            if (level === 'error') console.error('[App]', message, extra || '');
+            else if (level === 'warn') console.warn('[App]', message, extra || '');
+            else console.log('[App]', message, extra || '');
+        }
         return entry;
     }
 
