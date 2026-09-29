@@ -1,0 +1,22 @@
+{
+  "name": "reminder-demo5-admin-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Owner-only admin API for Master Reminder App",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^12.1.0",
+    "helmet": "^8.0.0"
+  },
+  "overrides": {
+    "uuid": ">=11.1.1"
+  }
+}

@@ -50,12 +50,12 @@ Every file's own header comment has more detail on exactly what it contains.
 
 ## Admin backend
 
-`server/` is a separate, owner-only admin API + dashboard (user management,
-Pro/free stats, revenue, crash-report viewer, referral leaderboard) — see
-`server/README.md` for what it is and how to set it up. It's additive: the
-app above doesn't call it, doesn't need it running, and works exactly the
-same with or without it. It reads/writes the same Firestore project via the
-Firebase Admin SDK rather than a second database — see that file for why.
+`server/` is a separate, owner-only admin API (user management, Pro/free
+stats, revenue, crash reports, referral leaderboard) — see `server/README.md`
+for setup and API details. It's additive: the app above doesn't call it,
+doesn't need it running, and works the same with or without it. It uses the
+Firebase Admin SDK to access the same Firestore project; Render deployment
+is configured in `render.yaml`.
 
 ## Tests
 
