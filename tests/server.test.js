@@ -71,7 +71,7 @@ test("admin API protects owner routes and serves limited owner data", async (t) 
 
   const health = await fetch(`${baseUrl}/health`);
   assert.equal(health.status, 200);
-  assert.deepEqual(await health.json(), { status: "ok" });
+  assert.deepEqual(await health.json(), { status: "ok", version: "1.0.0" });
 
   const anonymous = await fetch(`${baseUrl}/api/admin/overview`);
   assert.equal(anonymous.status, 401);

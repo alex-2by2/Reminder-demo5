@@ -57,6 +57,9 @@ doesn't need it running, and works the same with or without it. It uses the
 Firebase Admin SDK to access the same Firestore project; Render deployment
 is configured in `render.yaml`.
 
+The current stable release is `1.0.0`; backend staging, production rollout,
+and rollback steps are tracked in [BACKEND-DEPLOYMENT-ROADMAP.md](BACKEND-DEPLOYMENT-ROADMAP.md).
+
 ## Tests
 
 ```

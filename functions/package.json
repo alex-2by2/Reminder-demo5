@@ -1,5 +1,6 @@
 {
   "name": "master-app-functions",
+  "version": "1.0.0",
   "description": "Cloud Functions for Master Reminder App — server-side Gemini AI proxy",
   "engines": {
     "node": "20"

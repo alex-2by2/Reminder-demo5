@@ -52,6 +52,20 @@ test("STORAGE_KEYS and APP_CONFIG are frozen (accidental mutation is a no-op, no
   assert.strictEqual(Object.isFrozen(window.APP_CONFIG), true);
 });
 
+test("stable release version stays aligned across app, backends, and service worker", () => {
+  const appVersion = loadConfigModule().window.APP_VERSION;
+  const rootPackage = require("../package.json");
+  const renderPackage = require("../server/package.json");
+  const functionsPackage = require("../functions/package.json");
+  const serviceWorker = fs.readFileSync(path.join(__dirname, "..", "sw.js"), "utf8");
+
+  assert.equal(appVersion, "1.0.0");
+  assert.equal(rootPackage.version, appVersion);
+  assert.equal(renderPackage.version, appVersion);
+  assert.equal(functionsPackage.version, appVersion);
+  assert.match(serviceWorker, new RegExp(`const CACHE_VERSION = 'v${appVersion.replaceAll(".", "\\.")}';`));
+});
+
 test("config falls back to globalThis when window is unavailable", () => {
   const store = {};
   const localStorage = {

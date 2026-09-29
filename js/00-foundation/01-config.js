@@ -32,6 +32,7 @@
     'use strict';
 
     const root = typeof window !== 'undefined' ? window : globalThis;
+    const APP_VERSION = '1.0.0';
 
     // ------------------------------------------------------------------
     // STORAGE KEYS — grouped by feature area. Values are the exact strings
@@ -235,5 +236,6 @@
     // Global exposure (existing architecture — see file header).
     root.STORAGE_KEYS = STORAGE_KEYS;
     root.APP_CONFIG = APP_CONFIG;
+    root.APP_VERSION = APP_VERSION;
     root.Features = Features;
 })();

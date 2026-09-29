@@ -4,6 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const admin = require("firebase-admin");
 const helmet = require("helmet");
+const VERSION = require("./package.json").version;
 
 const PORT = Number(process.env.PORT) || 3000;
 const PAGE_SIZE_DEFAULT = 50;
@@ -42,7 +43,7 @@ function createApp({ auth, db, frontendOrigins = [] }) {
   app.get("/", (_req, res) => {
     res.json({ name: "Reminder Demo Admin API", health: "/health" });
   });
-  app.get("/health", (_req, res) => res.json({ status: "ok" }));
+  app.get("/health", (_req, res) => res.json({ status: "ok", version: VERSION }));
 
   async function requireOwner(req, res, next) {
     const match = /^Bearer\s+([^\s]+)$/i.exec(req.get("authorization") || "");

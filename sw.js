@@ -35,7 +35,7 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(title, options);
 });
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v1.0.0';
 const CACHE_NAME = `master-app-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
