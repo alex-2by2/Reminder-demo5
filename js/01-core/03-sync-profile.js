@@ -179,7 +179,7 @@
                 shiftConfig: safeStorage('shiftConfig', null),
                 waterCount: waterCount, 
                 waterDate: getTodayStr(), 
-                isProUser: isProUser,
+                // Pro entitlements are server-owned; never sync them from browser state.
                 dailyTaskGoal: parseInt(localStorage.getItem("dailyTaskGoal")) || 5,
                 // js/09-new-features/* — new feature data, same upload pattern as everything above.
                 cyclePeriods: safeStorage("cyclePeriods", []),
