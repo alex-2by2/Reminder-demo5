@@ -42,3 +42,14 @@ test("Terms gate does not silently fail open on read errors", () => {
   assert.match(source, /catch \(e\) \{[\s\S]*?openModal\('tosGateModal'\)/);
   assert.doesNotMatch(source, /fail open rather than locking someone out/);
 });
+
+test("scheduled pushes interpret local reminder times and retry failed sends", () => {
+  const functions = read("functions/index.js");
+  const reminders = read("js/02-tasks/03-reminders-core.js");
+  assert.match(functions, /function parseReminderTimestamp\(value, timeZone\)/);
+  assert.match(functions, /parseReminderTimestamp\(reminder\.time, reminder\.timeZone\)/);
+  assert.match(functions, /if \(result\.successCount > 0\) sentReminderIds\.add/);
+  assert.match(functions, /Leave failed reminders unmarked so the next scheduled run can retry/);
+  assert.match(reminders, /timeZone: Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
+  assert.match(reminders, /pushSent: false/);
+});
