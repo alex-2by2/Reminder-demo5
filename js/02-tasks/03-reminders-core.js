@@ -560,7 +560,8 @@
                     if (r.repeat && r.repeat !== "none") taskToRepeat = r; 
                 } else { 
                     r.status = "pending"; 
-                    r.notified = false; 
+                    r.notified = false;
+                    r.pushSent = false;
                     delete r.completedBy; 
                     delete r.completedAt; 
                     showToast("Restored.", "info"); 
