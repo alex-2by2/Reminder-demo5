@@ -46,6 +46,8 @@
                 reminders[index].subtasks = subtasks; 
                 reminders[index].customRepeat = customRepeat; 
                 reminders[index].notified = false;
+                reminders[index].pushSent = false;
+                reminders[index].timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
                 reminders[index].preAlarm = preAlarm; 
                 reminders[index].assignee = assignee;
                 reminders[index].project = project;
@@ -69,7 +71,9 @@
                 subtasks, 
                 category: aiCategory, 
                 status: "pending", 
-                notified: false, 
+                notified: false,
+                pushSent: false,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
                 preAlarm: preAlarm, 
                 assignee: assignee,
                 project
@@ -492,7 +496,9 @@
             subtasks: oldTask.subtasks, 
             pinned: false, 
             status: "pending", 
-            notified: false, 
+            notified: false,
+            pushSent: false,
+            timeZone: oldTask.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
             preAlarm: oldTask.preAlarm || 0, 
             assignee: oldTask.assignee || "" 
         });
@@ -554,7 +560,8 @@
                     if (r.repeat && r.repeat !== "none") taskToRepeat = r; 
                 } else { 
                     r.status = "pending"; 
-                    r.notified = false; 
+                    r.notified = false;
+                    r.pushSent = false;
                     delete r.completedBy; 
                     delete r.completedAt; 
                     showToast("Restored.", "info"); 

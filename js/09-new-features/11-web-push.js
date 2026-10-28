@@ -18,7 +18,7 @@
     async function requestWebPushPermission() {
         if (!('Notification' in window)) return showToast('Push notifications are not supported in this browser.', 'error');
         if (!currentUser) return showToast('Login required!', 'error');
-        if (FCM_VAPID_KEY === 'BFG9RxWVk2iaPw2eD6zOkGf2MwvBrMDT2SP7FMKpxo3lxHBIXHY9efXGTdd83i8E8o7UUwSaIupxVepny6scSEI') {
+        if (!FCM_VAPID_KEY || FCM_VAPID_KEY === 'PASTE_YOUR_WEB_PUSH_VAPID_KEY_HERE') {
             return showToast('Push isn\'t configured yet — add your VAPID key first (see 11-web-push.js).', 'error');
         }
         try {

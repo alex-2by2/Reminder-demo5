@@ -24,8 +24,9 @@ firebase deploy --only functions
    firebase functions:secrets:set RAZORPAY_KEY_ID
    firebase functions:secrets:set RAZORPAY_KEY_SECRET
    ```
-4. Paste the **Key ID only** (never the secret) into `RAZORPAY_KEY_ID` in
-   `js/09-new-features/13-payments.js`.
+4. The authenticated `createRazorpayOrder` Cloud Function returns the
+   public Key ID to the client. Never put the Key Secret in browser code or
+   commit secrets to GitHub.
 5. ```
    cd functions && npm install razorpay --save
    ```

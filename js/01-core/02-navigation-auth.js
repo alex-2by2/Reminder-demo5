@@ -274,16 +274,6 @@
         }
     }
 
-    // --- Premium Features ---
-    function activatePro() {
-        isProUser = true; 
-        localStorage.setItem("isPro", "true");
-        const pb = document.getElementById("proBadgeDisplay");
-        if (pb) pb.style.display = "inline-flex";
-        closeModal('proModal'); 
-        showToast("Welcome to PRO! 🎉", "success");
-    }
-
     // --- Morning Briefing ---
 
     // --- Authentication ---

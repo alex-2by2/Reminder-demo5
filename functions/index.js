@@ -139,52 +139,111 @@ exports.callGeminiProxy = onCall(
  * DEPLOY: firebase deploy --only functions
  * ============================================================================
  */
+function parseReminderTimestamp(value, timeZone) {
+  if (typeof value !== "string" || !value) return NaN;
+  // ISO timestamps with an explicit UTC/offset suffix are unambiguous.
+  if (/(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(value)) return Date.parse(value);
+
+  // datetime-local values have no offset. Interpret them in the time zone
+  // captured by the browser; older records default to the app's primary zone.
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?$/.exec(value);
+  if (!match) return Date.parse(value);
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  const wallClockUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+
+  function convertInZone(zone) {
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+    });
+    let guess = wallClockUtc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value]));
+      const renderedAsUtc = Date.UTC(
+        +parts.year, +parts.month - 1, +parts.day,
+        +parts.hour, +parts.minute, +parts.second
+      );
+      const nextGuess = wallClockUtc - (renderedAsUtc - guess);
+      if (nextGuess === guess) break;
+      guess = nextGuess;
+    }
+    return guess;
+  }
+
+  const zone = typeof timeZone === "string" && timeZone ? timeZone : "Asia/Kolkata";
+  try {
+    return convertInZone(zone);
+  } catch (_error) {
+    // An invalid saved time zone should not crash the scheduled job.
+    return convertInZone("Asia/Kolkata");
+  }
+}
+
 exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
   const now = Date.now();
+  // Include a small overdue window so a delayed scheduler invocation or a
+  // transient send failure can be retried on the next run.
+  const windowStart = now - 10 * 60 * 1000;
   const windowEnd = now + 5 * 60 * 1000;
-
   const usersSnap = await db.collection("users").get();
   const messaging = admin.messaging();
 
   for (const doc of usersSnap.docs) {
     const data = doc.data();
-    const tokens = data.fcmTokens;
-    const reminders = data.reminders;
-    if (!tokens || !tokens.length || !reminders || !reminders.length) continue;
+    const tokens = Array.isArray(data.fcmTokens) ? data.fcmTokens.filter(Boolean) : [];
+    const reminders = Array.isArray(data.reminders) ? data.reminders : [];
+    if (!tokens.length || !reminders.length) continue;
 
-    const due = reminders.filter((r) => {
-      if (r.archived || r.status === "completed" || r.pushSent) return false;
-      if (!r.time) return false;
-      const t = new Date(r.time).getTime();
-      return t >= now && t <= windowEnd;
+    const due = reminders.filter((reminder) => {
+      if (reminder.archived || reminder.status === "completed" || reminder.pushSent) return false;
+      const timestamp = parseReminderTimestamp(reminder.time, reminder.timeZone);
+      return Number.isFinite(timestamp) && timestamp >= windowStart && timestamp <= windowEnd;
     });
     if (!due.length) continue;
 
+    const sentReminderIds = new Set();
+    const invalidTokens = new Set();
     for (const reminder of due) {
-      const message = {
-        notification: {
-          title: "⏰ " + (reminder.task || "Reminder"),
-          body: (reminder.notes || "").replace(/<[^>]*>/g, "").slice(0, 150),
-        },
-        data: { reminderId: String(reminder.id) },
-        tokens,
-      };
       try {
-        await messaging.sendEachForMulticast(message);
-      } catch (e) {
-        // A bad/expired token shouldn't block the others — log and continue.
-        console.error("Push send failed for user", doc.id, e.message);
+        const result = await messaging.sendEachForMulticast({
+          notification: {
+            title: "⏰ " + (reminder.task || "Reminder"),
+            body: (reminder.notes || "").replace(/<[^>]*>/g, "").slice(0, 150)
+          },
+          data: { reminderId: String(reminder.id) },
+          tokens
+        });
+
+        if (result.successCount > 0) sentReminderIds.add(String(reminder.id));
+        result.responses.forEach((response, index) => {
+          const code = response.error && response.error.code;
+          if (code === "messaging/invalid-registration-token" ||
+              code === "messaging/registration-token-not-registered") {
+            invalidTokens.add(tokens[index]);
+          }
+        });
+      } catch (error) {
+        // Leave failed reminders unmarked so the next scheduled run can retry.
+        console.error("Push send failed for user", doc.id, error.message);
       }
     }
 
-    // Mark sent so the next run (5 min later) doesn't re-notify the same reminders.
-    const updated = reminders.map((r) =>
-      due.some((d) => d.id === r.id) ? Object.assign({}, r, { pushSent: true }) : r
-    );
-    await doc.ref.update({ reminders: updated });
+    const updates = {};
+    if (sentReminderIds.size) {
+      updates.reminders = reminders.map((reminder) =>
+        sentReminderIds.has(String(reminder.id))
+          ? Object.assign({}, reminder, { pushSent: true })
+          : reminder
+      );
+    }
+    if (invalidTokens.size) {
+      updates.fcmTokens = tokens.filter((token) => !invalidTokens.has(token));
+    }
+    if (Object.keys(updates).length) await doc.ref.update(updates);
   }
 });
-
 /**
  * ============================================================================
  * PAYMENT GATEWAY — Razorpay (chosen for UPI/card/netbanking support for
@@ -195,9 +254,9 @@ exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
  *   2. Get your Key ID + Key Secret from Settings -> API Keys.
  *   3. firebase functions:secrets:set RAZORPAY_KEY_ID
  *      firebase functions:secrets:set RAZORPAY_KEY_SECRET
- *   4. Put the Key ID (not the secret) into js/09-new-features/13-payments.js
- *      (RAZORPAY_KEY_ID constant) — the key ID is meant to be public, the
- *      secret never is and never leaves this file.
+ *   4. The createRazorpayOrder function returns the public Key ID to the
+ *      signed-in client. The Key Secret stays server-side and is never sent
+ *      to the browser.
  *   5. npm install razorpay --save   (inside functions/)
  *   6. firebase deploy --only functions
  * ============================================================================
@@ -223,29 +282,103 @@ exports.createRazorpayOrder = onCall(
 );
 
 exports.verifyRazorpayPayment = onCall(
-  { secrets: [RAZORPAY_KEY_SECRET] },
+  { secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
   async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
     const { orderId, paymentId, signature } = request.data || {};
-    if (!orderId || !paymentId || !signature) throw new HttpsError("invalid-argument", "Missing payment details.");
+    if (
+      typeof orderId !== "string" || !orderId ||
+      typeof paymentId !== "string" || !paymentId ||
+      typeof signature !== "string" || !signature
+    ) {
+      throw new HttpsError("invalid-argument", "Missing payment details.");
+    }
 
     const expected = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET.value())
       .update(orderId + "|" + paymentId)
-      .digest("hex");
-    if (expected !== signature) throw new HttpsError("permission-denied", "Payment signature mismatch — cannot verify.");
+      .digest();
+    let supplied;
+    try {
+      supplied = Buffer.from(signature, "hex");
+    } catch (_error) {
+      throw new HttpsError("permission-denied", "Invalid payment signature.");
+    }
+    if (supplied.length !== expected.length || !crypto.timingSafeEqual(expected, supplied)) {
+      throw new HttpsError("permission-denied", "Payment signature mismatch — cannot verify.");
+    }
 
-    const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1); // 1-year Pro validity — matches PRO_PRICE_PAISE above
-
-    await db.collection("users").doc(request.auth.uid).update({
-      isProUser: true,
-      proExpiresAt: expiresAt.toISOString()
+    // A valid signature alone is not enough: confirm this order belongs to the
+    // signed-in user and that Razorpay reports the expected amount as captured.
+    const Razorpay = require("razorpay");
+    const instance = new Razorpay({
+      key_id: RAZORPAY_KEY_ID.value(),
+      key_secret: RAZORPAY_KEY_SECRET.value()
     });
-    await db.collection("users").doc(request.auth.uid).collection("payments").add({
-      orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR", status: "success", createdAt: new Date().toISOString()
+    let order;
+    let payment;
+    try {
+      [order, payment] = await Promise.all([
+        instance.orders.fetch(orderId),
+        instance.payments.fetch(paymentId)
+      ]);
+    } catch (_error) {
+      throw new HttpsError("failed-precondition", "Could not confirm this payment with Razorpay.");
+    }
+
+    if (
+      order.id !== orderId ||
+      !order.notes ||
+      order.notes.uid !== request.auth.uid ||
+      order.amount !== PRO_PRICE_PAISE ||
+      order.currency !== "INR" ||
+      payment.id !== paymentId ||
+      payment.order_id !== orderId ||
+      payment.amount !== PRO_PRICE_PAISE ||
+      payment.currency !== "INR" ||
+      payment.status !== "captured"
+    ) {
+      throw new HttpsError("failed-precondition", "Payment is not a captured Pro purchase for this account.");
+    }
+
+    const uid = request.auth.uid;
+    const userRef = db.collection("users").doc(uid);
+    const processedRef = db.collection("processed_payments").doc(paymentId);
+    const paymentRef = userRef.collection("payments").doc(paymentId);
+    const now = new Date();
+    const transactionResult = await db.runTransaction(async (tx) => {
+      const processedDoc = await tx.get(processedRef);
+      if (processedDoc.exists) {
+        const previous = processedDoc.data();
+        if (previous.uid === uid && previous.orderId === orderId) {
+          return { success: true, proExpiresAt: previous.proExpiresAt, alreadyProcessed: true };
+        }
+        throw new HttpsError("already-exists", "This payment has already been applied.");
+      }
+
+      const userDoc = await tx.get(userRef);
+      if (!userDoc.exists) throw new HttpsError("not-found", "User profile not found.");
+
+      const existingExpiry = Date.parse(userDoc.data().proExpiresAt || "");
+      const expiryBase = Number.isFinite(existingExpiry) && existingExpiry > now.getTime()
+        ? new Date(existingExpiry)
+        : now;
+      expiryBase.setFullYear(expiryBase.getFullYear() + 1);
+      const proExpiresAt = expiryBase.toISOString();
+      const createdAt = now.toISOString();
+
+      tx.update(userRef, { isProUser: true, proExpiresAt });
+      tx.create(processedRef, {
+        uid, orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR",
+        status: "success", proExpiresAt, createdAt
+      });
+      tx.create(paymentRef, {
+        orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR",
+        status: "success", createdAt
+      });
+      return { success: true, proExpiresAt, alreadyProcessed: false };
     });
 
-    return { success: true, proExpiresAt: expiresAt.toISOString() };
+    return { success: true, proExpiresAt: transactionResult.proExpiresAt };
   }
 );
 

@@ -8,13 +8,8 @@
 // get it from Razorpay Dashboard -> Settings -> API Keys, same place you got
 // the Key ID/Secret you already put into Firebase Secrets for functions/index.js.
 
-    const RAZORPAY_KEY_ID = 'PASTE_YOUR_RAZORPAY_KEY_ID_HERE';
-
     async function startProUpgrade() {
         if (!currentUser) return showToast('Login required!', 'error');
-        if (RAZORPAY_KEY_ID === 'PASTE_YOUR_RAZORPAY_KEY_ID_HERE') {
-            return showToast('Payments aren\'t configured yet — add your Razorpay key first (see 13-payments.js).', 'error');
-        }
         if (typeof Razorpay === 'undefined') {
             return showToast('Payment library still loading — try again in a moment.', 'error');
         }
@@ -22,10 +17,13 @@
             showToast('Preparing checkout…', 'info');
             const createOrder = firebase.functions().httpsCallable('createRazorpayOrder');
             const result = await createOrder();
-            const { orderId, amount, currency } = result.data;
+            const { orderId, amount, currency, keyId } = result.data;
+            if (!orderId || !keyId || !Number.isFinite(amount) || !currency) {
+                throw new Error('The payment service returned an incomplete order.');
+            }
 
             const rzp = new Razorpay({
-                key: RAZORPAY_KEY_ID,
+                key: keyId,
                 order_id: orderId,
                 amount, currency,
                 name: 'Master Reminder App',
