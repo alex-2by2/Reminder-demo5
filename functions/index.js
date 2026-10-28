@@ -183,6 +183,9 @@ function parseReminderTimestamp(value, timeZone) {
 
 exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
   const now = Date.now();
+  // Include a small overdue window so a delayed scheduler invocation or a
+  // transient send failure can be retried on the next run.
+  const windowStart = now - 10 * 60 * 1000;
   const windowEnd = now + 5 * 60 * 1000;
   const usersSnap = await db.collection("users").get();
   const messaging = admin.messaging();
@@ -196,7 +199,7 @@ exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
     const due = reminders.filter((reminder) => {
       if (reminder.archived || reminder.status === "completed" || reminder.pushSent) return false;
       const timestamp = parseReminderTimestamp(reminder.time, reminder.timeZone);
-      return Number.isFinite(timestamp) && timestamp >= now && timestamp <= windowEnd;
+      return Number.isFinite(timestamp) && timestamp >= windowStart && timestamp <= windowEnd;
     });
     if (!due.length) continue;
 
