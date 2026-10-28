@@ -223,29 +223,103 @@ exports.createRazorpayOrder = onCall(
 );
 
 exports.verifyRazorpayPayment = onCall(
-  { secrets: [RAZORPAY_KEY_SECRET] },
+  { secrets: [RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET] },
   async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
     const { orderId, paymentId, signature } = request.data || {};
-    if (!orderId || !paymentId || !signature) throw new HttpsError("invalid-argument", "Missing payment details.");
+    if (
+      typeof orderId !== "string" || !orderId ||
+      typeof paymentId !== "string" || !paymentId ||
+      typeof signature !== "string" || !signature
+    ) {
+      throw new HttpsError("invalid-argument", "Missing payment details.");
+    }
 
     const expected = crypto.createHmac("sha256", RAZORPAY_KEY_SECRET.value())
       .update(orderId + "|" + paymentId)
-      .digest("hex");
-    if (expected !== signature) throw new HttpsError("permission-denied", "Payment signature mismatch — cannot verify.");
+      .digest();
+    let supplied;
+    try {
+      supplied = Buffer.from(signature, "hex");
+    } catch (_error) {
+      throw new HttpsError("permission-denied", "Invalid payment signature.");
+    }
+    if (supplied.length !== expected.length || !crypto.timingSafeEqual(expected, supplied)) {
+      throw new HttpsError("permission-denied", "Payment signature mismatch — cannot verify.");
+    }
 
-    const expiresAt = new Date();
-    expiresAt.setFullYear(expiresAt.getFullYear() + 1); // 1-year Pro validity — matches PRO_PRICE_PAISE above
-
-    await db.collection("users").doc(request.auth.uid).update({
-      isProUser: true,
-      proExpiresAt: expiresAt.toISOString()
+    // A valid signature alone is not enough: confirm this order belongs to the
+    // signed-in user and that Razorpay reports the expected amount as captured.
+    const Razorpay = require("razorpay");
+    const instance = new Razorpay({
+      key_id: RAZORPAY_KEY_ID.value(),
+      key_secret: RAZORPAY_KEY_SECRET.value()
     });
-    await db.collection("users").doc(request.auth.uid).collection("payments").add({
-      orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR", status: "success", createdAt: new Date().toISOString()
+    let order;
+    let payment;
+    try {
+      [order, payment] = await Promise.all([
+        instance.orders.fetch(orderId),
+        instance.payments.fetch(paymentId)
+      ]);
+    } catch (_error) {
+      throw new HttpsError("failed-precondition", "Could not confirm this payment with Razorpay.");
+    }
+
+    if (
+      order.id !== orderId ||
+      !order.notes ||
+      order.notes.uid !== request.auth.uid ||
+      order.amount !== PRO_PRICE_PAISE ||
+      order.currency !== "INR" ||
+      payment.id !== paymentId ||
+      payment.order_id !== orderId ||
+      payment.amount !== PRO_PRICE_PAISE ||
+      payment.currency !== "INR" ||
+      payment.status !== "captured"
+    ) {
+      throw new HttpsError("failed-precondition", "Payment is not a captured Pro purchase for this account.");
+    }
+
+    const uid = request.auth.uid;
+    const userRef = db.collection("users").doc(uid);
+    const processedRef = db.collection("processed_payments").doc(paymentId);
+    const paymentRef = userRef.collection("payments").doc(paymentId);
+    const now = new Date();
+    const transactionResult = await db.runTransaction(async (tx) => {
+      const processedDoc = await tx.get(processedRef);
+      if (processedDoc.exists) {
+        const previous = processedDoc.data();
+        if (previous.uid === uid && previous.orderId === orderId) {
+          return { success: true, proExpiresAt: previous.proExpiresAt, alreadyProcessed: true };
+        }
+        throw new HttpsError("already-exists", "This payment has already been applied.");
+      }
+
+      const userDoc = await tx.get(userRef);
+      if (!userDoc.exists) throw new HttpsError("not-found", "User profile not found.");
+
+      const existingExpiry = Date.parse(userDoc.data().proExpiresAt || "");
+      const expiryBase = Number.isFinite(existingExpiry) && existingExpiry > now.getTime()
+        ? new Date(existingExpiry)
+        : now;
+      expiryBase.setFullYear(expiryBase.getFullYear() + 1);
+      const proExpiresAt = expiryBase.toISOString();
+      const createdAt = now.toISOString();
+
+      tx.update(userRef, { isProUser: true, proExpiresAt });
+      tx.create(processedRef, {
+        uid, orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR",
+        status: "success", proExpiresAt, createdAt
+      });
+      tx.create(paymentRef, {
+        orderId, paymentId, amount: PRO_PRICE_PAISE, currency: "INR",
+        status: "success", createdAt
+      });
+      return { success: true, proExpiresAt, alreadyProcessed: false };
     });
 
-    return { success: true, proExpiresAt: expiresAt.toISOString() };
+    return { success: true, proExpiresAt: transactionResult.proExpiresAt };
   }
 );
 
