@@ -150,9 +150,8 @@ function parseReminderTimestamp(value, timeZone) {
   if (!match) return Date.parse(value);
   const [, year, month, day, hour, minute, second = "0"] = match;
   const wallClockUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
-  let zone = typeof timeZone === "string" && timeZone ? timeZone : "Asia/Kolkata";
 
-  try {
+  function convertInZone(zone) {
     const formatter = new Intl.DateTimeFormat("en-GB", {
       timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
@@ -171,27 +170,14 @@ function parseReminderTimestamp(value, timeZone) {
       guess = nextGuess;
     }
     return guess;
+  }
+
+  const zone = typeof timeZone === "string" && timeZone ? timeZone : "Asia/Kolkata";
+  try {
+    return convertInZone(zone);
   } catch (_error) {
     // An invalid saved time zone should not crash the scheduled job.
-    zone = "Asia/Kolkata";
-    const formatter = new Intl.DateTimeFormat("en-GB", {
-      timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
-      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
-    });
-    let guess = wallClockUtc;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
-        .filter((part) => part.type !== "literal")
-        .map((part) => [part.type, part.value]));
-      const renderedAsUtc = Date.UTC(
-        +parts.year, +parts.month - 1, +parts.day,
-        +parts.hour, +parts.minute, +parts.second
-      );
-      const nextGuess = wallClockUtc - (renderedAsUtc - guess);
-      if (nextGuess === guess) break;
-      guess = nextGuess;
-    }
-    return guess;
+    return convertInZone("Asia/Kolkata");
   }
 }
 
