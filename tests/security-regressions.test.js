@@ -54,4 +54,6 @@ test("scheduled pushes interpret local reminder times and retry failed sends", (
   assert.match(functions, /Leave failed reminders unmarked so the next scheduled run can retry/);
   assert.match(reminders, /timeZone: Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
   assert.match(reminders, /pushSent: false/);
+  assert.ok(functions.includes(String.raw`/(?:Z|[+-]\d{2}:?\d{2})$/i`), "offset timestamps must match the timezone suffix pattern");
+  assert.ok(functions.includes(String.raw`/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/`), "datetime-local values must match the local timestamp pattern");
 });
