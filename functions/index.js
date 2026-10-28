@@ -139,52 +139,122 @@ exports.callGeminiProxy = onCall(
  * DEPLOY: firebase deploy --only functions
  * ============================================================================
  */
+function parseReminderTimestamp(value, timeZone) {
+  if (typeof value !== "string" || !value) return NaN;
+  // ISO timestamps with an explicit UTC/offset suffix are unambiguous.
+  if (/(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(value)) return Date.parse(value);
+
+  // datetime-local values have no offset. Interpret them in the time zone
+  // captured by the browser; older records default to the app's primary zone.
+  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?$/.exec(value);
+  if (!match) return Date.parse(value);
+  const [, year, month, day, hour, minute, second = "0"] = match;
+  const wallClockUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+  let zone = typeof timeZone === "string" && timeZone ? timeZone : "Asia/Kolkata";
+
+  try {
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+    });
+    let guess = wallClockUtc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value]));
+      const renderedAsUtc = Date.UTC(
+        +parts.year, +parts.month - 1, +parts.day,
+        +parts.hour, +parts.minute, +parts.second
+      );
+      const nextGuess = wallClockUtc - (renderedAsUtc - guess);
+      if (nextGuess === guess) break;
+      guess = nextGuess;
+    }
+    return guess;
+  } catch (_error) {
+    // An invalid saved time zone should not crash the scheduled job.
+    zone = "Asia/Kolkata";
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+    });
+    let guess = wallClockUtc;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess))
+        .filter((part) => part.type !== "literal")
+        .map((part) => [part.type, part.value]));
+      const renderedAsUtc = Date.UTC(
+        +parts.year, +parts.month - 1, +parts.day,
+        +parts.hour, +parts.minute, +parts.second
+      );
+      const nextGuess = wallClockUtc - (renderedAsUtc - guess);
+      if (nextGuess === guess) break;
+      guess = nextGuess;
+    }
+    return guess;
+  }
+}
+
 exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
   const now = Date.now();
   const windowEnd = now + 5 * 60 * 1000;
-
   const usersSnap = await db.collection("users").get();
   const messaging = admin.messaging();
 
   for (const doc of usersSnap.docs) {
     const data = doc.data();
-    const tokens = data.fcmTokens;
-    const reminders = data.reminders;
-    if (!tokens || !tokens.length || !reminders || !reminders.length) continue;
+    const tokens = Array.isArray(data.fcmTokens) ? data.fcmTokens.filter(Boolean) : [];
+    const reminders = Array.isArray(data.reminders) ? data.reminders : [];
+    if (!tokens.length || !reminders.length) continue;
 
-    const due = reminders.filter((r) => {
-      if (r.archived || r.status === "completed" || r.pushSent) return false;
-      if (!r.time) return false;
-      const t = new Date(r.time).getTime();
-      return t >= now && t <= windowEnd;
+    const due = reminders.filter((reminder) => {
+      if (reminder.archived || reminder.status === "completed" || reminder.pushSent) return false;
+      const timestamp = parseReminderTimestamp(reminder.time, reminder.timeZone);
+      return Number.isFinite(timestamp) && timestamp >= now && timestamp <= windowEnd;
     });
     if (!due.length) continue;
 
+    const sentReminderIds = new Set();
+    const invalidTokens = new Set();
     for (const reminder of due) {
-      const message = {
-        notification: {
-          title: "⏰ " + (reminder.task || "Reminder"),
-          body: (reminder.notes || "").replace(/<[^>]*>/g, "").slice(0, 150),
-        },
-        data: { reminderId: String(reminder.id) },
-        tokens,
-      };
       try {
-        await messaging.sendEachForMulticast(message);
-      } catch (e) {
-        // A bad/expired token shouldn't block the others — log and continue.
-        console.error("Push send failed for user", doc.id, e.message);
+        const result = await messaging.sendEachForMulticast({
+          notification: {
+            title: "⏰ " + (reminder.task || "Reminder"),
+            body: (reminder.notes || "").replace(/<[^>]*>/g, "").slice(0, 150)
+          },
+          data: { reminderId: String(reminder.id) },
+          tokens
+        });
+
+        if (result.successCount > 0) sentReminderIds.add(String(reminder.id));
+        result.responses.forEach((response, index) => {
+          const code = response.error && response.error.code;
+          if (code === "messaging/invalid-registration-token" ||
+              code === "messaging/registration-token-not-registered") {
+            invalidTokens.add(tokens[index]);
+          }
+        });
+      } catch (error) {
+        // Leave failed reminders unmarked so the next scheduled run can retry.
+        console.error("Push send failed for user", doc.id, error.message);
       }
     }
 
-    // Mark sent so the next run (5 min later) doesn't re-notify the same reminders.
-    const updated = reminders.map((r) =>
-      due.some((d) => d.id === r.id) ? Object.assign({}, r, { pushSent: true }) : r
-    );
-    await doc.ref.update({ reminders: updated });
+    const updates = {};
+    if (sentReminderIds.size) {
+      updates.reminders = reminders.map((reminder) =>
+        sentReminderIds.has(String(reminder.id))
+          ? Object.assign({}, reminder, { pushSent: true })
+          : reminder
+      );
+    }
+    if (invalidTokens.size) {
+      updates.fcmTokens = tokens.filter((token) => !invalidTokens.has(token));
+    }
+    if (Object.keys(updates).length) await doc.ref.update(updates);
   }
 });
-
 /**
  * ============================================================================
  * PAYMENT GATEWAY — Razorpay (chosen for UPI/card/netbanking support for
