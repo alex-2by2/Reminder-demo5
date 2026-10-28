@@ -195,9 +195,9 @@ exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
  *   2. Get your Key ID + Key Secret from Settings -> API Keys.
  *   3. firebase functions:secrets:set RAZORPAY_KEY_ID
  *      firebase functions:secrets:set RAZORPAY_KEY_SECRET
- *   4. Put the Key ID (not the secret) into js/09-new-features/13-payments.js
- *      (RAZORPAY_KEY_ID constant) — the key ID is meant to be public, the
- *      secret never is and never leaves this file.
+ *   4. The createRazorpayOrder function returns the public Key ID to the
+ *      signed-in client. The Key Secret stays server-side and is never sent
+ *      to the browser.
  *   5. npm install razorpay --save   (inside functions/)
  *   6. firebase deploy --only functions
  * ============================================================================
