@@ -29,7 +29,11 @@
             const data = doc.exists ? doc.data() : {};
             if (data.termsVersion === CURRENT_TERMS_VERSION) return; // already up to date, nothing to do
             openModal('tosGateModal');
-        } catch (e) { /* fail open rather than locking someone out over a network blip */ }
+        } catch (e) {
+            // Fail closed: don't let a transient read failure silently bypass a required terms update.
+            openModal('tosGateModal');
+            showToast('Could not verify your Terms acceptance. Check your connection and try again.', 'error');
+        }
     }
 
     async function acceptTosGate() {
