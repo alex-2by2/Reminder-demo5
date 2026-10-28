@@ -53,12 +53,21 @@
                     if(data.gcalClientId !== undefined) localStorage.setItem("gcalClientId", data.gcalClientId);
                     if(data.appFontSize) localStorage.setItem("appFontSize", data.appFontSize);
                     if(data.shiftConfig) localStorage.setItem("shiftConfig", JSON.stringify(data.shiftConfig));
-                    if(data.isProUser) { 
-                        isProUser = true; 
-                        localStorage.setItem("isPro", "true"); 
-                        const _pb=document.getElementById("proBadgeDisplay"); if(_pb) _pb.style.display="inline-flex"; 
+                    // Entitlement comes from the server-owned Firestore fields,
+                    // and is valid only while its explicit expiry is in the future.
+                    const proExpiryMs = Date.parse(data.proExpiresAt || "");
+                    const hasValidPro = data.isProUser === true
+                        && Number.isFinite(proExpiryMs)
+                        && proExpiryMs > Date.now();
+                    isProUser = hasValidPro;
+                    localStorage.setItem("isPro", hasValidPro ? "true" : "false");
+                    if (hasValidPro) {
+                        localStorage.setItem("proExpiresAt", data.proExpiresAt);
+                    } else {
+                        localStorage.removeItem("proExpiresAt");
                     }
-                    if(data.proExpiresAt) localStorage.setItem("proExpiresAt", data.proExpiresAt);
+                    const _pb = document.getElementById("proBadgeDisplay");
+                    if (_pb) _pb.style.display = hasValidPro ? "inline-flex" : "none";
                     // js/09-new-features/* — new feature data, synced the same way as everything above.
                     if(data.cyclePeriods) localStorage.setItem("cyclePeriods", JSON.stringify(data.cyclePeriods));
                     if(data.cycleSymptoms) localStorage.setItem("cycleSymptoms", JSON.stringify(data.cycleSymptoms));
