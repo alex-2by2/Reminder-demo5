@@ -142,11 +142,11 @@ exports.callGeminiProxy = onCall(
 function parseReminderTimestamp(value, timeZone) {
   if (typeof value !== "string" || !value) return NaN;
   // ISO timestamps with an explicit UTC/offset suffix are unambiguous.
-  if (/(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(value)) return Date.parse(value);
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value)) return Date.parse(value);
 
   // datetime-local values have no offset. Interpret them in the time zone
   // captured by the browser; older records default to the app's primary zone.
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
   if (!match) return Date.parse(value);
   const [, year, month, day, hour, minute, second = "0"] = match;
   const wallClockUtc = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
