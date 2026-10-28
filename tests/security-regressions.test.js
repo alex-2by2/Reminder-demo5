@@ -48,7 +48,7 @@ test("scheduled pushes interpret local reminder times and retry failed sends", (
   const reminders = read("js/02-tasks/03-reminders-core.js");
   assert.match(functions, /function parseReminderTimestamp\(value, timeZone\)/);
   assert.match(functions, /parseReminderTimestamp\(reminder\.time, reminder\.timeZone\)/);
-  assert.match(functions, /const windowStart = now - 10 \\* 60 \\* 1000/);
+  assert.match(functions, /const windowStart = now - 10 \* 60 \* 1000/);
   assert.match(functions, /timestamp >= windowStart && timestamp <= windowEnd/);
   assert.match(functions, /if \(result\.successCount > 0\) sentReminderIds\.add/);
   assert.match(functions, /Leave failed reminders unmarked so the next scheduled run can retry/);
