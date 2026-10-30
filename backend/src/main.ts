@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
     origin: (origin, callback) => {
       // Native/mobile clients may omit Origin. Browser origins must be allowlisted.
       if (!origin || allowedOrigins.has(origin)) return callback(null, true);
-      return callback(new Error('Origin not allowed'));
+      return callback(null, false);
     },
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type'],
