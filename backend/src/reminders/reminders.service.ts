@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import { DecodedIdToken } from 'firebase-admin/auth';
@@ -10,6 +10,8 @@ export class RemindersService {
   constructor(@InjectModel(Reminder.name) private readonly reminderModel: Model<Reminder>) {}
 
   async create(token: DecodedIdToken, dto: CreateReminderDto) {
+    this.validateTimeZone(dto.timeZone);
+    this.validateRepeat(dto.repeat, dto.customRepeat);
     const reminder = await this.reminderModel.create({
       ...dto,
       firebaseUid: token.uid,
@@ -50,6 +52,8 @@ export class RemindersService {
 
   async update(token: DecodedIdToken, id: string, dto: UpdateReminderDto) {
     this.assertId(id);
+    this.validateTimeZone(dto.timeZone);
+    this.validateRepeat(dto.repeat, dto.customRepeat);
     const update: Record<string, unknown> = { ...dto };
     if (dto.status === 'completed') update.completedAt = new Date();
     if (dto.status === 'pending') update.completedAt = null;
@@ -84,6 +88,21 @@ export class RemindersService {
     return this.toResponse(reminder);
   }
 
+  private validateTimeZone(timeZone?: string): void {
+    if (!timeZone) return;
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
+    } catch {
+      throw new BadRequestException('Invalid IANA time zone.');
+    }
+  }
+
+  private validateRepeat(repeat?: string, customRepeat?: { interval: number; type: string }): void {
+    if ((repeat === 'custom' || repeat === 'hourly') && !customRepeat) {
+      throw new BadRequestException('customRepeat is required for custom and hourly reminders.');
+    }
+  }
+
   private assertId(id: string): void {
     if (!isValidObjectId(id)) throw new NotFoundException('Reminder not found.');
   }
@@ -108,6 +127,7 @@ export class RemindersService {
       preAlarm: reminder.preAlarm,
       assignee: reminder.assignee,
       project: reminder.project,
+      completedAt: reminder.completedAt ?? null,
       createdAt: reminder.createdAt,
       updatedAt: reminder.updatedAt,
     };
