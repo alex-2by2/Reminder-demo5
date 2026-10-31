@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { CreateReminderDto, UpdateReminderDto } from './reminder.dto';
+import { CreateReminderDto, ListRemindersQueryDto, UpdateReminderDto } from './reminder.dto';
 
 describe('Reminder DTO null and enum validation', () => {
   it('rejects null repeat values on create', async () => {
@@ -39,6 +39,18 @@ describe('Reminder DTO null and enum validation', () => {
     const errors = await validate(dto);
     expect(errors.some((error) => error.property === 'repeat')).toBe(true);
     expect(errors.some((error) => error.property === 'customRepeat')).toBe(true);
+  });
+
+  it('rejects pagination page values above the supported maximum', async () => {
+    const dto = plainToInstance(ListRemindersQueryDto, { page: '1001' });
+    const errors = await validate(dto);
+    expect(errors.some((error) => error.property === 'page')).toBe(true);
+  });
+
+  it('accepts the maximum supported pagination page', async () => {
+    const dto = plainToInstance(ListRemindersQueryDto, { page: '1000' });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
   });
 
   it('accepts omitted optional recurrence fields', async () => {
