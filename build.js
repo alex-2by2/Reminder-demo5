@@ -163,18 +163,39 @@ function main() {
   });
   fs.writeFileSync(path.join(DIST_DIR, "index.html"), html, "utf8");
 
-  // Copy everything else index.html needs so dist/ is deployable as-is.
-  for (const name of ["styles.css", "sw.js", "manifest.json"]) {
+  // Copy the static assets and legal documents linked by index.html.
+  for (const name of ["styles.css", "manifest.json", "terms-of-service.html", "privacy-policy.html"]) {
     const src = path.join(ROOT, name);
-    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(DIST_DIR, name));
+    if (!fs.existsSync(src)) {
+      throw new Error(`Required deploy asset is missing: ${name}`);
+    }
+    fs.copyFileSync(src, path.join(DIST_DIR, name));
   }
   for (const entry of fs.readdirSync(ROOT)) {
-    if (/^icon-.*\.(png|svg|ico)$/.test(entry)) {
+    if (/^icon-.*\\.(png|svg|ico)$/.test(entry)) {
       fs.copyFileSync(path.join(ROOT, entry), path.join(DIST_DIR, entry));
     }
   }
 
-  console.log(`Generated dist/index.html (1 script tag instead of ${FILES_IN_ORDER.length}) and copied static assets.`);
+  // Source sw.js precaches individual /js files. Pages ships one app.bundle.js,
+  // so generate a deployment-specific worker with only real artifact paths.
+  const deployPrecache = [
+    "/", "/index.html", "/styles.css", "/manifest.json",
+    "/terms-of-service.html", "/privacy-policy.html",
+    "/icon-192.png", "/icon-512.png", "/app.bundle.js"
+  ];
+  const deployWorker = swSrc
+    .replace(/const CACHE_VERSION = 'v[^']+';/, "const CACHE_VERSION = 'v1.0.1';")
+    .replace(
+      /const PRECACHE_URLS = \\[\\s\\S]*?\\];/,
+      "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
+    );
+  if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
+    throw new Error("Could not generate the bundled service-worker precache.");
+  }
+  fs.writeFileSync(path.join(DIST_DIR, "sw.js"), deployWorker, "utf8");
+
+  console.log(`Generated dist/index.html (1 script tag instead of ${FILES_IN_ORDER.length}) and copied static assets and legal documents.`);
   console.log("dist/ is a complete, deployable copy — e.g. `firebase deploy` from inside dist/, or point firebase.json's \"public\" at \"dist\".");
 }
 
