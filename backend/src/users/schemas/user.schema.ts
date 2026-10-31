@@ -27,9 +27,11 @@ export class User {
   @Prop({ type: String, default: null, maxlength: 80 })
   signInProvider!: string | null;
 
+  @Prop({ type: Date, default: null })
+  lastSeenAt!: Date | null;
+
   createdAt!: Date;
   updatedAt!: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-UserSchema.index({ firebaseUid: 1 }, { unique: true });
