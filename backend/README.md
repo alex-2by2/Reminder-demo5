@@ -10,7 +10,8 @@ Firestore data.
 - NestJS 10 + TypeScript, Node.js 20.
 - MongoDB connection is required through `MONGODB_URI`.
 - Public health endpoint: `GET /health` (reports only service/database state).
-- API prefix reserved: `/api/v1`.
+- API prefix: `/api/v1`.
+- Protected `GET /api/v1/me` verifies the Firebase ID token and creates or returns the matching MongoDB user profile. The UID is always taken from the verified token, never from request input.
 - Firebase Admin token verification service and guard are provided for
   protected controllers. Protected business routes are not exposed yet.
 - Helmet, exact browser-origin allowlist, request rate limiting, and strict
