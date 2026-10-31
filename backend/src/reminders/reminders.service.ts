@@ -55,7 +55,14 @@ export class RemindersService {
     this.assertId(id);
     this.validateTimeZone(dto.timeZone);
     if (dto.time !== undefined) this.validateReminderTime(dto.time);
-    this.validateRepeat(dto.repeat, dto.customRepeat);
+    const filter = { _id: id, firebaseUid: token.uid, deletedAt: null };
+    const existing = await this.reminderModel.findOne(filter).lean().exec();
+    if (!existing) throw new NotFoundException('Reminder not found.');
+    const effectiveRepeat = dto.repeat ?? existing.repeat;
+    const effectiveCustomRepeat = dto.customRepeat === undefined
+      ? existing.customRepeat
+      : dto.customRepeat;
+    this.validateRepeat(effectiveRepeat, effectiveCustomRepeat);
     const update: Record<string, unknown> = { ...dto };
     if (dto.status === 'completed') update.completedAt = new Date();
     if (dto.status === 'pending') update.completedAt = null;
@@ -129,6 +136,9 @@ export class RemindersService {
   private validateRepeat(repeat?: string, customRepeat?: { interval: number; type: string }): void {
     if ((repeat === 'custom' || repeat === 'hourly') && !customRepeat) {
       throw new BadRequestException('customRepeat is required for custom and hourly reminders.');
+    }
+    if (repeat === 'hourly' && customRepeat?.type !== 'hours') {
+      throw new BadRequestException('Hourly reminders must use the hours interval unit.');
     }
   }
 
