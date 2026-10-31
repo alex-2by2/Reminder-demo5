@@ -1,15 +1,15 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { App, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { DecodedIdToken } from 'firebase-admin/auth';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 @Injectable()
 export class FirebaseAdminService {
   private app: App | undefined;
 
   async verifyIdToken(token: string): Promise<DecodedIdToken> {
+    const app = this.getApp();
     try {
-      const app = this.getApp();
       return await getAuth(app).verifyIdToken(token, true);
     } catch {
       throw new UnauthorizedException('Invalid or expired authentication token.');
