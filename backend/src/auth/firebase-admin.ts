@@ -3,6 +3,16 @@ import { App, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
+const INVALID_TOKEN_ERROR_CODES = new Set([
+  'auth/argument-error',
+  'auth/id-token-expired',
+  'auth/id-token-revoked',
+  'auth/invalid-id-token',
+  'auth/invalid-argument',
+  'auth/user-disabled',
+  'auth/user-not-found',
+]);
+
 @Injectable()
 export class FirebaseAdminService {
   private app: App | undefined;
@@ -11,9 +21,22 @@ export class FirebaseAdminService {
     const app = this.getApp();
     try {
       return await getAuth(app).verifyIdToken(token, true);
-    } catch {
-      throw new UnauthorizedException('Invalid or expired authentication token.');
+    } catch (error) {
+      const code = this.firebaseErrorCode(error);
+      if (code && INVALID_TOKEN_ERROR_CODES.has(code)) {
+        throw new UnauthorizedException('Invalid or expired authentication token.');
+      }
+      // Do not misreport Firebase outages, network failures, or unexpected SDK
+      // errors as bad credentials. Let Nest handle these as server failures.
+      throw error;
     }
+  }
+
+  private firebaseErrorCode(error: unknown): string | undefined {
+    if (typeof error !== 'object' || error === null || !('code' in error)) {
+      return undefined;
+    }
+    return typeof error.code === 'string' ? error.code : undefined;
   }
 
   private getApp(): App {
