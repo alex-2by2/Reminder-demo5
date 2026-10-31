@@ -60,7 +60,7 @@ export class RemindersService {
     if (!existing) throw new NotFoundException('Reminder not found.');
     const effectiveRepeat = dto.repeat ?? existing.repeat;
     const effectiveCustomRepeat = dto.customRepeat === undefined
-      ? existing.customRepeat
+      ? existing.customRepeat ?? undefined
       : dto.customRepeat;
     this.validateRepeat(effectiveRepeat, effectiveCustomRepeat);
     const update: Record<string, unknown> = { ...dto };
