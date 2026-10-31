@@ -137,7 +137,7 @@ export class UpdateReminderDto {
   @IsOptional() @IsString() @MaxLength(80)
   timeZone?: string;
 
-  @IsOptional() @IsString() @IsIn(REPEATS)
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsString() @IsIn(REPEATS)
   repeat?: string;
 
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @ValidateNested() @Type(() => CustomRepeatDto)
@@ -149,7 +149,7 @@ export class UpdateReminderDto {
   @IsOptional() @IsString() @MaxLength(1000)
   tags?: string;
 
-  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ReminderSubtaskDto)
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsArray() @ValidateNested({ each: true }) @Type(() => ReminderSubtaskDto)
   subtasks?: ReminderSubtaskDto[];
 
   @IsOptional() @ValidateNested() @Type(() => ReminderCategoryDto)
