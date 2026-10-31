@@ -56,13 +56,38 @@ describe('FirebaseAdminService', () => {
     expect(verifyIdToken).toHaveBeenCalledWith('valid-token', true);
   });
 
-  it('maps invalid, expired, or revoked tokens to UnauthorizedException', async () => {
-    verifyIdToken.mockRejectedValueOnce(new Error('token expired'));
+  it.each([
+    'auth/argument-error',
+    'auth/id-token-expired',
+    'auth/id-token-revoked',
+    'auth/invalid-id-token',
+    'auth/user-disabled',
+    'auth/user-not-found',
+  ])('maps Firebase token error %s to UnauthorizedException', async (code) => {
+    verifyIdToken.mockRejectedValueOnce(Object.assign(new Error('token rejected'), { code }));
     const service = new FirebaseAdminService();
 
-    await expect(service.verifyIdToken('expired-token')).rejects.toBeInstanceOf(
+    await expect(service.verifyIdToken('invalid-token')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+  });
+
+  it('preserves unexpected Firebase and infrastructure errors', async () => {
+    const outage = Object.assign(new Error('Firebase network unavailable'), {
+      code: 'app/network-error',
+    });
+    verifyIdToken.mockRejectedValueOnce(outage);
+    const service = new FirebaseAdminService();
+
+    await expect(service.verifyIdToken('valid-looking-token')).rejects.toBe(outage);
+  });
+
+  it('preserves unknown SDK errors without a Firebase error code', async () => {
+    const unexpected = new Error('unexpected SDK failure');
+    verifyIdToken.mockRejectedValueOnce(unexpected);
+    const service = new FirebaseAdminService();
+
+    await expect(service.verifyIdToken('valid-looking-token')).rejects.toBe(unexpected);
   });
 
   it('keeps missing server credentials as a configuration error, not a 401', async () => {
