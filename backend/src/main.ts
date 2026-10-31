@@ -10,6 +10,11 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
   app.use(helmet());
+
+  // Render terminates TLS and forwards the original client IP through its proxy.
+  // Trust the single proxy hop so rate limiting is per client, not one shared proxy IP.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.use(rateLimit({
     windowMs: 60_000,
     limit: 120,
