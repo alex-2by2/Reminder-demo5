@@ -41,6 +41,24 @@ describe('Reminder DTO null and enum validation', () => {
     expect(errors.some((error) => error.property === 'customRepeat')).toBe(true);
   });
 
+  it('rejects more than 100 subtasks on create and update', async () => {
+    const subtasks = Array.from({ length: 101 }, (_, index) => ({ text: `Subtask ${index}` }));
+    const createDto = plainToInstance(CreateReminderDto, {
+      clientId: 'client-1', task: 'Test', time: '2026-11-01T09:00', subtasks,
+    });
+    const updateDto = plainToInstance(UpdateReminderDto, { subtasks });
+    const [createErrors, updateErrors] = await Promise.all([validate(createDto), validate(updateDto)]);
+    expect(createErrors.some((error) => error.property === 'subtasks')).toBe(true);
+    expect(updateErrors.some((error) => error.property === 'subtasks')).toBe(true);
+  });
+
+  it('accepts exactly 100 subtasks', async () => {
+    const subtasks = Array.from({ length: 100 }, (_, index) => ({ text: `Subtask ${index}` }));
+    const dto = plainToInstance(UpdateReminderDto, { subtasks });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+  });
+
   it('rejects pagination page values above the supported maximum', async () => {
     const dto = plainToInstance(ListRemindersQueryDto, { page: '1001' });
     const errors = await validate(dto);
