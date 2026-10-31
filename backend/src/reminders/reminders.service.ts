@@ -58,12 +58,20 @@ export class RemindersService {
     const filter = { _id: id, firebaseUid: token.uid, deletedAt: null };
     const existing = await this.reminderModel.findOne(filter).lean().exec();
     if (!existing) throw new NotFoundException('Reminder not found.');
-    const effectiveRepeat = dto.repeat ?? existing.repeat;
+    const effectiveRepeat = dto.repeat ?? existing.repeat ?? 'none';
     const effectiveCustomRepeat = dto.customRepeat === undefined
-      ? existing.customRepeat ?? undefined
+      ? (dto.repeat !== undefined && dto.repeat !== 'custom' && dto.repeat !== 'hourly'
+        ? undefined
+        : existing.customRepeat ?? undefined)
       : dto.customRepeat;
     this.validateRepeat(effectiveRepeat, effectiveCustomRepeat);
-    const update: Record<string, unknown> = { ...dto };
+    // Write both recurrence fields in one atomic update so concurrent PATCH requests
+    // cannot persist a repeat/customRepeat combination that was never validated.
+    const update: Record<string, unknown> = {
+      ...dto,
+      repeat: effectiveRepeat,
+      customRepeat: effectiveCustomRepeat ?? null,
+    };
     if (dto.status === 'completed') update.completedAt = new Date();
     if (dto.status === 'pending') update.completedAt = null;
     const reminder = await this.reminderModel.findOneAndUpdate(
