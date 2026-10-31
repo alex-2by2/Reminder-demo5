@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  IsArray, IsBoolean, IsDefined, IsIn, IsInt, IsNotEmpty, IsOptional, IsString,
+  ArrayMaxSize, IsArray, IsBoolean, IsDefined, IsIn, IsInt, IsNotEmpty, IsOptional, IsString,
   Max, MaxLength, Min, ValidateIf, ValidateNested,
 } from 'class-validator';
 
@@ -91,6 +91,7 @@ export class CreateReminderDto {
   @ValidateIf((_object, value) => value !== undefined)
   @IsDefined()
   @IsArray()
+  @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => ReminderSubtaskDto)
   subtasks?: ReminderSubtaskDto[];
