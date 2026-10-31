@@ -200,9 +200,14 @@ function main() {
     sourceCacheVersion[0],
     `const CACHE_VERSION = '${pagesCacheVersion}';`
   );
-  const deployWorker = versionedWorker.slice(0, precacheStart)
+  const versionedPrecacheStart = versionedWorker.indexOf("const PRECACHE_URLS = [");
+  const versionedPrecacheEnd = versionedWorker.indexOf("];", versionedPrecacheStart);
+  if (versionedPrecacheStart < 0 || versionedPrecacheEnd < 0) {
+    throw new Error("Could not locate the versioned service-worker precache.");
+  }
+  const deployWorker = versionedWorker.slice(0, versionedPrecacheStart)
     + "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
-    + versionedWorker.slice(precacheEnd + 2);
+    + versionedWorker.slice(versionedPrecacheEnd + 2);
   if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
     throw new Error("Could not generate the bundled service-worker precache.");
   }
