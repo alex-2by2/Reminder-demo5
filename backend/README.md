@@ -17,6 +17,28 @@ Firestore data.
 - Helmet, exact browser-origin allowlist, request rate limiting, and strict
   DTO validation defaults are configured.
 
+
+## Reminder API (staged; not yet connected to the PWA)
+
+All routes below require `Authorization: Bearer <Firebase ID token>`. The API derives
+`firebaseUid` only from the verified token and scopes every read, update, delete,
+and restore query to that UID.
+
+- `POST /api/v1/reminders` — create a reminder.
+- `GET /api/v1/reminders?page=1&limit=50&status=pending` — list active reminders with bounded pagination.
+- `GET /api/v1/reminders/:id` — read one owned reminder.
+- `PATCH /api/v1/reminders/:id` — update supported reminder fields.
+- `DELETE /api/v1/reminders/:id` — soft-delete an owned reminder.
+- `PATCH /api/v1/reminders/:id/restore` — restore a soft-deleted reminder.
+
+The initial API contract preserves the PWA's task, notes, local date-time string,
+IANA time zone, recurrence, priority, tags, subtasks, category, status, pin,
+archive, pre-alarm, assignee, and project fields. Attachment bytes (image/voice
+memo) and client integration are deliberately excluded from this phase; they
+need a separately designed storage and migration path. No Firestore data is
+read, copied, or changed by these endpoints. The PWA continues using its current
+Firestore/local-storage path until a later, separately tested cutover.
+
 ## Environment
 
 Set these only in the backend host's secret/environment settings:
