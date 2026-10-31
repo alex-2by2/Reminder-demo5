@@ -27,6 +27,7 @@ Set these only in the backend host's secret/environment settings:
   service-account credentials. Never commit or paste these into chat.
 - `FRONTEND_ORIGINS` — comma-separated exact website origins.
 - `PORT` — supplied by Render; defaults to 3001 locally.
+- `TRUST_PROXY_HOPS` — optional non-negative integer. Set only after verifying the exact proxy hop count for the deployed host; leave unset otherwise.
 
 Do not reuse a broad Owner/Admin service account if a narrower service account
 can be provisioned. Do not add secrets to GitHub files.

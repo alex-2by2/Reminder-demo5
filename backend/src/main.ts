@@ -10,6 +10,18 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
   app.use(helmet());
+
+  // Configure only after confirming the exact reverse-proxy hop count for the host.
+  // Leaving this unset is safer than trusting spoofable forwarded headers by default.
+  const trustProxyHops = process.env.TRUST_PROXY_HOPS;
+  if (trustProxyHops !== undefined) {
+    const parsedHops = Number(trustProxyHops);
+    if (!Number.isSafeInteger(parsedHops) || parsedHops < 0) {
+      throw new Error('TRUST_PROXY_HOPS must be a non-negative integer.');
+    }
+    app.getHttpAdapter().getInstance().set('trust proxy', parsedHops);
+  }
+
   app.use(rateLimit({
     windowMs: 60_000,
     limit: 120,
