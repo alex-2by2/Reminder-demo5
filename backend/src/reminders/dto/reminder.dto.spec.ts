@@ -1,0 +1,48 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { CreateReminderDto, UpdateReminderDto } from './reminder.dto';
+
+describe('Reminder DTO null and enum validation', () => {
+  it('rejects null repeat values on create', async () => {
+    const dto = plainToInstance(CreateReminderDto, {
+      clientId: 'client-1',
+      task: 'Test',
+      time: '2026-11-01T09:00',
+      repeat: null,
+    });
+    const errors = await validate(dto);
+    expect(errors.some((error) => error.property === 'repeat')).toBe(true);
+  });
+
+  it('rejects null subtasks on create and update', async () => {
+    const createDto = plainToInstance(CreateReminderDto, {
+      clientId: 'client-1',
+      task: 'Test',
+      time: '2026-11-01T09:00',
+      subtasks: null,
+    });
+    const updateDto = plainToInstance(UpdateReminderDto, { subtasks: null });
+    const [createErrors, updateErrors] = await Promise.all([
+      validate(createDto),
+      validate(updateDto),
+    ]);
+    expect(createErrors.some((error) => error.property === 'subtasks')).toBe(true);
+    expect(updateErrors.some((error) => error.property === 'subtasks')).toBe(true);
+  });
+
+  it('rejects null recurrence fields on update', async () => {
+    const dto = plainToInstance(UpdateReminderDto, {
+      repeat: null,
+      customRepeat: null,
+    });
+    const errors = await validate(dto);
+    expect(errors.some((error) => error.property === 'repeat')).toBe(true);
+    expect(errors.some((error) => error.property === 'customRepeat')).toBe(true);
+  });
+
+  it('accepts omitted optional recurrence fields', async () => {
+    const dto = plainToInstance(UpdateReminderDto, { task: 'Updated title' });
+    const errors = await validate(dto);
+    expect(errors).toHaveLength(0);
+  });
+});
