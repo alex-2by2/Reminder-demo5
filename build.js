@@ -184,12 +184,18 @@ function main() {
     "/terms-of-service.html", "/privacy-policy.html",
     "/icon-192.png", "/icon-512.png", "/app.bundle.js"
   ];
-  const deployWorker = swSrc
-    .replace(/const CACHE_VERSION = 'v[^']+';/, "const CACHE_VERSION = 'v1.0.1';")
-    .replace(
-      /const PRECACHE_URLS = \[\s\S]*?\];/,
-      "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
-    );
+  const precacheStart = swSrc.indexOf("const PRECACHE_URLS = [");
+  const precacheEnd = swSrc.indexOf("];", precacheStart);
+  if (precacheStart < 0 || precacheEnd < 0) {
+    throw new Error("Could not locate the source service-worker precache.");
+  }
+  const versionedWorker = swSrc.replace(
+    /const CACHE_VERSION = 'v[^']+';/,
+    "const CACHE_VERSION = 'v1.0.1';"
+  );
+  const deployWorker = versionedWorker.slice(0, precacheStart)
+    + "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
+    + versionedWorker.slice(precacheEnd + 2);
   if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
     throw new Error("Could not generate the bundled service-worker precache.");
   }
