@@ -29,7 +29,13 @@ jobs:
         run: npm ci
       - name: Install admin API dependencies
         run: npm ci --prefix server
-      - name: Run tests
+      - name: Install NestJS API dependencies
+        run: npm install --prefix backend --no-package-lock
+      - name: Build NestJS API
+        run: npm run build --prefix backend
+      - name: Run backend tests
+        run: npm test --prefix backend
+      - name: Run existing application tests
         run: npm test
       - name: Syntax-check JavaScript
         shell: bash
