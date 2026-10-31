@@ -104,7 +104,7 @@ export class RemindersService {
 
   private validateReminderTime(value: string): void {
     // Accept the PWA's datetime-local value and ISO-8601 imports, with or without seconds/offset.
-    const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2})(?:\\.(\\d{1,3}))?)?(Z|[+-]\\d{2}:\\d{2})?$/.exec(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2})?$/.exec(value);
     if (!match) throw new BadRequestException('Time must be a valid ISO local date-time.');
     const [, yearText, monthText, dayText, hourText, minuteText, secondText = '0', , offset] = match;
     const year = Number(yearText);
