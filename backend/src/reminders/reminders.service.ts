@@ -54,7 +54,7 @@ export class RemindersService {
   async update(token: DecodedIdToken, id: string, dto: UpdateReminderDto) {
     this.assertId(id);
     this.validateTimeZone(dto.timeZone);
-    this.validateReminderTime(dto.time);
+    if (dto.time !== undefined) this.validateReminderTime(dto.time);
     this.validateRepeat(dto.repeat, dto.customRepeat);
     const update: Record<string, unknown> = { ...dto };
     if (dto.status === 'completed') update.completedAt = new Date();
