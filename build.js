@@ -172,7 +172,7 @@ function main() {
     fs.copyFileSync(src, path.join(DIST_DIR, name));
   }
   for (const entry of fs.readdirSync(ROOT)) {
-    if (/^icon-.*\\.(png|svg|ico)$/.test(entry)) {
+    if (/^icon-.*\.(png|svg|ico)$/.test(entry)) {
       fs.copyFileSync(path.join(ROOT, entry), path.join(DIST_DIR, entry));
     }
   }
@@ -187,7 +187,7 @@ function main() {
   const deployWorker = swSrc
     .replace(/const CACHE_VERSION = 'v[^']+';/, "const CACHE_VERSION = 'v1.0.1';")
     .replace(
-      /const PRECACHE_URLS = \\[\\s\\S]*?\\];/,
+      /const PRECACHE_URLS = \[\s\S]*?\];/,
       "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
     );
   if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
