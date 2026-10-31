@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import {
-  IsArray, IsBoolean, IsIn, IsInt, IsObject, IsOptional, IsString,
+  IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString,
   Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 
@@ -43,10 +43,12 @@ export class ReminderCategoryDto {
 
 export class CreateReminderDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   clientId!: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   task!: string;
 
@@ -56,6 +58,7 @@ export class CreateReminderDto {
   notes?: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(80)
   time!: string;
 
