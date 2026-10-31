@@ -103,6 +103,28 @@
     // classic <script> is visible to every other classic <script> on the
     // page once it has executed, regardless of load order in the source.)
     const API = {
+        /**
+         * Calls the NestJS API using the current Firebase user's ID token.
+         * This is additive: existing Firestore reads/writes remain unchanged.
+         */
+        getBackendProfile: async function () {
+            if (!currentUser) throw new Error('Not signed in.');
+            const baseUrl = 'https://reminder-demo5.onrender.com';
+            const idToken = await currentUser.getIdToken();
+            const response = await fetch(baseUrl + '/api/v1/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(function () { return {}; });
+                throw new Error(body.message || body.error || ('Backend request failed (' + response.status + ').'));
+            }
+            return response.json();
+        },
+
         /** Writes `data` into the signed-in user's Firestore document (merge). */
         saveUserData: function (data) {
             if (!currentUser) return Promise.reject(new Error('Not signed in.'));
