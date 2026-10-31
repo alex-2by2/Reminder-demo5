@@ -193,7 +193,15 @@ function main() {
   if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
     throw new Error("Could not generate the bundled service-worker precache.");
   }
-  fs.writeFileSync(path.join(DIST_DIR, "sw.js"), deployWorker, "utf8");
+  const deployWorkerPath = path.join(DIST_DIR, "sw.js");
+  fs.writeFileSync(deployWorkerPath, deployWorker, "utf8");
+  execFileSync(process.execPath, ["--check", deployWorkerPath]);
+  for (const url of deployPrecache) {
+    const relativePath = url === "/" ? "index.html" : url.slice(1);
+    if (!fs.existsSync(path.join(DIST_DIR, relativePath))) {
+      throw new Error(`Service worker precache asset is missing from dist/: ${url}`);
+    }
+  }
 
   console.log(`Generated dist/index.html (1 script tag instead of ${FILES_IN_ORDER.length}) and copied static assets and legal documents.`);
   console.log("dist/ is a complete, deployable copy — e.g. `firebase deploy` from inside dist/, or point firebase.json's \"public\" at \"dist\".");
