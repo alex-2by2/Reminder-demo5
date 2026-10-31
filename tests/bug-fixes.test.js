@@ -398,3 +398,18 @@ test("waterDate is actually declared where logWaterCup/getHealthSnapshot expect 
     "waterDate must be declared as a top-level `let` here (alongside waterCount), or any code that reads it bare (getHealthSnapshot, logWaterCup) will throw ReferenceError on first load"
   );
 });
+
+ 
+// Regression test for tag filtering: substring matching made "work" also
+// match "homework". Comma-separated tags must match exact trimmed tokens.
+test("reminderHasTag matches exact comma-separated tags, not substrings", () => {
+  const { context } = loadFunctionsInSandbox({
+    filePath: path.join(__dirname, "..", "js", "02-tasks", "03-reminders-core.js"),
+    names: ["reminderHasTag"],
+  });
+
+  assert.strictEqual(context.reminderHasTag({ tags: "homework, personal" }, "work"), false);
+  assert.strictEqual(context.reminderHasTag({ tags: "homework, work, personal" }, "work"), true);
+  assert.strictEqual(context.reminderHasTag({ tags: " work , personal" }, "work"), true);
+  assert.strictEqual(context.reminderHasTag({ tags: "" }, "work"), false);
+});
