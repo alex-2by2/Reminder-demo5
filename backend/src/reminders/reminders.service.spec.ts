@@ -76,4 +76,46 @@ describe('RemindersService ownership boundaries', () => {
     expect(find).toHaveBeenCalledWith({ firebaseUid: 'verified-owner-uid', deletedAt: null });
     expect(countDocuments).toHaveBeenCalledWith({ firebaseUid: 'verified-owner-uid', deletedAt: null });
   });
+
+  it('scopes single-reminder reads to the verified owner', async () => {
+    const exec = jest.fn().mockResolvedValue({ _id: '507f1f77bcf86cd799439011', task: 'Owned' });
+    const lean = jest.fn().mockReturnValue({ exec });
+    findOne.mockReturnValue({ lean });
+    await service.getById(token, '507f1f77bcf86cd799439011');
+    expect(findOne).toHaveBeenCalledWith({
+      _id: '507f1f77bcf86cd799439011',
+      firebaseUid: 'verified-owner-uid',
+      deletedAt: null,
+    });
+  });
+
+  it('soft-deletes only an active reminder owned by the verified user', async () => {
+    const exec = jest.fn().mockResolvedValue({ _id: '507f1f77bcf86cd799439011' });
+    const lean = jest.fn().mockReturnValue({ exec });
+    findOneAndUpdate.mockReturnValue({ lean });
+    await service.softDelete(token, '507f1f77bcf86cd799439011');
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: '507f1f77bcf86cd799439011', firebaseUid: 'verified-owner-uid', deletedAt: null },
+      { $set: { deletedAt: expect.any(Date) } },
+      { new: true },
+    );
+  });
+
+  it('restores only a deleted reminder owned by the verified user', async () => {
+    const exec = jest.fn().mockResolvedValue({ _id: '507f1f77bcf86cd799439011', task: 'Restored' });
+    const lean = jest.fn().mockReturnValue({ exec });
+    findOneAndUpdate.mockReturnValue({ lean });
+    await service.restore(token, '507f1f77bcf86cd799439011');
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: '507f1f77bcf86cd799439011', firebaseUid: 'verified-owner-uid', deletedAt: { $ne: null } },
+      { $set: { deletedAt: null } },
+      { new: true, runValidators: true },
+    );
+  });
+
+  it('rejects malformed identifiers before querying MongoDB', async () => {
+    await expect(service.getById(token, 'not-an-object-id')).rejects.toThrow('Reminder not found.');
+    expect(findOne).not.toHaveBeenCalled();
+  });
+
 });
