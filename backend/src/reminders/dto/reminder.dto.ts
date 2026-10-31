@@ -67,7 +67,8 @@ export class CreateReminderDto {
   @MaxLength(80)
   timeZone?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsDefined()
   @IsString()
   @IsIn(REPEATS)
   repeat?: string;
@@ -87,7 +88,8 @@ export class CreateReminderDto {
   @MaxLength(1000)
   tags?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsDefined()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ReminderSubtaskDto)
