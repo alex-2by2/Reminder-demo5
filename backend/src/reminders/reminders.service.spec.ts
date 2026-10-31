@@ -7,15 +7,17 @@ import { RemindersService } from './reminders.service';
 describe('RemindersService ownership boundaries', () => {
   const create = jest.fn();
   const findOneAndUpdate = jest.fn();
+  const findOne = jest.fn();
   const find = jest.fn();
   const countDocuments = jest.fn();
-  const model = { create, findOneAndUpdate, find, countDocuments } as unknown as Model<Reminder>;
+  const model = { create, findOneAndUpdate, findOne, find, countDocuments } as unknown as Model<Reminder>;
   const service = new RemindersService(model);
   const token = { uid: 'verified-owner-uid' } as DecodedIdToken;
 
   beforeEach(() => {
     create.mockReset();
     findOneAndUpdate.mockReset();
+    findOne.mockReset();
     find.mockReset();
     countDocuments.mockReset();
   });
@@ -48,6 +50,8 @@ describe('RemindersService ownership boundaries', () => {
     const exec = jest.fn().mockResolvedValue(updated);
     const lean = jest.fn().mockReturnValue({ exec });
     findOneAndUpdate.mockReturnValue({ lean });
+    const existingExec = jest.fn().mockResolvedValue({ repeat: 'none', customRepeat: null });
+    findOne.mockReturnValue({ lean: jest.fn().mockReturnValue({ exec: existingExec }) });
 
     await service.update(token, '507f1f77bcf86cd799439011', { task: 'Updated' } as UpdateReminderDto);
 
