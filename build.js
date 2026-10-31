@@ -163,10 +163,13 @@ function main() {
   });
   fs.writeFileSync(path.join(DIST_DIR, "index.html"), html, "utf8");
 
-  // Copy everything else index.html needs so dist/ is deployable as-is.
-  for (const name of ["styles.css", "sw.js", "manifest.json"]) {
+  // Copy the static assets and legal documents linked by index.html.
+  for (const name of ["styles.css", "manifest.json", "terms-of-service.html", "privacy-policy.html"]) {
     const src = path.join(ROOT, name);
-    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(DIST_DIR, name));
+    if (!fs.existsSync(src)) {
+      throw new Error(`Required deploy asset is missing: ${name}`);
+    }
+    fs.copyFileSync(src, path.join(DIST_DIR, name));
   }
   for (const entry of fs.readdirSync(ROOT)) {
     if (/^icon-.*\.(png|svg|ico)$/.test(entry)) {
@@ -174,7 +177,51 @@ function main() {
     }
   }
 
-  console.log(`Generated dist/index.html (1 script tag instead of ${FILES_IN_ORDER.length}) and copied static assets.`);
+  // Source sw.js precaches individual /js files. Pages ships one app.bundle.js,
+  // so generate a deployment-specific worker with only real artifact paths.
+  const deployPrecache = [
+    "/", "/index.html", "/styles.css", "/manifest.json",
+    "/terms-of-service.html", "/privacy-policy.html",
+    "/icon-192.png", "/icon-512.png", "/app.bundle.js"
+  ];
+  const precacheStart = swSrc.indexOf("const PRECACHE_URLS = [");
+  const precacheEnd = swSrc.indexOf("];", precacheStart);
+  if (precacheStart < 0 || precacheEnd < 0) {
+    throw new Error("Could not locate the source service-worker precache.");
+  }
+  const sourceCacheVersion = swSrc.match(/const CACHE_VERSION = '([^']+)';/);
+  if (!sourceCacheVersion) {
+    throw new Error("Could not locate the source service-worker cache version.");
+  }
+  // Keep Pages cache invalidation tied to the source worker's version while
+  // namespacing it separately from the non-bundled development worker.
+  const pagesCacheVersion = `${sourceCacheVersion[1]}-pages-bundle`;
+  const versionedWorker = swSrc.replace(
+    sourceCacheVersion[0],
+    `const CACHE_VERSION = '${pagesCacheVersion}';`
+  );
+  const versionedPrecacheStart = versionedWorker.indexOf("const PRECACHE_URLS = [");
+  const versionedPrecacheEnd = versionedWorker.indexOf("];", versionedPrecacheStart);
+  if (versionedPrecacheStart < 0 || versionedPrecacheEnd < 0) {
+    throw new Error("Could not locate the versioned service-worker precache.");
+  }
+  const deployWorker = versionedWorker.slice(0, versionedPrecacheStart)
+    + "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
+    + versionedWorker.slice(versionedPrecacheEnd + 2);
+  if (deployWorker === swSrc || !deployWorker.includes("/app.bundle.js")) {
+    throw new Error("Could not generate the bundled service-worker precache.");
+  }
+  const deployWorkerPath = path.join(DIST_DIR, "sw.js");
+  fs.writeFileSync(deployWorkerPath, deployWorker, "utf8");
+  execFileSync(process.execPath, ["--check", deployWorkerPath]);
+  for (const url of deployPrecache) {
+    const relativePath = url === "/" ? "index.html" : url.slice(1);
+    if (!fs.existsSync(path.join(DIST_DIR, relativePath))) {
+      throw new Error(`Service worker precache asset is missing from dist/: ${url}`);
+    }
+  }
+
+  console.log(`Generated dist/index.html (1 script tag instead of ${FILES_IN_ORDER.length}) and copied static assets and legal documents.`);
   console.log("dist/ is a complete, deployable copy — e.g. `firebase deploy` from inside dist/, or point firebase.json's \"public\" at \"dist\".");
 }
 
