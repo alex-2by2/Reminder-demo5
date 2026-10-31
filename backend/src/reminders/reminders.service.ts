@@ -11,6 +11,7 @@ export class RemindersService {
 
   async create(token: DecodedIdToken, dto: CreateReminderDto) {
     this.validateTimeZone(dto.timeZone);
+    this.validateReminderTime(dto.time);
     this.validateRepeat(dto.repeat, dto.customRepeat);
     const reminder = await this.reminderModel.create({
       ...dto,
@@ -53,6 +54,7 @@ export class RemindersService {
   async update(token: DecodedIdToken, id: string, dto: UpdateReminderDto) {
     this.assertId(id);
     this.validateTimeZone(dto.timeZone);
+    this.validateReminderTime(dto.time);
     this.validateRepeat(dto.repeat, dto.customRepeat);
     const update: Record<string, unknown> = { ...dto };
     if (dto.status === 'completed') update.completedAt = new Date();
@@ -89,11 +91,38 @@ export class RemindersService {
   }
 
   private validateTimeZone(timeZone?: string): void {
-    if (!timeZone) return;
+    if (timeZone === undefined) return;
+    if (typeof timeZone !== 'string' || !timeZone.trim()) {
+      throw new BadRequestException('Time zone must be a non-empty IANA time zone.');
+    }
     try {
       new Intl.DateTimeFormat('en-US', { timeZone }).format(new Date());
     } catch {
       throw new BadRequestException('Invalid IANA time zone.');
+    }
+  }
+
+  private validateReminderTime(value: string): void {
+    // Accept the PWA's datetime-local value and ISO-8601 imports, with or without seconds/offset.
+    const match = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2})(?:\\.(\\d{1,3}))?)?(Z|[+-]\\d{2}:\\d{2})?$/.exec(value);
+    if (!match) throw new BadRequestException('Time must be a valid ISO local date-time.');
+    const [, yearText, monthText, dayText, hourText, minuteText, secondText = '0', , offset] = match;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
+    const second = Number(secondText);
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    if (month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) {
+      throw new BadRequestException('Time contains an invalid calendar date or clock value.');
+    }
+    if (offset && offset !== 'Z') {
+      const offsetHours = Number(offset.slice(1, 3));
+      const offsetMinutes = Number(offset.slice(4, 6));
+      if (offsetHours > 14 || offsetMinutes > 59 || (offsetHours === 14 && offsetMinutes !== 0)) {
+        throw new BadRequestException('Time contains an invalid UTC offset.');
+      }
     }
   }
 
