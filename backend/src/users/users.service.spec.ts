@@ -31,7 +31,7 @@ describe('UsersService', () => {
       email_verified: true,
       name: 'Verified Person',
       firebase: { sign_in_provider: 'google.com' },
-    } as DecodedIdToken;
+    } as unknown as DecodedIdToken;
 
     const result = await service.getOrCreateProfile(token);
 
@@ -75,7 +75,7 @@ describe('UsersService', () => {
 
     await service.getOrCreateProfile({
       uid: 'uid-from-token',
-    } as DecodedIdToken);
+    } as unknown as DecodedIdToken);
 
     const [filter, update] = findOneAndUpdate.mock.calls[0];
     expect(filter).toEqual({ firebaseUid: 'uid-from-token' });
