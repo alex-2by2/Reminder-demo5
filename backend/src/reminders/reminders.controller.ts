@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { AuthenticatedRequest, FirebaseAuthGuard } from '../auth/firebase-auth.guard';
 import { CreateReminderDto, ListRemindersQueryDto, UpdateReminderDto } from './dto/reminder.dto';
 import { RemindersService } from './reminders.service';
@@ -39,7 +39,7 @@ export class RemindersController {
   }
 
   private identity(request: AuthenticatedRequest) {
-    if (!request.user) throw new Error('Firebase auth guard did not attach an identity.');
+    if (!request.user) throw new UnauthorizedException('Authenticated identity is missing.');
     return request.user;
   }
 }
