@@ -30,6 +30,10 @@ export class CustomRepeat {
   type!: string;
 }
 
+export const ReminderSubtaskSchema = SchemaFactory.createForClass(ReminderSubtask);
+export const ReminderCategorySchema = SchemaFactory.createForClass(ReminderCategory);
+export const CustomRepeatSchema = SchemaFactory.createForClass(CustomRepeat);
+
 @Schema({ collection: 'reminders', timestamps: true, versionKey: false })
 export class Reminder {
   @Prop({ required: true, immutable: true, index: true, maxlength: 128 })
@@ -51,7 +55,7 @@ export class Reminder {
   @Prop({ type: String, enum: ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom', 'hourly'], default: 'none' })
   repeat!: string;
 
-  @Prop({ type: CustomRepeat, default: null })
+  @Prop({ type: CustomRepeatSchema, default: null })
   customRepeat!: CustomRepeat | null;
 
   @Prop({ type: String, enum: ['low', 'medium', 'high'], default: 'medium' })
@@ -60,10 +64,10 @@ export class Reminder {
   @Prop({ type: String, default: '', maxlength: 1000 })
   tags!: string;
 
-  @Prop({ type: [ReminderSubtask], default: [] })
+  @Prop({ type: [ReminderSubtaskSchema], default: [] })
   subtasks!: ReminderSubtask[];
 
-  @Prop({ type: ReminderCategory, default: null })
+  @Prop({ type: ReminderCategorySchema, default: null })
   category!: ReminderCategory | null;
 
   @Prop({ type: String, enum: ['pending', 'completed'], default: 'pending' })
@@ -86,6 +90,9 @@ export class Reminder {
 
   @Prop({ type: String, required: true, maxlength: 80 })
   clientId!: string;
+
+  @Prop({ type: Date, default: null })
+  completedAt!: Date | null;
 
   @Prop({ type: Date, default: null })
   deletedAt!: Date | null;
