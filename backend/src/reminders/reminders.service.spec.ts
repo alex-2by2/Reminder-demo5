@@ -45,6 +45,24 @@ describe('RemindersService ownership boundaries', () => {
     expect(result).not.toHaveProperty('firebaseUid');
   });
 
+  it('returns a conflict when the same owner submits a duplicate client ID', async () => {
+    create.mockRejectedValue({ code: 11000 });
+    const dto = { clientId: 'client-123', task: 'Call customer', time: '2026-11-01T09:00' } as CreateReminderDto;
+
+    await expect(service.create(token, dto)).rejects.toMatchObject({
+      status: 409,
+      message: 'A reminder with this client ID already exists.',
+    });
+  });
+
+  it('rethrows non-duplicate database errors unchanged', async () => {
+    const databaseError = new Error('database unavailable');
+    create.mockRejectedValue(databaseError);
+    const dto = { clientId: 'client-123', task: 'Call customer', time: '2026-11-01T09:00' } as CreateReminderDto;
+
+    await expect(service.create(token, dto)).rejects.toBe(databaseError);
+  });
+
   it('scopes reminder updates to the verified owner and hides other users records', async () => {
     const updated = { _id: 'reminder-id', clientId: 'c1', task: 'Updated', createdAt: new Date(), updatedAt: new Date() };
     const exec = jest.fn().mockResolvedValue(updated);
