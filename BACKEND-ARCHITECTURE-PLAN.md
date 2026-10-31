@@ -39,10 +39,11 @@
 - Do not add business-data endpoints or alter deployment workflows yet.
 
 ### Phase 1 — Identity and data contracts
-- Define user identity/profile contract and MongoDB schemas.
-- Add authenticated `/me` endpoint.
-- Add repository/service tests proving one UID cannot read another UID's data.
-- Define request IDs, safe error responses, logging, and pagination standards.
+- [x] Define the initial user identity/profile contract and MongoDB schema.
+- [x] Add authenticated `GET /api/v1/me` endpoint; identity comes only from a verified Firebase ID token.
+- [x] Add service tests proving profile upserts are scoped to the token UID.
+- [ ] Add broader cross-user repository tests as each private data module is introduced.
+- [ ] Define request IDs, safe error responses, logging, and pagination standards.
 
 ### Phase 2 — Core personal data
 - Reminder CRUD, habits, recurrence/timezone rules, and soft-delete/restore.
