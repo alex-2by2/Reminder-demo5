@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
-  IsArray, IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString,
-  Max, MaxLength, Min, ValidateNested,
+  IsArray, IsBoolean, IsDefined, IsIn, IsInt, IsNotEmpty, IsOptional, IsString,
+  Max, MaxLength, Min, ValidateIf, ValidateNested,
 } from 'class-validator';
 
 const REPEATS = ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom', 'hourly'];
@@ -140,7 +140,7 @@ export class UpdateReminderDto {
   @IsOptional() @IsString() @IsIn(REPEATS)
   repeat?: string;
 
-  @IsOptional() @ValidateNested() @Type(() => CustomRepeatDto)
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @ValidateNested() @Type(() => CustomRepeatDto)
   customRepeat?: CustomRepeatDto;
 
   @IsOptional() @IsString() @IsIn(PRIORITIES)
@@ -155,7 +155,7 @@ export class UpdateReminderDto {
   @IsOptional() @ValidateNested() @Type(() => ReminderCategoryDto)
   category?: ReminderCategoryDto;
 
-  @IsOptional() @IsString() @IsIn(['pending', 'completed'])
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsString() @IsIn(['pending', 'completed'])
   status?: string;
 
   @IsOptional() @IsBoolean()
