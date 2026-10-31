@@ -189,9 +189,16 @@ function main() {
   if (precacheStart < 0 || precacheEnd < 0) {
     throw new Error("Could not locate the source service-worker precache.");
   }
+  const sourceCacheVersion = swSrc.match(/const CACHE_VERSION = '([^']+)';/);
+  if (!sourceCacheVersion) {
+    throw new Error("Could not locate the source service-worker cache version.");
+  }
+  // Keep Pages cache invalidation tied to the source worker's version while
+  // namespacing it separately from the non-bundled development worker.
+  const pagesCacheVersion = `${sourceCacheVersion[1]}-pages-bundle`;
   const versionedWorker = swSrc.replace(
-    /const CACHE_VERSION = 'v[^']+';/,
-    "const CACHE_VERSION = 'v1.0.1';"
+    sourceCacheVersion[0],
+    `const CACHE_VERSION = '${pagesCacheVersion}';`
   );
   const deployWorker = versionedWorker.slice(0, precacheStart)
     + "const PRECACHE_URLS = " + JSON.stringify(deployPrecache, null, 2) + ";"
