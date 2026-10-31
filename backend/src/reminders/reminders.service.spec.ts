@@ -57,7 +57,7 @@ describe('RemindersService ownership boundaries', () => {
 
     expect(findOneAndUpdate).toHaveBeenCalledWith(
       { _id: '507f1f77bcf86cd799439011', firebaseUid: 'verified-owner-uid', deletedAt: null },
-      { $set: { task: 'Updated' } },
+      { $set: { task: 'Updated', repeat: 'none', customRepeat: null } },
       { new: true, runValidators: true },
     );
   });
