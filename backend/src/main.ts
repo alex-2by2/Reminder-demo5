@@ -11,9 +11,16 @@ async function bootstrap(): Promise<void> {
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
   app.use(helmet());
 
-  // Render terminates TLS and forwards the original client IP through its proxy.
-  // Trust the single proxy hop so rate limiting is per client, not one shared proxy IP.
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  // Configure only after confirming the exact reverse-proxy hop count for the host.
+  // Leaving this unset is safer than trusting spoofable forwarded headers by default.
+  const trustProxyHops = process.env.TRUST_PROXY_HOPS;
+  if (trustProxyHops !== undefined) {
+    const parsedHops = Number(trustProxyHops);
+    if (!Number.isSafeInteger(parsedHops) || parsedHops < 0) {
+      throw new Error('TRUST_PROXY_HOPS must be a non-negative integer.');
+    }
+    app.getHttpAdapter().getInstance().set('trust proxy', parsedHops);
+  }
 
   app.use(rateLimit({
     windowMs: 60_000,
