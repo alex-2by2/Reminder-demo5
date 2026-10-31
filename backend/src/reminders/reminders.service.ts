@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId, Model } from 'mongoose';
 import { DecodedIdToken } from 'firebase-admin/auth';
@@ -13,15 +13,24 @@ export class RemindersService {
     this.validateTimeZone(dto.timeZone);
     this.validateReminderTime(dto.time);
     this.validateRepeat(dto.repeat, dto.customRepeat);
-    const reminder = await this.reminderModel.create({
-      ...dto,
-      firebaseUid: token.uid,
-      clientId: dto.clientId,
-      timeZone: dto.timeZone || 'Asia/Kolkata',
-      status: 'pending',
-      deletedAt: null,
-    });
-    return this.toResponse(reminder);
+    try {
+      const reminder = await this.reminderModel.create({
+        ...dto,
+        firebaseUid: token.uid,
+        clientId: dto.clientId,
+        timeZone: dto.timeZone || 'Asia/Kolkata',
+        status: 'pending',
+        deletedAt: null,
+      });
+      return this.toResponse(reminder);
+    } catch (error) {
+      // The owner + clientId unique index makes retries safe; surface duplicate
+      // client IDs as a stable 409 instead of leaking MongoDB's duplicate-key error.
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+        throw new ConflictException('A reminder with this client ID already exists.');
+      }
+      throw error;
+    }
   }
 
   async list(token: DecodedIdToken, query: ListRemindersQueryDto) {
