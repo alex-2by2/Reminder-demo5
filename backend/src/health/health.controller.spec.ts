@@ -3,11 +3,9 @@ import { Connection } from 'mongoose';
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
-  const connection = { readyState: 1 } as Connection;
-  const controller = new HealthController(connection);
-
   it('reports healthy when MongoDB is connected', () => {
-    connection.readyState = 1;
+    const connection = { readyState: 1 } as unknown as Connection;
+    const controller = new HealthController(connection);
 
     expect(controller.getHealth()).toEqual({
       status: 'ok',
@@ -16,7 +14,8 @@ describe('HealthController', () => {
   });
 
   it('returns service unavailable when MongoDB is disconnected', () => {
-    connection.readyState = 0;
+    const connection = { readyState: 0 } as unknown as Connection;
+    const controller = new HealthController(connection);
 
     expect(() => controller.getHealth()).toThrow(ServiceUnavailableException);
   });
