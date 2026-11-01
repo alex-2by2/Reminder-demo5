@@ -8,7 +8,7 @@ The root `render.yaml` declares the service:
 
 - Service name: `easy-life-tools-api`
 - Root directory: `backend`
-- Build command: `npm install && npm run build`
+- Build command: `npm install --include=dev && npm run build`
 - Start command: `npm run start:prod`
 - Health check: `/health`
 
