@@ -41,6 +41,31 @@ describe('Reminder DTO null and enum validation', () => {
     expect(errors.some((error) => error.property === 'customRepeat')).toBe(true);
   });
 
+  it('rejects null for optional update fields instead of silently skipping validation', async () => {
+    const dto = plainToInstance(UpdateReminderDto, {
+      task: null,
+      notes: null,
+      time: null,
+      timeZone: null,
+      priority: null,
+      tags: null,
+      category: null,
+      pinned: null,
+      archived: null,
+      preAlarm: null,
+      assignee: null,
+      project: null,
+    });
+    const errors = await validate(dto);
+    const invalidProperties = new Set(errors.map((error) => error.property));
+    for (const property of [
+      'task', 'notes', 'time', 'timeZone', 'priority', 'tags',
+      'category', 'pinned', 'archived', 'preAlarm', 'assignee', 'project',
+    ]) {
+      expect(invalidProperties.has(property)).toBe(true);
+    }
+  });
+
   it('rejects more than 100 subtasks on create and update', async () => {
     const subtasks = Array.from({ length: 101 }, (_, index) => ({ text: `Subtask ${index}` }));
     const createDto = plainToInstance(CreateReminderDto, {
