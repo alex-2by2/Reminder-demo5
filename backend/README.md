@@ -12,11 +12,9 @@ Firestore data.
 - Public health endpoint: `GET /health` (reports only service/database state).
 - API prefix: `/api/v1`.
 - Protected `GET /api/v1/me` verifies the Firebase ID token and creates or returns the matching MongoDB user profile. The UID is always taken from the verified token, never from request input.
-- Firebase Admin token verification service and guard are provided for
-  protected controllers. Protected business routes are not exposed yet.
+- Firebase Admin token verification service and guard protect authenticated endpoints.
 - Helmet, exact browser-origin allowlist, request rate limiting, and strict
   DTO validation defaults are configured.
-
 
 ## Reminder API (staged; not yet connected to the PWA)
 
@@ -76,5 +74,9 @@ the Firebase auth service.
 6. Keep the current PWA/Firestore path available for rollback until parity is
    demonstrated.
 
-No Render service, Firebase configuration, GitHub Pages workflow, production
-database, or live user data is changed by this scaffold.
+## Render deployment
+
+See [RENDER-DEPLOYMENT.md](./RENDER-DEPLOYMENT.md) for the separate Render
+service configuration, required environment variables, and post-deploy checks.
+
+No production database or live user data is changed by this scaffold.
