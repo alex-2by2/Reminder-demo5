@@ -155,7 +155,7 @@ export class UpdateReminderDto {
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsArray() @ArrayMaxSize(100) @ValidateNested({ each: true }) @Type(() => ReminderSubtaskDto)
   subtasks?: ReminderSubtaskDto[];
 
-  @ValidateIf((_object, value) => value !== undefined) @ValidateNested() @Type(() => ReminderCategoryDto)
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @ValidateNested() @Type(() => ReminderCategoryDto)
   category?: ReminderCategoryDto;
 
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsString() @IsIn(['pending', 'completed'])
