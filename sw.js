@@ -28,8 +28,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || 'Master Reminder App';
   const options = {
     body: (payload.notification && payload.notification.body) || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: new URL('icon-192.png', self.registration.scope).href,
+    badge: new URL('icon-192.png', self.registration.scope).href,
     data: payload.data || {}
   };
   self.registration.showNotification(title, options);
@@ -123,7 +123,7 @@ const CDN_HOSTS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => cache.addAll(PRECACHE_URLS.map((path) => new URL(path === '/' ? './' : path.replace(/^\\//, ''), self.registration.scope))))
       .then(() => self.skipWaiting())
   );
 });
@@ -164,10 +164,10 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(new URL('index.html', self.registration.scope), copy));
           return response;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() => caches.match(new URL('index.html', self.registration.scope)))
     );
     return;
   }
@@ -264,7 +264,7 @@ self.addEventListener('notificationclick', (event) => {
         } else {
           // No tab open to act on this — open the app so the user can handle
           // it themselves rather than silently dropping the action.
-          await self.clients.openWindow('/');
+          await self.clients.openWindow(new URL('./', self.registration.scope).href);
         }
         return;
       }
