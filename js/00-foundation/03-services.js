@@ -103,6 +103,42 @@
     // classic <script> is visible to every other classic <script> on the
     // page once it has executed, regardless of load order in the source.)
     const API = {
+        /**
+         * Calls the NestJS API using the current Firebase user's ID token.
+         * This is additive: existing Firestore reads/writes remain unchanged.
+         */
+        getBackendProfile: async function () {
+            if (!currentUser) throw new Error('Not signed in.');
+            // Explicit opt-in: never send credentials to the existing Express admin service.
+            const configured = window.EASY_LIFE_API_BASE_URL;
+            if (typeof configured !== 'string' || !configured.trim()) {
+                throw new Error('NestJS API is not configured.');
+            }
+            const parsed = new URL(configured);
+            if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== '/' || (configured !== parsed.origin && configured !== parsed.origin + '/')) {
+                throw new Error('Invalid NestJS API origin.');
+            }
+            if (parsed.origin === 'https://reminder-demo5.onrender.com') {
+                throw new Error('The Express admin service is not the NestJS API.');
+            }
+            const signedInUser = currentUser;
+            const idToken = await signedInUser.getIdToken();
+            if (currentUser !== signedInUser) throw new Error('Authentication changed during API request.');
+            const baseUrl = parsed.origin;
+            const response = await fetch(baseUrl + '/api/v1/me', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + idToken,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(function () { return {}; });
+                throw new Error(body.message || body.error || ('Backend request failed (' + response.status + ').'));
+            }
+            return response.json();
+        },
+
         /** Writes `data` into the signed-in user's Firestore document (merge). */
         saveUserData: function (data) {
             if (!currentUser) return Promise.reject(new Error('Not signed in.'));

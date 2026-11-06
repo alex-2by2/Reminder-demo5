@@ -294,10 +294,24 @@
                 setTimeout(() => openModal('onboardingModal'), 600);
             }
             startCloudSync();
+            // Connect the signed-in Firebase identity to the NestJS/MongoDB API.
+            // Failure is non-blocking; the existing Firestore app remains usable.
+            if (typeof window.EASY_LIFE_API_BASE_URL === 'string' && window.EASY_LIFE_API_BASE_URL.trim() && window.API && typeof window.API.getBackendProfile === 'function') {
+                window.API.getBackendProfile().then(function (profile) {
+                    if (currentUser !== user) return;
+                    window.backendUserProfile = profile;
+                    if (window.AppLogger) window.AppLogger.info('Backend profile connected.');
+                }).catch(function (error) {
+                    if (currentUser !== user) return;
+                    window.backendUserProfile = null;
+                    if (window.AppLogger) window.AppLogger.warn('Backend profile connection failed:', error.message);
+                });
+            }
             loadSharedWithMe();
             if (typeof runPostLoginHooks === 'function') runPostLoginHooks();
         } else {
-            currentUser = null; 
+            currentUser = null;
+            window.backendUserProfile = null;
             localStorage.setItem("loggedIn", "false");
             document.getElementById('authScreen').style.display = 'block'; 
             document.getElementById('mainApp').style.display = 'none';
