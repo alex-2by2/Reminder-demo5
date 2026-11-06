@@ -1,6 +1,6 @@
 {
-  "name": "Master Reminder App",
-  "short_name": "Master App",
+  "name": "Easy Life Tools",
+  "short_name": "Easy Life",
   "description": "All-in-one reminders, habits, finance, khata book, family sharing, and student planner.",
   "start_url": "/index.html",
   "scope": "/",
