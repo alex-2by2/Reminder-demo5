@@ -272,7 +272,7 @@ self.addEventListener('notificationclick', (event) => {
       if (clientsList.length) {
         clientsList[0].focus();
       } else {
-        await self.clients.openWindow('/');
+        await self.clients.openWindow(new URL('./', self.registration.scope).href);
       }
     })()
   );
