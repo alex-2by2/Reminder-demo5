@@ -46,19 +46,19 @@ test("Terms gate does not silently fail open on read errors", () => {
 test("scheduled pushes interpret local reminder times and use per-device delivery leases", () => {
   const functions = read("functions/index.js");
   const reminders = read("js/02-tasks/03-reminders-core.js");
-  assert.match(functions, /function parseReminderTimestamp\\(value, timeZone\\)/);
-  assert.match(functions, /parseReminderTimestamp\\(reminder\\.time, reminder\\.timeZone\\)/);
-  assert.match(functions, /const windowStart = now - 10 \\* 60 \\* 1000/);
-  assert.match(functions, /timestamp < windowStart \\|\\| timestamp > windowEnd/);
-  assert.match(functions, /db\\.runTransaction\\(async \\(tx\\) =>/);
-  assert.match(functions, /collection\\("push_deliveries"\\)/);
-  assert.match(functions, /messaging\\.send\\(/);
+  assert.match(functions, /function parseReminderTimestamp\(value, timeZone\)/);
+  assert.match(functions, /parseReminderTimestamp\(reminder\.time, reminder\.timeZone\)/);
+  assert.match(functions, /const windowStart = now - 10 \* 60 \* 1000/);
+  assert.match(functions, /timestamp < windowStart \|\| timestamp > windowEnd/);
+  assert.match(functions, /db\.runTransaction\(async \(tx\) =>/);
+  assert.match(functions, /collection\("push_deliveries"\)/);
+  assert.match(functions, /messaging\.send\(/);
   assert.doesNotMatch(functions, /sendEachForMulticast/);
   assert.doesNotMatch(functions, /successCount > 0/);
-  assert.match(reminders, /timeZone: Intl\\.DateTimeFormat\\(\\)\\.resolvedOptions\\(\\)\\.timeZone/);
+  assert.match(reminders, /timeZone: Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
   assert.match(reminders, /pushSent: false/);
-  assert.ok(functions.includes(String.raw`/(?:Z|[+-]\\d{2}:?\\d{2})$/i`), "offset timestamps must match the timezone suffix pattern");
-  assert.ok(functions.includes(String.raw`/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?$/`), "datetime-local values must match the local timestamp pattern");
+  assert.ok(functions.includes(String.raw`/(?:Z|[+-]\d{2}:?\d{2})$/i`), "offset timestamps must match the timezone suffix pattern");
+  assert.ok(functions.includes(String.raw`/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/`), "datetime-local values must match the local timestamp pattern");
 });
 
 test("per-device push delivery claims are deterministic and lease-aware", () => {
