@@ -26,7 +26,7 @@
                 key: keyId,
                 order_id: orderId,
                 amount, currency,
-                name: 'Master Reminder App',
+                name: 'Easy Life Tools',
                 description: 'Pro Upgrade — 1 year',
                 prefill: { email: currentUser.email },
                 theme: { color: '#ff9500' },
