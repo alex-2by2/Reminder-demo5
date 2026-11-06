@@ -546,7 +546,7 @@
             return showToast('Set up a rotation pattern first!', 'error');
         }
         const fmtDate = (d) => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-        let ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Master Reminder App//Shift Schedule//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+        let ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Easy Life Tools//Shift Schedule//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
         const today = new Date();
         for (let i = 0; i < 90; i++) {
             const d = new Date(today); d.setDate(d.getDate() + i);
