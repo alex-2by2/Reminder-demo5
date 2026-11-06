@@ -1,4 +1,4 @@
-# Master Reminder App
+# Easy Life Tools
 
 An all-in-one PWA: reminders/tasks, habits, calendar, Pomodoro, finance
 (expenses/income/budgets/bills/EMIs/investments), a khata (ledger) book,
