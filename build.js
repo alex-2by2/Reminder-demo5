@@ -146,14 +146,31 @@ function main() {
   // all HTML/CSS) is untouched.
   const indexHtmlPath = path.join(ROOT, "index.html");
   let html = fs.readFileSync(indexHtmlPath, "utf8");
-  const scriptTagPattern = /<script src="js\/[\w-]+\/[\w-]+\.js" defer><\/script>\n?/g;
-  const matches = html.match(scriptTagPattern) || [];
-  if (matches.length !== FILES_IN_ORDER.length) {
+
+  // Fail closed if the browser entry point and bundle manifest ever drift.
+  // A count-only check can silently bundle the wrong files in the wrong order.
+  const actualScripts = [...html.matchAll(/<script\\s+src=["'](js\\/[^"']+\\.js)["']\\s+defer><\\/script>/g)]
+    .map((match) => match[1].slice(3));
+  const expectedScripts = FILES_IN_ORDER;
+  if (new Set(expectedScripts).size !== expectedScripts.length) {
+    throw new Error("FILES_IN_ORDER contains duplicate frontend modules.");
+  }
+  if (JSON.stringify(actualScripts) !== JSON.stringify(expectedScripts)) {
+    const firstMismatch = expectedScripts.findIndex((file, index) => actualScripts[index] !== file);
     throw new Error(
-      `Expected to find ${FILES_IN_ORDER.length} local <script defer> tags in index.html, found ${matches.length}. ` +
-      `index.html has likely changed since this script was written — update FILES_IN_ORDER/the regex above rather ` +
-      `than trust a partial replace.`
+      "Frontend script manifest mismatch at position " + firstMismatch +
+      ". Keep index.html and FILES_IN_ORDER exactly aligned; refusing to create a partial or misordered bundle."
     );
+  }
+  for (const name of FILES_IN_ORDER) {
+    const normalized = path.normalize(name);
+    if (normalized.startsWith("..") || path.isAbsolute(normalized) || !fs.existsSync(path.join(JS_DIR, normalized))) {
+      throw new Error("Invalid or missing frontend module: " + name);
+    }
+  }
+  const matches = html.match(/<script\\s+src=["']js\\/[^"']+\\.js["']\\s+defer><\\/script>\\n?/g) || [];
+  if (matches.length !== FILES_IN_ORDER.length) {
+    throw new Error("Found an unsupported local frontend script tag. Update FILES_IN_ORDER before building.");
   }
   let replaced = false;
   html = html.replace(scriptTagPattern, () => {
