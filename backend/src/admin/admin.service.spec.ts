@@ -114,4 +114,52 @@ describe('AdminService', () => {
     await expect(service.listCrashReports(undefined, '%%%'))
       .rejects.toThrow(BadRequestException);
   });
+
+  it('rejects zero and non-numeric pagination limits', async () => {
+    await expect(service.listUsers('0')).rejects.toThrow(BadRequestException);
+    await expect(service.listUsers('1.5')).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects disabling a user when the payload is not boolean', async () => {
+    const updateUser = jest.fn();
+    firebase.getAuth.mockReturnValue({ updateUser });
+    await expect(service.setUserDisabled('user-1', 'true' as unknown as boolean, 'owner-1'))
+      .rejects.toThrow(BadRequestException);
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it('returns crash reports and an encoded cursor for the next page', async () => {
+    const lastDoc = { id: 'report-2', data: () => ({ message: 'failure' }) };
+    const query = { get: jest.fn().mockResolvedValue({ docs: [lastDoc] }) };
+    const db = {
+      collection: () => ({ orderBy: () => ({ limit: () => query }) }),
+    };
+    firebase.getFirestore.mockReturnValue(db);
+
+    const result = await service.listCrashReports('10');
+    expect(result.reports).toEqual([{ id: 'report-2', message: 'failure' }]);
+    expect(result.nextCursor).toBe(Buffer.from('report-2').toString('base64url'));
+  });
+
+  it('returns referrals ordered by referral count from Firestore', async () => {
+    const get = jest.fn().mockResolvedValue({
+      docs: [{
+        id: 'user-2',
+        get: (field: string) => field === 'userName' ? 'Referral user' : 7,
+      }],
+    });
+    const limit = jest.fn(() => ({ get }));
+    const orderBy = jest.fn(() => ({ limit }));
+    const where = jest.fn(() => ({ orderBy }));
+    firebase.getFirestore.mockReturnValue({ collection: () => ({ where }) });
+
+    const result = await service.listReferrals('15');
+    expect(where).toHaveBeenCalledWith('referralCount', '>', 0);
+    expect(orderBy).toHaveBeenCalledWith('referralCount', 'desc');
+    expect(limit).toHaveBeenCalledWith(15);
+    expect(result).toEqual({
+      referrals: [{ uid: 'user-2', displayName: 'Referral user', referralCount: 7 }],
+    });
+  });
+
 });
