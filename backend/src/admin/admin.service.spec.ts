@@ -108,7 +108,9 @@ describe('AdminService', () => {
   });
 
   it('rejects malformed crash report cursors', async () => {
-    firebase.getFirestore.mockReturnValue({ collection: jest.fn() });
+    firebase.getFirestore.mockReturnValue({
+      collection: () => ({ orderBy: () => ({ limit: () => ({}) }) }),
+    });
     await expect(service.listCrashReports(undefined, '%%%'))
       .rejects.toThrow(BadRequestException);
   });
