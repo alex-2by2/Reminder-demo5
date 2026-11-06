@@ -109,8 +109,22 @@
          */
         getBackendProfile: async function () {
             if (!currentUser) throw new Error('Not signed in.');
-            const baseUrl = 'https://reminder-demo5.onrender.com';
-            const idToken = await currentUser.getIdToken();
+            // Explicit opt-in: never send credentials to the existing Express admin service.
+            const configured = window.EASY_LIFE_API_BASE_URL;
+            if (typeof configured !== 'string' || !configured.trim()) {
+                throw new Error('NestJS API is not configured.');
+            }
+            const parsed = new URL(configured);
+            if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== '/' || parsed.origin !== configured.replace(/\\/$/, '')) {
+                throw new Error('Invalid NestJS API origin.');
+            }
+            if (parsed.origin === 'https://reminder-demo5.onrender.com') {
+                throw new Error('The Express admin service is not the NestJS API.');
+            }
+            const signedInUser = currentUser;
+            const idToken = await signedInUser.getIdToken();
+            if (currentUser !== signedInUser) throw new Error('Authentication changed during API request.');
+            const baseUrl = parsed.origin;
             const response = await fetch(baseUrl + '/api/v1/me', {
                 method: 'GET',
                 headers: {
