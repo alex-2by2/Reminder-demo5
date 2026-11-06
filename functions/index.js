@@ -280,7 +280,9 @@ exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
       }
     }
   }
-});/**
+});
+
+/**
  * ============================================================================
  * PAYMENT GATEWAY — Razorpay (chosen for UPI/card/netbanking support for
  * Indian users; swap provider here if you'd rather use Stripe/PayPal instead).
