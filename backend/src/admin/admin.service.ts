@@ -103,7 +103,7 @@ export class AdminService {
 
   private parseLimit(value: string | undefined, fallback: number): number {
     if (value === undefined || value === '') return fallback;
-    if (!/^\\d+$/.test(value)) throw new BadRequestException('Invalid limit.');
+    if (!/^\d+$/.test(value)) throw new BadRequestException('Invalid limit.');
     const parsed = Number(value);
     if (!Number.isSafeInteger(parsed) || parsed < 1) {
       throw new BadRequestException('Invalid limit.');
