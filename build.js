@@ -148,8 +148,6 @@ function main() {
   const indexHtmlPath = path.join(ROOT, "index.html");
   let html = fs.readFileSync(indexHtmlPath, "utf8");
 
-  // Fail closed if the browser entry point and bundle manifest ever drift.
-  // A count-only check can silently bundle the wrong files in the wrong order.
   const scriptTagPattern = /<script src="(js\/[^"]+\.js)" defer><\/script>\n?/g;
   const actualScripts = [...html.matchAll(scriptTagPattern)].map((match) => match[1].slice(3));
   const expectedScripts = FILES_IN_ORDER;
