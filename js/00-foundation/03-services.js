@@ -115,7 +115,7 @@
                 throw new Error('NestJS API is not configured.');
             }
             const parsed = new URL(configured);
-            if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== '/' || parsed.origin !== configured.replace(/\\/$/, '')) {
+            if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== '/' || (configured !== parsed.origin && configured !== parsed.origin + '/')) {
                 throw new Error('Invalid NestJS API origin.');
             }
             if (parsed.origin === 'https://reminder-demo5.onrender.com') {
