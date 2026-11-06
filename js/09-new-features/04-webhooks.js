@@ -50,7 +50,7 @@
     async function testWebhook(id) {
         const w = getWebhooks().find(x => x.id === id);
         if (!w) return;
-        await deliverWebhook(w, { test: true, message: 'Test event from Master Reminder App', ts: new Date().toISOString() });
+        await deliverWebhook(w, { test: true, message: 'Test event from Easy Life Tools', ts: new Date().toISOString() });
         showToast('Test sent — check your Zapier/IFTTT/Make history', 'info');
     }
 

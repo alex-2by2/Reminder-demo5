@@ -32,7 +32,7 @@
     function shareReferralLink() {
         const link = getReferralLink();
         if (navigator.share) {
-            navigator.share({ title: 'Master Reminder App', text: 'Join me on Master Reminder App — get a bonus when you sign up with my link!', url: link }).catch(() => {});
+            navigator.share({ title: 'Easy Life Tools', text: 'Join me on Easy Life Tools — get a bonus when you sign up with my link!', url: link }).catch(() => {});
         } else {
             copyReferralLink();
         }

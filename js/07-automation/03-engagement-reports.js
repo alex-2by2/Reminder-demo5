@@ -188,7 +188,7 @@
         const badge = document.getElementById('achieveBadge')?.innerText || '';
         const title = document.getElementById('achieveTitle')?.innerText || '';
         const desc = document.getElementById('achieveDesc')?.innerText || '';
-        const text = badge + ' ' + title + '\n' + desc + '\n\nTracked with Master Reminder App!';
+        const text = badge + ' ' + title + '\n' + desc + '\n\nTracked with Easy Life Tools!';
         navigator.clipboard?.writeText(text).then(() => showToast('Copied to clipboard!', 'success'))
             .catch(() => showToast('Copy: ' + text, 'info'));
         hapticFeedback('success');
