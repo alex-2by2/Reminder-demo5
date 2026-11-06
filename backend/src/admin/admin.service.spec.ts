@@ -128,8 +128,23 @@ describe('AdminService', () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 
-  it('returns crash reports and an encoded cursor for the next page', async () => {
-    const lastDoc = { id: 'report-2', data: () => ({ message: 'failure' }) };
+  it('returns only approved crash report fields and an encoded cursor', async () => {
+    const lastDoc = {
+      id: 'report-2',
+      data: () => ({
+        message: 'failure',
+        stack: 'Error: failure',
+        source: 'error',
+        url: 'https://example.test/app',
+        userAgent: 'test-agent',
+        appVersion: '1.2.3',
+        uid: 'user-1',
+        ts: '2026-01-01T00:00:00.000Z',
+        accessToken: 'must-not-leak',
+        privateProfile: { email: 'private@example.com' },
+        unexpectedFutureField: 'must-not-leak',
+      }),
+    };
     const query = { get: jest.fn().mockResolvedValue({ docs: [lastDoc] }) };
     const db = {
       collection: () => ({ orderBy: () => ({ limit: () => query }) }),
@@ -137,7 +152,17 @@ describe('AdminService', () => {
     firebase.getFirestore.mockReturnValue(db);
 
     const result = await service.listCrashReports('10');
-    expect(result.reports).toEqual([{ id: 'report-2', message: 'failure' }]);
+    expect(result.reports).toEqual([{
+      id: 'report-2',
+      message: 'failure',
+      stack: 'Error: failure',
+      source: 'error',
+      url: 'https://example.test/app',
+      userAgent: 'test-agent',
+      appVersion: '1.2.3',
+      uid: 'user-1',
+      ts: '2026-01-01T00:00:00.000Z',
+    }]);
     expect(result.nextCursor).toBe(Buffer.from('report-2').toString('base64url'));
   });
 
