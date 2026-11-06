@@ -6,15 +6,15 @@ This repository contains four separate runtime applications plus static frontend
 
 | Area | Canonical path | Runtime / owner | Build or deploy boundary |
 |---|---|---|---|
-| User-facing PWA frontend | \`index.html\`, \`styles.css\`, \`js/\`, root static assets | Browser; Firebase Auth/Firestore client | \`node build.js\`; GitHub Pages publishes \`dist/\` |
-| New product API | \`backend/\` | NestJS + TypeScript + MongoDB | \`npm run build --prefix backend\`; separate Render service |
-| Existing owner/admin API | \`server/\` | Express + JavaScript + Firebase Admin | \`npm start --prefix server\`; existing Render service |
-| Firebase Cloud Functions | \`functions/\` | Firebase Functions + Node.js | Firebase deploy pipeline; own package.json |
-| Frontend regression tests | \`tests/\` | Node test runner | Root \`npm test\` |
+| User-facing PWA frontend | index.html, styles.css, js/, root static assets | Browser; Firebase Auth/Firestore client | node build.js; GitHub Pages publishes dist/ |
+| New product API | backend/ | NestJS + TypeScript + MongoDB | npm run build --prefix backend; separate Render service |
+| Existing owner/admin API | server/ | Express + JavaScript + Firebase Admin | npm start --prefix server; existing Render service |
+| Firebase Cloud Functions | functions/ | Firebase Functions + Node.js | Firebase deploy pipeline; own package.json |
+| Frontend regression tests | tests/ | Node test runner | Root npm test |
 
 ## Hard boundaries
-- Never import, bundle, copy, or serve \`backend/\`, \`server/\`, \`functions/\`, \`tests/\`, or any \`node_modules/\` as browser frontend source.
-- Never point the existing Express admin Render service at \`backend/\`; the NestJS API is a separate service.
+- Never import, bundle, copy, or serve backend/, server/, functions/, tests/, or any node_modules/ as browser frontend source.
+- Never point the existing Express admin Render service at backend/; the NestJS API is a separate service.
 - Do not combine package manifests or lockfiles. Install dependencies from the application directory that owns them.
 - Do not move or rename existing source files without updating every import, script reference, build manifest, service-worker precache, CI path, and deployment root in the same reviewed change.
 - The browser frontend currently uses Firestore. The NestJS/MongoDB API is staged; do not imply it is the live data source or silently switch persistence.
