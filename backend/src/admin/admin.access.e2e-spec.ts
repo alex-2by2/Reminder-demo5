@@ -10,6 +10,7 @@ import { OwnerGuard } from './owner.guard';
 describe('AdminController HTTP authorization', () => {
   let app: INestApplication;
   let baseUrl: string;
+  const originalOwnerUids = process.env.OWNER_UIDS;
   const getOverview = jest.fn().mockResolvedValue({ totalUsers: 1 });
   const verifyIdToken = jest.fn(async (token: string) => {
     if (token === 'owner-token') return { uid: 'configured-owner' };
@@ -37,7 +38,8 @@ describe('AdminController HTTP authorization', () => {
 
   afterAll(async () => {
     await app.close();
-    delete process.env.OWNER_UIDS;
+    if (originalOwnerUids === undefined) delete process.env.OWNER_UIDS;
+    else process.env.OWNER_UIDS = originalOwnerUids;
   });
 
   beforeEach(() => {
