@@ -22,24 +22,25 @@ describe('AdminService', () => {
       count: () => ({ get: async () => ({ data: () => ({ count: name === 'users' ? 10 : 2 }) }) }),
       where: () => ({ count: () => ({ get: async () => ({ data: () => ({ count: 2 }) }) }) }),
     }));
-    const payments = {
-      select: () => ({
-        get: async () => ({
-          docs: [
-            { get: (field: string) => field === 'status' ? 'success' : 49900 },
-            { get: (field: string) => field === 'status' ? 'pending' : 49900 },
-            { get: (field: string) => field === 'status' ? 'success' : 'bad-value' },
-          ],
-        }),
-      }),
+    const paymentDocs = [
+      { get: (field: string) => field === 'amount' ? 49900 : undefined },
+      { get: (field: string) => field === 'amount' ? 'bad-value' : undefined },
+    ];
+    const paymentQuery = {
+      where: jest.fn(() => ({
+        select: jest.fn(() => ({
+          get: async () => ({ docs: paymentDocs }),
+        })),
+      })),
     };
     const db = {
       collection: (name: string) => collection(name),
-      collectionGroup: () => payments,
+      collectionGroup: () => paymentQuery,
     };
     firebase.getFirestore.mockReturnValue(db);
 
     const result = await service.getOverview();
+    expect(paymentQuery.where).toHaveBeenCalledWith('status', '==', 'success');
     expect(result).toEqual({
       totalUsers: 10,
       proUsers: 2,
