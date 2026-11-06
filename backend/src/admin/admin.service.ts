@@ -3,6 +3,9 @@ import { FirebaseAdminService } from '../auth/firebase-admin';
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
+const CRASH_REPORT_FIELDS = [
+  'message', 'stack', 'source', 'url', 'userAgent', 'appVersion', 'uid', 'ts',
+] as const;
 
 @Injectable()
 export class AdminService {
@@ -78,7 +81,16 @@ export class AdminService {
       query = query.startAfter(cursorDoc);
     }
     const snapshot = await query.get();
-    const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const reports = snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      const report: Record<string, unknown> = { id: doc.id };
+      for (const field of CRASH_REPORT_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(data, field)) {
+          report[field] = data[field];
+        }
+      }
+      return report;
+    });
     const last = snapshot.docs[snapshot.docs.length - 1];
     return {
       reports,
