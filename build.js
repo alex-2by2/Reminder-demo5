@@ -149,9 +149,12 @@ function main() {
 
   // Fail closed if the browser entry point and bundle manifest ever drift.
   // A count-only check can silently bundle the wrong files in the wrong order.
-  const actualScripts = [...html.matchAll(/<script\\s+src=["'](js\\/[^"']+\\.js)["']\\s+defer><\\/script>/g)]
-    .map((match) => match[1].slice(3));
+  const scriptTagPattern = /<script src="(js\/[^"]+\.js)" defer><\/script>\n?/g;
+  const actualScripts = [...html.matchAll(scriptTagPattern)].map((match) => match[1].slice(3));
   const expectedScripts = FILES_IN_ORDER;
+
+  // Fail closed if the browser entry point and bundle manifest ever drift.
+  // A count-only check can silently bundle the wrong files in the wrong order.
   if (new Set(expectedScripts).size !== expectedScripts.length) {
     throw new Error("FILES_IN_ORDER contains duplicate frontend modules.");
   }
@@ -167,10 +170,6 @@ function main() {
     if (normalized.startsWith("..") || path.isAbsolute(normalized) || !fs.existsSync(path.join(JS_DIR, normalized))) {
       throw new Error("Invalid or missing frontend module: " + name);
     }
-  }
-  const matches = html.match(/<script\\s+src=["']js\\/[^"']+\\.js["']\\s+defer><\\/script>\\n?/g) || [];
-  if (matches.length !== FILES_IN_ORDER.length) {
-    throw new Error("Found an unsupported local frontend script tag. Update FILES_IN_ORDER before building.");
   }
   let replaced = false;
   html = html.replace(scriptTagPattern, () => {
