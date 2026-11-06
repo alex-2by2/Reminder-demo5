@@ -1,4 +1,4 @@
-# App Store Listing — Master Reminder App
+# App Store Listing — Easy Life Tools
 
 Feature #12 ("App store listing") isn't a code change — there's no file to add
 to your repo that makes an app "appear" on Google Play or the App Store.
@@ -28,13 +28,13 @@ one-time fee; Apple is $99/year.
 
 ## 2. Store listing copy (ready to paste)
 
-**App name:** Master Reminder App
+**App name:** Easy Life Tools
 
 **Short description** (Play Store, 80 char max):
 All-in-one reminders, habits, finance & family sharing — plan your whole life
 
 **Full description:**
-Master Reminder App brings your reminders, habits, budget, and family
+Easy Life Tools brings your reminders, habits, budget, and family
 planning into one place.
 
 - Smart reminders & recurring tasks, with AI-assisted scheduling
