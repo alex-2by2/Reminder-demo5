@@ -2,18 +2,20 @@
 
 const crypto = require("crypto");
 
-const CLAIM_LEASE_MS = 2 * 60 * 1000;
+// A longer lease reduces overlap when FCM is slow. It is still a best-effort
+// lease, not a guarantee of exactly-once delivery if a process crashes.
+const CLAIM_LEASE_MS = 5 * 60 * 1000;
 
 function deliveryDocumentId(reminderId, scheduledAt, token) {
   return crypto.createHash("sha256")
-    .update([String(reminderId), String(scheduledAt), String(token)].join("\\0"))
+    .update([String(reminderId), String(scheduledAt), String(token)].join("\0"))
     .digest("hex");
 }
 
 function canClaimDelivery(delivery, now) {
   if (!delivery) return true;
   if (delivery.status === "sent") return false;
-  return !(delivery.leaseUntil && Number(delivery.leaseUntil) > now);
+  return !(Number(delivery.leaseUntil) > now);
 }
 
 function buildReminderPush(reminder) {
