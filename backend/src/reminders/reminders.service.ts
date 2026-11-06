@@ -151,9 +151,14 @@ export class RemindersService {
   }
 
   private validateRepeat(repeat?: string, customRepeat?: { interval: number; type: string }): void {
-    if ((repeat === 'custom' || repeat === 'hourly') && !customRepeat) {
-      throw new BadRequestException('customRepeat is required for custom and hourly reminders.');
+    if (repeat === 'custom' || repeat === 'hourly') {
+      if (!customRepeat) {
+        throw new BadRequestException('customRepeat is required for custom and hourly reminders.');
+      }
+    } else if (customRepeat !== undefined && customRepeat !== null) {
+      throw new BadRequestException('customRepeat is only allowed for custom and hourly reminders.');
     }
+
     if (repeat === 'hourly' && customRepeat?.type !== 'hours') {
       throw new BadRequestException('Hourly reminders must use the hours interval unit.');
     }

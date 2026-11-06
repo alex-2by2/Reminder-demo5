@@ -45,6 +45,53 @@ describe('RemindersService ownership boundaries', () => {
     expect(result).not.toHaveProperty('firebaseUid');
   });
 
+  it('rejects custom recurrence settings for a non-custom repeat type', async () => {
+    const dto = {
+      clientId: 'client-123',
+      task: 'Call customer',
+      time: '2026-11-01T09:00',
+      repeat: 'daily',
+      customRepeat: { interval: 2, type: 'days' },
+    } as CreateReminderDto;
+
+    await expect(service.create(token, dto)).rejects.toMatchObject({
+      status: 400,
+      message: 'customRepeat is only allowed for custom and hourly reminders.',
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('requires an interval for custom recurrence', async () => {
+    const dto = {
+      clientId: 'client-123',
+      task: 'Call customer',
+      time: '2026-11-01T09:00',
+      repeat: 'custom',
+    } as CreateReminderDto;
+
+    await expect(service.create(token, dto)).rejects.toMatchObject({
+      status: 400,
+      message: 'customRepeat is required for custom and hourly reminders.',
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('requires the hours unit for hourly recurrence', async () => {
+    const dto = {
+      clientId: 'client-123',
+      task: 'Call customer',
+      time: '2026-11-01T09:00',
+      repeat: 'hourly',
+      customRepeat: { interval: 2, type: 'days' },
+    } as CreateReminderDto;
+
+    await expect(service.create(token, dto)).rejects.toMatchObject({
+      status: 400,
+      message: 'Hourly reminders must use the hours interval unit.',
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('returns a conflict when the same owner submits a duplicate client ID', async () => {
     create.mockRejectedValue({ code: 11000 });
     const dto = { clientId: 'client-123', task: 'Call customer', time: '2026-11-01T09:00' } as CreateReminderDto;

@@ -128,16 +128,16 @@ export class CreateReminderDto {
 }
 
 export class UpdateReminderDto {
-  @IsOptional() @IsString() @MaxLength(200)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(200)
   task?: string;
 
-  @IsOptional() @IsString() @MaxLength(5000)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(5000)
   notes?: string;
 
-  @IsOptional() @IsString() @MaxLength(80)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(80)
   time?: string;
 
-  @IsOptional() @IsString() @MaxLength(80)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(80)
   timeZone?: string;
 
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsString() @IsIn(REPEATS)
@@ -146,34 +146,34 @@ export class UpdateReminderDto {
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @ValidateNested() @Type(() => CustomRepeatDto)
   customRepeat?: CustomRepeatDto;
 
-  @IsOptional() @IsString() @IsIn(PRIORITIES)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @IsIn(PRIORITIES)
   priority?: string;
 
-  @IsOptional() @IsString() @MaxLength(1000)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(1000)
   tags?: string;
 
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsArray() @ArrayMaxSize(100) @ValidateNested({ each: true }) @Type(() => ReminderSubtaskDto)
   subtasks?: ReminderSubtaskDto[];
 
-  @IsOptional() @ValidateNested() @Type(() => ReminderCategoryDto)
+  @ValidateIf((_object, value) => value !== undefined) @IsDefined() @ValidateNested() @Type(() => ReminderCategoryDto)
   category?: ReminderCategoryDto;
 
   @ValidateIf((_object, value) => value !== undefined) @IsDefined() @IsString() @IsIn(['pending', 'completed'])
   status?: string;
 
-  @IsOptional() @IsBoolean()
+  @ValidateIf((_object, value) => value !== undefined) @IsBoolean()
   pinned?: boolean;
 
-  @IsOptional() @IsBoolean()
+  @ValidateIf((_object, value) => value !== undefined) @IsBoolean()
   archived?: boolean;
 
-  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(525600)
+  @ValidateIf((_object, value) => value !== undefined) @Type(() => Number) @IsInt() @Min(0) @Max(525600)
   preAlarm?: number;
 
-  @IsOptional() @IsString() @MaxLength(320)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(320)
   assignee?: string;
 
-  @IsOptional() @IsString() @MaxLength(128)
+  @ValidateIf((_object, value) => value !== undefined) @IsString() @MaxLength(128)
   project?: string;
 }
 
