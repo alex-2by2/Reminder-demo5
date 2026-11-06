@@ -18,11 +18,11 @@ export class AdminService {
       db.collection('users').where('isProUser', '==', true).count().get(),
       db.collection('crash_reports').count().get(),
       db.collection('users').where('referralCount', '>', 0).count().get(),
-      db.collectionGroup('payments').select('amount', 'status').get(),
+      db.collectionGroup('payments').where('status', '==', 'success').select('amount').get(),
     ]);
     const totalUsers = users.data().count;
     const proUserCount = proUsers.data().count;
-    const successfulPayments = payments.docs.filter((doc) => doc.get('status') === 'success');
+    const successfulPayments = payments.docs;
     const revenuePaise = successfulPayments.reduce((sum, doc) => {
       const amount = doc.get('amount');
       return sum + (typeof amount === 'number' && Number.isFinite(amount) ? amount : 0);
