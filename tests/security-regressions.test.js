@@ -43,17 +43,41 @@ test("Terms gate does not silently fail open on read errors", () => {
   assert.doesNotMatch(source, /fail open rather than locking someone out/);
 });
 
-test("scheduled pushes interpret local reminder times and retry failed sends", () => {
+test("scheduled pushes interpret local reminder times and use per-device delivery leases", () => {
   const functions = read("functions/index.js");
   const reminders = read("js/02-tasks/03-reminders-core.js");
   assert.match(functions, /function parseReminderTimestamp\(value, timeZone\)/);
   assert.match(functions, /parseReminderTimestamp\(reminder\.time, reminder\.timeZone\)/);
   assert.match(functions, /const windowStart = now - 10 \* 60 \* 1000/);
-  assert.match(functions, /timestamp >= windowStart && timestamp <= windowEnd/);
-  assert.match(functions, /if \(result\.successCount > 0\) sentReminderIds\.add/);
-  assert.match(functions, /Leave failed reminders unmarked so the next scheduled run can retry/);
+  assert.match(functions, /scheduledAt < windowStart \\|\\| scheduledAt > windowEnd/);
+  assert.match(functions, /db\.runTransaction\(async \(tx\) =>/);
+  assert.match(functions, /collection\("push_deliveries"\)/);
+  assert.match(functions, /messaging\.send\(/);
+  assert.doesNotMatch(functions, /sendEachForMulticast/);
+  assert.doesNotMatch(functions, /successCount > 0/);
   assert.match(reminders, /timeZone: Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/);
   assert.match(reminders, /pushSent: false/);
   assert.ok(functions.includes(String.raw`/(?:Z|[+-]\d{2}:?\d{2})$/i`), "offset timestamps must match the timezone suffix pattern");
   assert.ok(functions.includes(String.raw`/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/`), "datetime-local values must match the local timestamp pattern");
 });
+
+test("per-device push delivery claims are deterministic and lease-aware", () => {
+  const {
+    CLAIM_LEASE_MS, deliveryDocumentId, canClaimDelivery, buildReminderPush
+  } = require("../functions/push-delivery");
+  const id = deliveryDocumentId("r1", 12345, "token-a");
+  assert.match(id, /^[a-f0-9]{64}$/);
+  assert.equal(deliveryDocumentId("r1", 12345, "token-a"), id);
+  assert.notEqual(deliveryDocumentId("r1", 12345, "token-b"), id);
+  assert.notEqual(deliveryDocumentId("r1", 12346, "token-a"), id);
+  assert.equal(CLAIM_LEASE_MS, 5 * 60 * 1000);
+  assert.equal(canClaimDelivery(null, 100), true);
+  assert.equal(canClaimDelivery({ status: "sent" }, 100), false);
+  assert.equal(canClaimDelivery({ status: "sending", leaseUntil: 200 }, 100), false);
+  assert.equal(canClaimDelivery({ status: "sending", leaseUntil: 99 }, 100), true);
+  const payload = buildReminderPush({ id: 7, task: "Test", notes: "<b>Hello</b>" });
+  assert.equal(payload.notification.body, "Hello");
+  assert.equal(payload.data.reminderId, "7");
+  assert.equal(buildReminderPush({ id: 8, notes: "x".repeat(200) }).notification.body.length, 150);
+});
+
