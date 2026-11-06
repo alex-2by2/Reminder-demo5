@@ -20,6 +20,7 @@ describe('AdminService', () => {
   it('aggregates dashboard metrics and only counts successful numeric payments', async () => {
     const collection = jest.fn((name: string) => ({
       count: () => ({ get: async () => ({ data: () => ({ count: name === 'users' ? 10 : 2 }) }) }),
+      where: () => ({ count: () => ({ get: async () => ({ data: () => ({ count: 2 }) }) }) }),
     }));
     const payments = {
       select: () => ({
