@@ -61,7 +61,7 @@
         const pending = reminders.filter(r => r.status !== 'completed' && r.time);
         if (pending.length === 0) return showToast('No pending tasks to export!', 'error');
         const fmt = (d) => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
-        let ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Master Reminder App//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+        let ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Easy Life Tools//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
         pending.forEach(r => {
             const start = new Date(r.time);
             const end   = new Date(start.getTime() + 3600000);
