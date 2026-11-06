@@ -49,7 +49,7 @@ test("scheduled pushes interpret local reminder times and use per-device deliver
   assert.match(functions, /function parseReminderTimestamp\(value, timeZone\)/);
   assert.match(functions, /parseReminderTimestamp\(reminder\.time, reminder\.timeZone\)/);
   assert.match(functions, /const windowStart = now - 10 \* 60 \* 1000/);
-  assert.match(functions, /timestamp < windowStart \|\| timestamp > windowEnd/);
+  assert.match(functions, /scheduledAt < windowStart \\|\\| scheduledAt > windowEnd/);
   assert.match(functions, /db\.runTransaction\(async \(tx\) =>/);
   assert.match(functions, /collection\("push_deliveries"\)/);
   assert.match(functions, /messaging\.send\(/);
