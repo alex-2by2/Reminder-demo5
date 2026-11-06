@@ -115,13 +115,14 @@ function main() {
   const missingFromSw = [...expected].filter((f) => !swPrecached.has(f));
   const staleInSw = [...swPrecached].filter((f) => !expected.has(f));
   if (missingFromSw.length || staleInSw.length) {
-    console.warn("\n⚠️  sw.js PRECACHE_URLS is out of sync with this file list:");
-    if (missingFromSw.length) console.warn("  Missing from sw.js (will 404 for no one, but offline copy won't include them):", missingFromSw);
-    if (staleInSw.length) console.warn("  Stale in sw.js (files that no longer exist — THIS is the one that breaks install):", staleInSw);
-    console.warn("  Update sw.js's PRECACHE_URLS to match before deploying.\n");
-  } else {
-    console.log("✓ sw.js PRECACHE_URLS matches this file list.");
+    throw new Error(
+      "sw.js PRECACHE_URLS does not match the frontend build manifest. " +
+      "Missing entries: " + JSON.stringify(missingFromSw) +
+      "; stale entries: " + JSON.stringify(staleInSw) +
+      ". Refusing to build a deployment with broken offline caching."
+    );
   }
+  console.log("✓ sw.js PRECACHE_URLS matches this file list.");
 
   let sizeBefore = 0;
   const parts = FILES_IN_ORDER.map((name) => {
@@ -146,14 +147,28 @@ function main() {
   // all HTML/CSS) is untouched.
   const indexHtmlPath = path.join(ROOT, "index.html");
   let html = fs.readFileSync(indexHtmlPath, "utf8");
-  const scriptTagPattern = /<script src="js\/[\w-]+\/[\w-]+\.js" defer><\/script>\n?/g;
-  const matches = html.match(scriptTagPattern) || [];
-  if (matches.length !== FILES_IN_ORDER.length) {
+
+  const scriptTagPattern = /<script src="(js\/[^"]+\.js)" defer><\/script>\n?/g;
+  const actualScripts = [...html.matchAll(scriptTagPattern)].map((match) => match[1].slice(3));
+  const expectedScripts = FILES_IN_ORDER;
+
+  // Fail closed if the browser entry point and bundle manifest ever drift.
+  // A count-only check can silently bundle the wrong files in the wrong order.
+  if (new Set(expectedScripts).size !== expectedScripts.length) {
+    throw new Error("FILES_IN_ORDER contains duplicate frontend modules.");
+  }
+  if (JSON.stringify(actualScripts) !== JSON.stringify(expectedScripts)) {
+    const firstMismatch = expectedScripts.findIndex((file, index) => actualScripts[index] !== file);
     throw new Error(
-      `Expected to find ${FILES_IN_ORDER.length} local <script defer> tags in index.html, found ${matches.length}. ` +
-      `index.html has likely changed since this script was written — update FILES_IN_ORDER/the regex above rather ` +
-      `than trust a partial replace.`
+      "Frontend script manifest mismatch at position " + firstMismatch +
+      ". Keep index.html and FILES_IN_ORDER exactly aligned; refusing to create a partial or misordered bundle."
     );
+  }
+  for (const name of FILES_IN_ORDER) {
+    const normalized = path.normalize(name);
+    if (normalized.startsWith("..") || path.isAbsolute(normalized) || !fs.existsSync(path.join(JS_DIR, normalized))) {
+      throw new Error("Invalid or missing frontend module: " + name);
+    }
   }
   let replaced = false;
   html = html.replace(scriptTagPattern, () => {
