@@ -27,9 +27,9 @@ jobs:
           cache: npm
       - name: Install root dependencies
         run: npm ci
-      - name: Install admin API dependencies
+      - name: Install admin API dependencies (server/)
         run: npm ci --prefix server
-      - name: Install NestJS API dependencies
+      - name: Install NestJS API dependencies (backend/)
         run: npm install --prefix backend --no-package-lock
       - name: Build NestJS API
         run: npm run build --prefix backend
