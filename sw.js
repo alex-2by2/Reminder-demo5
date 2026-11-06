@@ -123,7 +123,7 @@ const CDN_HOSTS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS.map((path) => new URL(path === '/' ? './' : path.replace(/^\\//, ''), self.registration.scope))))
+      .then((cache) => cache.addAll(PRECACHE_URLS.map((path) => new URL(path === '/' ? './' : (path.startsWith('/') ? path.slice(1) : path), self.registration.scope))))
       .then(() => self.skipWaiting())
   );
 });
