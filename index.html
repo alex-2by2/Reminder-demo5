@@ -40,10 +40,10 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-      <link rel="manifest" href="/manifest.json">
+      <link rel="manifest" href="manifest.json">
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then(reg => {
+            navigator.serviceWorker.register(new URL('sw.js', document.baseURI), { scope: new URL('./', document.baseURI).pathname }).then(reg => {
                 // Check for SW update every 30 min
                 setInterval(() => reg.update(), 30 * 60 * 1000);
                 // Background sync registration
