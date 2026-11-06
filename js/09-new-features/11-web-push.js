@@ -25,7 +25,13 @@
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') return showToast('Notification permission denied.', 'error');
             const messaging = firebase.messaging();
-            const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY });
+            // Reuse the app's scoped service worker so background messages work
+            // on both root hosting and GitHub Pages project paths.
+            const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+            const token = await messaging.getToken({
+                vapidKey: FCM_VAPID_KEY,
+                serviceWorkerRegistration
+            });
             if (!token) return showToast('Could not get a push token — try again.', 'error');
             await saveFcmToken(token);
             showToast('Push notifications enabled! 🔔', 'success');
@@ -47,7 +53,11 @@
         if (!currentUser || !firebase.messaging) return;
         try {
             const messaging = firebase.messaging();
-            const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY }).catch(() => null);
+            const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+            const token = await messaging.getToken({
+                vapidKey: FCM_VAPID_KEY,
+                serviceWorkerRegistration
+            }).catch(() => null);
             if (token) {
                 const ref = db.collection('users').doc(currentUser.uid);
                 const doc = await ref.get();
