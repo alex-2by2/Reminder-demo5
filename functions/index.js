@@ -30,6 +30,7 @@ const { defineSecret } = require("firebase-functions/params");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const { CLAIM_LEASE_MS, deliveryDocumentId, canClaimDelivery, buildReminderPush } = require("./push-delivery");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -183,68 +184,103 @@ function parseReminderTimestamp(value, timeZone) {
 
 exports.sendDueReminderPushes = onSchedule("every 5 minutes", async () => {
   const now = Date.now();
-  // Include a small overdue window so a delayed scheduler invocation or a
-  // transient send failure can be retried on the next run.
   const windowStart = now - 10 * 60 * 1000;
   const windowEnd = now + 5 * 60 * 1000;
   const usersSnap = await db.collection("users").get();
   const messaging = admin.messaging();
 
-  for (const doc of usersSnap.docs) {
-    const data = doc.data();
-    const tokens = Array.isArray(data.fcmTokens) ? data.fcmTokens.filter(Boolean) : [];
+  for (const userDoc of usersSnap.docs) {
+    const data = userDoc.data();
+    const tokens = Array.isArray(data.fcmTokens) ? [...new Set(data.fcmTokens.filter(
+      (token) => typeof token === "string" && token
+    ))] : [];
     const reminders = Array.isArray(data.reminders) ? data.reminders : [];
     if (!tokens.length || !reminders.length) continue;
 
-    const due = reminders.filter((reminder) => {
-      if (reminder.archived || reminder.status === "completed" || reminder.pushSent) return false;
-      const timestamp = parseReminderTimestamp(reminder.time, reminder.timeZone);
-      return Number.isFinite(timestamp) && timestamp >= windowStart && timestamp <= windowEnd;
-    });
-    if (!due.length) continue;
+    for (const reminder of reminders) {
+      if (!reminder || reminder.archived || reminder.status === "completed" || reminder.pushSent) continue;
+      const scheduledAt = parseReminderTimestamp(reminder.time, reminder.timeZone);
+      if (!Number.isFinite(scheduledAt) || scheduledAt < windowStart || scheduledAt > windowEnd) continue;
 
-    const sentReminderIds = new Set();
-    const invalidTokens = new Set();
-    for (const reminder of due) {
-      try {
-        const result = await messaging.sendEachForMulticast({
-          notification: {
-            title: "⏰ " + (reminder.task || "Reminder"),
-            body: (reminder.notes || "").replace(/<[^>]*>/g, "").slice(0, 150)
-          },
-          data: { reminderId: String(reminder.id) },
-          tokens
-        });
+      for (const token of tokens) {
+        const deliveryId = deliveryDocumentId(reminder.id, scheduledAt, token);
+        const deliveryRef = db.collection("push_deliveries").doc(deliveryId);
+        const leaseId = crypto.randomUUID();
+        const leaseUntil = Date.now() + CLAIM_LEASE_MS;
+        let candidate = null;
 
-        if (result.successCount > 0) sentReminderIds.add(String(reminder.id));
-        result.responses.forEach((response, index) => {
-          const code = response.error && response.error.code;
-          if (code === "messaging/invalid-registration-token" ||
-              code === "messaging/registration-token-not-registered") {
-            invalidTokens.add(tokens[index]);
+        // Claim one reminder/device pair atomically. Delivery state lives in a
+        // separate collection so whole-array client sync cannot overwrite it.
+        try {
+          await db.runTransaction(async (tx) => {
+            const currentUser = await tx.get(userDoc.ref);
+            const deliveryDoc = await tx.get(deliveryRef);
+            if (!currentUser.exists) return;
+            const currentData = currentUser.data();
+            const currentReminders = Array.isArray(currentData.reminders) ? currentData.reminders : [];
+            const currentReminder = currentReminders.find((item) =>
+              item && String(item.id) === String(reminder.id) &&
+              item.time === reminder.time &&
+              !item.archived && item.status !== "completed" && !item.pushSent
+            );
+            const currentTokens = Array.isArray(currentData.fcmTokens) ? currentData.fcmTokens : [];
+            if (!currentReminder || !currentTokens.includes(token)) return;
+            if (!canClaimDelivery(deliveryDoc.exists ? deliveryDoc.data() : null, Date.now())) return;
+
+            candidate = currentReminder;
+            tx.set(deliveryRef, {
+              uid: userDoc.id,
+              reminderId: String(currentReminder.id),
+              scheduledAt,
+              tokenHash: deliveryId,
+              status: "sending",
+              leaseId,
+              leaseUntil,
+              updatedAt: Date.now()
+            }, { merge: true });
+          });
+        } catch (error) {
+          console.error("Push claim failed for user", userDoc.id, error.message);
+          continue;
+        }
+        if (!candidate) continue;
+
+        try {
+          await messaging.send(Object.assign({}, buildReminderPush(candidate), { token }));
+          await db.runTransaction(async (tx) => {
+            const deliveryDoc = await tx.get(deliveryRef);
+            if (!deliveryDoc.exists || deliveryDoc.data().leaseId !== leaseId) return;
+            tx.set(deliveryRef, {
+              status: "sent",
+              sentAt: Date.now(),
+              leaseUntil: 0,
+              leaseId: admin.firestore.FieldValue.delete(),
+              lastError: admin.firestore.FieldValue.delete(),
+              updatedAt: Date.now()
+            }, { merge: true });
+          });
+        } catch (error) {
+          console.error("Push delivery failed for user", userDoc.id, error.message);
+          try {
+            await db.runTransaction(async (tx) => {
+              const deliveryDoc = await tx.get(deliveryRef);
+              if (!deliveryDoc.exists || deliveryDoc.data().leaseId !== leaseId) return;
+              tx.set(deliveryRef, {
+                status: "pending",
+                leaseUntil: 0,
+                leaseId: admin.firestore.FieldValue.delete(),
+                lastError: String(error.code || error.message || "send-failed").slice(0, 200),
+                updatedAt: Date.now()
+              }, { merge: true });
+            });
+          } catch (releaseError) {
+            console.error("Push lease release failed for user", userDoc.id, releaseError.message);
           }
-        });
-      } catch (error) {
-        // Leave failed reminders unmarked so the next scheduled run can retry.
-        console.error("Push send failed for user", doc.id, error.message);
+        }
       }
     }
-
-    const updates = {};
-    if (sentReminderIds.size) {
-      updates.reminders = reminders.map((reminder) =>
-        sentReminderIds.has(String(reminder.id))
-          ? Object.assign({}, reminder, { pushSent: true })
-          : reminder
-      );
-    }
-    if (invalidTokens.size) {
-      updates.fcmTokens = tokens.filter((token) => !invalidTokens.has(token));
-    }
-    if (Object.keys(updates).length) await doc.ref.update(updates);
   }
-});
-/**
+});/**
  * ============================================================================
  * PAYMENT GATEWAY — Razorpay (chosen for UPI/card/netbanking support for
  * Indian users; swap provider here if you'd rather use Stripe/PayPal instead).
