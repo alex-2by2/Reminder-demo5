@@ -53,7 +53,7 @@
         doc.setFontSize(20);
         doc.setFont(undefined, 'bold');
         doc.setTextColor(0, 122, 255);
-        doc.text("Master Reminder App — Report", marginX, y);
+        doc.text("Easy Life Tools — Report", marginX, y);
         y += 7;
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
