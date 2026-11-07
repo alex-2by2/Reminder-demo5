@@ -92,6 +92,8 @@
     if (page === 'referrals') loadReferrals();
   }
   function showSignedInShell(user) {
+    // Never carry a previously verified owner's UI state across account changes.
+    state.owner = false;
     state.user = user;
     $('loginView').classList.add('hidden');
     $('appView').classList.remove('hidden');
@@ -267,18 +269,10 @@
     try {
       const normalized = normalizeApiUrl($('apiBaseUrl').value);
       state.apiBase = normalized;
-        setConnectionMessage('Checking API health and owner authorization…');
+      setConnectionMessage('Checking API health and owner authorization…');
       await verifyOwnerAccess();
       toast('NestJS API connected and owner access verified.', 'success');
     } catch (error) { setConnectionMessage(error.message, 'error'); showError(error); }
-  }
-  function disconnectApi() {
-    state.apiBase = window.location.origin; state.owner = false;
-    $('apiBaseUrl').value = state.apiBase; setConnectionMessage('Dashboard uses this backend origin.');
-    $('accessBanner').classList.remove('hidden');
-    setText('environmentPill', 'API not connected'); setText('apiStatus', 'Not connected');
-    setText('ownerStatus', 'Not verified'); setText('securityOwner', 'Not verified');
-    ['metricUsers','metricPro','metricPayments','metricRevenue','metricCrashes','metricReferrals'].forEach((id) => setText(id, '—'));
   }
   async function signIn() {
     $('loginError').textContent = '';
