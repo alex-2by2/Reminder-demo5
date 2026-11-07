@@ -39,8 +39,8 @@ The frontend origin is the origin only; do not append `/Reminder-demo5/`.
 
 Do not put an ID token, service-account private key, or MongoDB URI in GitHub, source files, screenshots, or chat.
 
-## Frontend integration boundary
+## Owner dashboard
 
-The Render-generated service URL is not known until the service is created. Once it exists, use that exact HTTPS URL as the NestJS API base URL in the frontend integration change. Do not reuse `https://reminder-demo5.onrender.com`, which belongs to the existing Express service.
+The owner dashboard is packaged under `public/owner/` and served by this same NestJS process at `/owner/`. It calls `/health` and `/api/v1/admin/*` on the same origin; no separate static host or API URL configuration is needed. Open the exact NestJS Render service URL followed by `/owner/`. Add the Render hostname to Firebase Authentication authorized domains if required, and ensure staging `OWNER_UIDS` contains the intended owner UID. Do not use `https://reminder-demo5.onrender.com`, which belongs to the legacy Express service.
 
 Keep current Firestore reads and writes unchanged until the MongoDB integration has passed the tests above and a separate migration/cutover plan has been reviewed.
