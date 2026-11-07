@@ -22,6 +22,7 @@
   }
   function setText(id, value) { $(id).textContent = value == null ? '—' : String(value); }
   function showError(error) {
+    if (error && error.code === 'STALE_AUTH_SESSION') return;
     const message = error && error.message ? error.message : 'Something went wrong. Please try again.';
     toast(message, 'error');
   }
@@ -58,8 +59,14 @@
   async function api(path, options, userOverride) {
     if (!state.apiBase) throw new Error('Configure the NestJS API URL first.');
     const requestUser = userOverride || state.user;
-    if (!requestUser) throw new Error('Sign in again to continue.');
+    const requestGeneration = state.authGeneration;
+    if (!requestUser || state.user !== requestUser) throw new Error('Sign in again to continue.');
     const token = await requestUser.getIdToken();
+    if (state.authGeneration !== requestGeneration || state.user !== requestUser) {
+      const error = new Error('The account changed while this request was starting.');
+      error.code = 'STALE_AUTH_SESSION';
+      throw error;
+    }
     const response = await fetch(state.apiBase + path, {
       method: (options && options.method) || 'GET',
       headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/json' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
@@ -70,6 +77,11 @@
     let payload = null;
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) payload = await response.json();
+    if (state.authGeneration !== requestGeneration || state.user !== requestUser) {
+      const error = new Error('The account changed before this response completed.');
+      error.code = 'STALE_AUTH_SESSION';
+      throw error;
+    }
     if (response.status === 401) {
       if (state.user === requestUser) await auth.signOut();
       throw new Error('Session expired or token rejected. Please sign in again.');
