@@ -1,54 +1,42 @@
-# Owner Dashboard Integration Plan
+# Owner Dashboard Integration
 
-Status: first standalone frontend implementation is in `owner-dashboard/`. It is not yet hosted or connected to a staging/production API.
+Status: integrated into the unified NestJS backend. The dashboard is served by the same backend process; it is not a separate static application or deployment.
 
-## Implemented frontend
+## Runtime
 
-- Separate static application entry: `owner-dashboard/index.html`.
-- Liquid Glass responsive UI: `owner-dashboard/styles.css`.
-- Firebase Google sign-in and authenticated NestJS API client: `owner-dashboard/app.js`.
-- Overview, Users, Crash Reports, Referrals, and Connection & Security screens.
-- Overview consumes the existing admin metrics endpoint.
-- Users supports paginated loading, client-side filtering, and confirmation before enable/disable.
-- Crash reports supports cursor pagination and only displays fields returned by the API.
-- Referrals displays the backend leaderboard.
-- API base URL is entered by the owner, validated as HTTPS origin-only, and stored locally on that device. The legacy Express Render URL is explicitly rejected.
-- Firebase ID tokens are requested from Firebase for each API call and are not manually stored by the dashboard.
-- A non-owner is denied by the NestJS owner guard; frontend visibility is not treated as authorization.
+- Static entry point: `backend/public/owner/index.html`
+- Liquid Glass styles: `backend/public/owner/styles.css`
+- Firebase auth and API client: `backend/public/owner/app.js`
+- URL: `/owner/` on the NestJS service's own origin.
+- API base: `window.location.origin`; same-origin only, no separate URL setting or CORS dependency for dashboard requests.
+- NestJS serves static assets from `backend/public/` using the `/owner/` prefix.
 
-## Authentication and API contract
+## Dashboard capabilities
 
-The dashboard uses the existing Firebase project client configuration and Google popup sign-in. Each request sends `Authorization: Bearer <Firebase ID token>` to the NestJS API. The API independently verifies the token and checks the server-side owner allowlist.
+- Overview metrics from `GET /api/v1/admin/overview`.
+- Users directory with pagination and local filtering from `GET /api/v1/admin/users`.
+- Enable/disable account with confirmation through `PATCH /api/v1/admin/users/:uid`.
+- Crash reports with cursor pagination from `GET /api/v1/admin/crash-reports`.
+- Referral leaderboard from `GET /api/v1/admin/referrals`.
+- Firebase Google sign-in and owner access verification through `GET /api/v1/admin/access`.
 
-Implemented API calls:
-- `GET /health`
-- `GET /api/v1/admin/access`
-- `GET /api/v1/admin/overview`
-- `GET /api/v1/admin/users?limit=50&pageToken=...`
-- `PATCH /api/v1/admin/users/:uid`
-- `GET /api/v1/admin/crash-reports?limit=30&cursor=...`
-- `GET /api/v1/admin/referrals?limit=100`
+## Security model
 
-## Required before a live browser connection
+- Firebase client authentication obtains an ID token; each API request sends it as a bearer token.
+- NestJS verifies token validity/revocation and checks the server-side owner UID/email allowlist.
+- The dashboard never trusts client-side role fields and has no Firebase Admin or MongoDB credentials.
+- Browser dashboard and API share one origin. Cross-origin API clients remain subject to the explicit `FRONTEND_ORIGINS` allowlist.
+- Helmet CSP permits only the Firebase Auth SDK and required Firebase/Google identity endpoints; popup compatibility is configured through COOP.
+- Dashboard assets are not added to the end-user PWA build or service-worker cache.
 
-1. Deploy this directory as a separate static site; do not include it in the existing end-user PWA bundle or service-worker scope.
-2. Add the exact deployed dashboard origin to NestJS `FRONTEND_ORIGINS` for the relevant environment.
-3. Add the dashboard hostname to Firebase Authentication authorized domains if required by the hosting domain.
-4. Enter the exact staging `easy-life-tools-api` Render URL in the dashboard. Never use `https://reminder-demo5.onrender.com`, which is the legacy Express service.
-5. Confirm staging `OWNER_UIDS` contains the intended owner UID.
-6. Run owner and non-owner sign-in tests, token expiry/revocation tests, CORS tests, account status action tests, and pagination tests using staging data only.
+## Deploy and verify
 
-## Security and data boundaries
+1. Deploy the existing `easy-life-tools-api` NestJS Render service with this branch after CI passes.
+2. Open the exact service URL followed by `/owner/`. Never use the legacy Express service URL.
+3. Add the Render hostname to Firebase Authentication authorized domains if it is not already authorized.
+4. Confirm staging `OWNER_UIDS` contains the intended owner UID.
+5. Test missing/invalid/revoked token, non-owner denial, owner access, dashboard asset loading, overview, user pagination, crash cursor pagination, and account action confirmation.
+6. Verify the deployed CSP allows the Firebase Google sign-in flow without relaxing it globally.
+7. Keep Firestore-to-MongoDB migration, legacy Express service removal, and production data cutover as separately approved activities.
 
-- No Firebase Admin credentials, MongoDB URI, service-account private key, or owner allowlist is included in the browser.
-- No fake data or fabricated metrics are shown.
-- API responses remain the source of truth; private Firestore profile fields are not fetched directly by the dashboard.
-- The existing PWA Firestore persistence, Firebase Security Rules, Render services, and production data are unchanged.
-- Firestore-to-MongoDB migration and production cutover remain separately reviewed release activities.
-
-## Remaining implementation/release work
-
-- Host the dashboard separately and configure the exact CORS/Firebase authorized origins.
-- Verify the deployed dashboard against the staging NestJS service.
-- Add automated browser-level tests for sign-in, owner denial, route navigation, API failures, and account-action confirmation.
-- Keep PR #26 draft until these gates pass. No production deployment or data cutover is authorized.
+No dashboard static hosting service or separate dashboard deployment is needed.
