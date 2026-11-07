@@ -31,6 +31,8 @@ jobs:
         run: npm ci --prefix server
       - name: Install NestJS API dependencies (backend/)
         run: npm install --prefix backend --no-package-lock
+      - name: Type-check NestJS API
+        run: npm run typecheck --prefix backend
       - name: Build NestJS API
         run: npm run build --prefix backend
       - name: Run backend tests
