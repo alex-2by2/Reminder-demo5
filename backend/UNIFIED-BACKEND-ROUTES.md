@@ -57,10 +57,13 @@ these endpoints are wired into a browser UI.
 
 1. Pass backend build, unit tests, existing application tests, syntax checks,
    and production bundle build in CI.
-2. Add controller-level tests proving unauthenticated and non-owner requests
-   cannot reach owner handlers.
+2. Exercise the real NestJS HTTP guard chain and prove requests without a token,
+   with an invalid token, or from a non-owner cannot reach owner handlers; verify
+   that an allowlisted owner can reach the handler.
 3. Validate all owner list/detail responses against the legacy response
-   contract and ensure no private user document fields are exposed.
+   contract and ensure no private user document fields are exposed. Crash reports
+   are allowlisted to the fields produced by the current client, and pagination
+   cursor behavior has both malformed- and valid-cursor tests.
 4. Complete the frontend owner dashboard/client and verify exact API origin,
    CORS allowlist, token refresh, and error handling.
 5. Deploy and exercise the NestJS API in a separate staging environment with
