@@ -286,16 +286,28 @@
         list.appendChild(row);
       });
       if (!referrals.length) list.appendChild(node('p', 'empty-cell', 'No referral activity yet.'));
-    } catch (error) { showError(error); $('referralList').replaceChildren(); }
+    } catch (error) {
+      if (error && error.code === 'STALE_AUTH_SESSION') return;
+      showError(error);
+      $('referralList').replaceChildren();
+    }
   }
   async function saveApiConnection() {
+    const generation = state.authGeneration;
+    const user = state.user;
     try {
       const normalized = normalizeApiUrl($('apiBaseUrl').value);
       state.apiBase = normalized;
       setConnectionMessage('Checking API health and owner authorization…');
-      await verifyOwnerAccess();
-      toast('NestJS API connected and owner access verified.', 'success');
-    } catch (error) { setConnectionMessage(error.message, 'error'); showError(error); }
+      const verified = await verifyOwnerAccess(generation, user);
+      if (state.authGeneration !== generation || state.user !== user) return;
+      if (verified) toast('NestJS API connected and owner access verified.', 'success');
+    } catch (error) {
+      if (error && error.code === 'STALE_AUTH_SESSION') return;
+      if (state.authGeneration !== generation || state.user !== user) return;
+      setConnectionMessage(error.message, 'error');
+      showError(error);
+    }
   }
   async function signIn() {
     $('loginError').textContent = '';
