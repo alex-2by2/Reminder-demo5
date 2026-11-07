@@ -1,26 +1,15 @@
 # Owner Dashboard UI Design System
 
-The owner dashboard uses a modern, restrained Liquid Glass visual language.
+The owner console is hosted by the unified NestJS backend at `/owner/`.
 
 - Dark graphite/navy canvas with soft indigo and teal ambient lighting.
-- Translucent panels with selective 20–24px backdrop blur, subtle one-pixel glass edges, and low-opacity depth shadows.
-- Dense tables remain more opaque for legibility; blur is reserved for navigation, headers, and elevated panels.
-- Desktop sidebar, responsive tablet layout, mobile bottom navigation, safe-area spacing, and touch targets of at least 44px.
-- Metric cards, users directory, crash report feed, referral leaderboard, and connection/security settings.
-- Clear loading, empty, error, and disconnected states. No fake metrics or demo records.
-- Keyboard navigation, visible focus, reduced-motion support, contrast-aware text, and solid fallbacks when backdrop-filter is unavailable.
-- Destructive account actions require confirmation; client-side route hiding is never treated as authorization.
-
-## Runtime security and integration
-
-- Firebase client authentication is used only to obtain a user identity token.
-- Every API request sends a current Firebase ID token over HTTPS; the token is not manually persisted.
-- NestJS independently verifies the token and owner allowlist before returning owner data.
-- No service-account credentials, MongoDB URI, or owner allowlist is shipped to the browser.
-- Configure the exact dashboard origin in NestJS `FRONTEND_ORIGINS` before browser API requests can succeed.
-- The API base URL must be the exact NestJS `easy-life-tools-api` Render origin. The legacy Express URL is rejected by the dashboard client.
-- Host this directory as a separate static application. Do not include it in the user PWA bundle or change its service-worker scope.
-
-## Release gate
-
-Before connecting staging or production data, verify the staging API URL, exact dashboard origin, Firebase authorized domain, and staging owner UID allowlist. Exercise owner and non-owner sign-in, 401/403 handling, user pagination, crash cursor paging, account disable confirmation, and CORS from the deployed dashboard origin.
+- Translucent panels with selective 20–24px backdrop blur, subtle glass edges, and low-opacity depth shadows.
+- Dense tables remain more opaque for legibility.
+- Desktop sidebar, tablet layout, mobile bottom navigation, and responsive touch targets.
+- Overview metrics, users directory, crash report feed, referral leaderboard, and connection/security status.
+- Loading, empty, error, and disconnected states; no fake metrics or demo records.
+- Keyboard navigation, visible focus, reduced-motion support, and solid fallbacks when backdrop-filter is unavailable.
+- Destructive account actions require confirmation; backend authorization remains authoritative.
+- The dashboard and API use the same HTTPS origin. No API URL, CORS wildcard, or separate dashboard host is required.
+- Firebase client SDK is loaded from the pinned Firebase CDN; CSP is restricted to the Firebase/Google identity resources required for authentication.
+- Keep these assets out of the end-user PWA bundle and its service-worker scope.
