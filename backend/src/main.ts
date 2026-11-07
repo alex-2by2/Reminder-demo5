@@ -61,6 +61,9 @@ async function bootstrap(): Promise<void> {
   }
 
   app.use(rateLimit({
+    // CORS preflight is transport negotiation, not an application API operation.
+    // Do not consume the authenticated API request budget for OPTIONS requests.
+    skip: (request) => request.method === 'OPTIONS',
     windowMs: 60_000,
     limit: 120,
     standardHeaders: 'draft-7',
