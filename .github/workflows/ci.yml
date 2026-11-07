@@ -42,6 +42,6 @@ jobs:
       - name: Syntax-check JavaScript
         shell: bash
         run: |
-          find js functions server tests owner-dashboard -type d -name node_modules -prune -o -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          find js functions server tests backend/public/owner -type d -name node_modules -prune -o -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Verify production bundle build
         run: node build.js
