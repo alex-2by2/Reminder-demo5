@@ -9,7 +9,7 @@
     appId: '1:813515230126:web:dde11175645257dc44d63f'
   };
   const $ = (id) => document.getElementById(id);
-  const state = { user: null, apiBase: window.location.origin, owner: false, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview' };
+  const state = { user: null, apiBase: window.location.origin, owner: false, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
   const authApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
   const auth = authApp.auth();
 
@@ -55,10 +55,11 @@
     if (url.origin !== window.location.origin) throw new Error('The dashboard and API must use the same backend origin.');
     return url.origin;
   }
-  async function api(path, options) {
+  async function api(path, options, userOverride) {
     if (!state.apiBase) throw new Error('Configure the NestJS API URL first.');
-    if (!state.user) throw new Error('Sign in again to continue.');
-    const token = await state.user.getIdToken();
+    const requestUser = userOverride || state.user;
+    if (!requestUser) throw new Error('Sign in again to continue.');
+    const token = await requestUser.getIdToken();
     const response = await fetch(state.apiBase + path, {
       method: (options && options.method) || 'GET',
       headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/json' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
@@ -70,7 +71,7 @@
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) payload = await response.json();
     if (response.status === 401) {
-      await auth.signOut();
+      if (state.user === requestUser) await auth.signOut();
       throw new Error('Session expired or token rejected. Please sign in again.');
     }
     if (response.status === 403) throw new Error('Access denied. This Firebase account is not on the backend owner allowlist.');
@@ -92,7 +93,8 @@
     if (page === 'referrals') loadReferrals();
   }
   function showSignedInShell(user) {
-    // Never carry a previously verified owner's UI state across account changes.
+    // Invalidate pending authorization checks from the previous Firebase session.
+    const generation = ++state.authGeneration;
     state.owner = false;
     state.user = user;
     $('loginView').classList.add('hidden');
@@ -103,9 +105,12 @@
     setText('firebaseStatus', 'Authenticated');
     $('apiBaseUrl').value = state.apiBase;
     setPage('overview');
-    if (state.apiBase) verifyOwnerAccess().catch(showError);
+    if (state.apiBase) verifyOwnerAccess(generation, user).catch((error) => {
+      if (state.authGeneration === generation && state.user === user) showError(error);
+    });
   }
-  async function verifyOwnerAccess() {
+  async function verifyOwnerAccess(generation = state.authGeneration, user = state.user) {
+    if (!user || state.user !== user || state.authGeneration !== generation) return false;
     if (!state.apiBase) {
       setText('ownerStatus', 'Not verified');
       setText('apiStatus', 'Not configured');
@@ -118,7 +123,8 @@
     try {
       const health = await fetch(state.apiBase + '/health', { cache: 'no-store', credentials: 'omit' });
       if (!health.ok) throw new Error('API health check returned HTTP ' + health.status + '.');
-      const access = await api('/api/v1/admin/access');
+      const access = await api('/api/v1/admin/access', undefined, user);
+      if (state.authGeneration !== generation || state.user !== user) return false;
       if (!access || access.access !== 'owner' || !access.uid) throw new Error('The API did not confirm owner access.');
       state.owner = true;
       $('accessBanner').classList.add('hidden');
@@ -130,9 +136,10 @@
       setText('environmentPill', 'NestJS · Connected');
       setText('securityEnvironment', new URL(state.apiBase).host);
       setConnectionMessage('Owner access verified. Dashboard data can now load.', 'success');
-      if (state.page === 'overview') await loadOverview();
+      if (state.page === 'overview' && state.authGeneration === generation && state.user === user) await loadOverview();
       return true;
     } catch (error) {
+      if (state.authGeneration !== generation || state.user !== user) return false;
       state.owner = false;
       setText('ownerStatus', 'Not authorized');
       setText('securityOwner', 'Not verified');
@@ -283,7 +290,7 @@
       $('loginError').textContent = error.code === 'auth/popup-closed-by-user' ? 'Sign-in window was closed.' : error.message || 'Sign-in failed.';
     }
   }
-  async function signOut() { await auth.signOut(); state.owner = false; }
+  async function signOut() { ++state.authGeneration; state.owner = false; await auth.signOut(); }
   function bindEvents() {
     $('googleSignIn').addEventListener('click', signIn);
     $('profileButton').addEventListener('click', signOut);
@@ -310,6 +317,7 @@
   auth.onAuthStateChanged((user) => {
     if (user) showSignedInShell(user);
     else {
+      ++state.authGeneration;
       state.user = null; state.owner = false;
       $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden');
       setText('firebaseStatus', 'Signed out');
