@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AddressInfo } from 'node:net';
 import { AdminController } from './admin.controller';
@@ -13,6 +13,7 @@ describe('AdminController HTTP authorization', () => {
   const originalOwnerUids = process.env.OWNER_UIDS;
   const getOverview = jest.fn().mockResolvedValue({ totalUsers: 1 });
   const verifyIdToken = jest.fn(async (token: string) => {
+    if (token === 'invalid-token') throw new UnauthorizedException('Invalid token.');
     if (token === 'owner-token') return { uid: 'configured-owner' };
     return { uid: 'ordinary-user' };
   });
@@ -53,6 +54,16 @@ describe('AdminController HTTP authorization', () => {
     expect(response.status).toBe(401);
     expect(getOverview).not.toHaveBeenCalled();
     expect(verifyIdToken).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid Firebase tokens before the handler runs', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/admin/overview`, {
+      headers: { Authorization: 'Bearer invalid-token' },
+    });
+
+    expect(response.status).toBe(401);
+    expect(getOverview).not.toHaveBeenCalled();
+    expect(verifyIdToken).toHaveBeenCalledWith('invalid-token');
   });
 
   it('rejects authenticated non-owners before the handler runs', async () => {
