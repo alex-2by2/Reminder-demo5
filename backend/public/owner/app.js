@@ -193,7 +193,11 @@
       renderUsers();
       setText('usersPageInfo', 'Page ' + state.usersPage + ' · ' + state.users.length + ' loaded');
       $('usersNext').disabled = !state.usersToken;
-    } catch (error) { showError(error); $('usersBody').replaceChildren(); }
+    } catch (error) {
+      if (error && error.code === 'STALE_AUTH_SESSION') return;
+      showError(error);
+      $('usersBody').replaceChildren();
+    }
   }
   function renderUsers() {
     const body = $('usersBody');
