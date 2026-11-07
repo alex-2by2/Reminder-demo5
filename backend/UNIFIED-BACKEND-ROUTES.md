@@ -17,6 +17,26 @@ cutover, Firestore migration, or deletion of the legacy Express service.
 - Firebase Cloud Functions remain separate for scheduled push delivery and
   callable functions until each responsibility has a reviewed replacement.
 
+## Current NestJS user routes
+
+All user routes require `Authorization: Bearer <Firebase ID token>`.
+The authenticated Firebase UID is taken from the verified token; request-body
+UIDs and client-supplied roles are not used as ownership authority.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/me` | Create or return the signed-in user's MongoDB profile |
+| POST | `/api/v1/reminders` | Create a reminder for the signed-in user |
+| GET | `/api/v1/reminders` | List that user's active reminders with pagination and optional status filter |
+| GET | `/api/v1/reminders/:id` | Read one reminder owned by the signed-in user |
+| PATCH | `/api/v1/reminders/:id` | Update one reminder owned by the signed-in user |
+| DELETE | `/api/v1/reminders/:id` | Soft-delete one reminder owned by the signed-in user |
+| PATCH | `/api/v1/reminders/:id/restore` | Restore one previously deleted reminder owned by the signed-in user |
+
+Reminder queries always include the verified `firebaseUid`; records belonging
+to another account are returned as not found. Reminder ownership is assigned
+by the API from the verified token, never from client payload fields.
+
 ## Current NestJS owner routes
 
 All routes include the global `/api/v1` prefix and require
