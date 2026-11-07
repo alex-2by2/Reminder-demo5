@@ -1,6 +1,6 @@
 # NestJS API — Render deployment
 
-This service is deployed independently from the existing Express owner/admin API.
+This is the unified NestJS product API for authenticated end users and the owner dashboard. The owner console is served by the same service at `/owner/`. The legacy Express service remains separate until a reviewed production cutover.
 
 ## Render Blueprint
 
@@ -21,7 +21,7 @@ Configure these in the **easy-life-tools-api** Render service settings. Never co
 | Variable | Required value |
 |---|---|
 | `NODE_ENV` | `production` |
-| `FRONTEND_ORIGINS` | `https://alex-2by2.github.io` |
+| `FRONTEND_ORIGINS` | Exact cross-origin clients only (for example, the existing PWA origin); the same-origin owner dashboard does not require CORS |
 | `MONGODB_URI` | MongoDB Atlas connection string for a dedicated least-privilege database user |
 | `FIREBASE_PROJECT_ID` | Existing Firebase project ID |
 | `FIREBASE_CLIENT_EMAIL` | Dedicated Firebase service-account email |
@@ -35,7 +35,7 @@ The frontend origin is the origin only; do not append `/Reminder-demo5/`.
 2. Open the service's generated Render URL followed by `/health`. Expect HTTP 200 and `{"status":"ok","service":"easy-life-tools-api"}`.
 3. In a secure authenticated test client, obtain a Firebase ID token and call `GET /api/v1/me` with `Authorization: Bearer <token>`. Expect a profile for the verified Firebase UID.
 4. Test reminder create, list, read, update, soft-delete, and restore with a dedicated test account. Verify persisted records in the intended MongoDB database and confirm a second Firebase account cannot read or mutate the first account's reminders.
-5. Verify invalid/missing tokens are rejected and browser preflight from the exact GitHub Pages origin succeeds.
+5. Open `/owner/` on the NestJS service and verify same-origin dashboard assets, Google sign-in, owner access, and API requests. Verify invalid/missing tokens are rejected and browser preflight from any cross-origin PWA origin succeeds.
 
 Do not put an ID token, service-account private key, or MongoDB URI in GitHub, source files, screenshots, or chat.
 
