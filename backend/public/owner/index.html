@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101522">
+  <meta name="description" content="Easy Life Tools secure owner dashboard">
+  <title>Easy Life Tools · Owner Console</title>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/owner/styles.css">
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script defer src="/owner/app.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <main id="loginView" class="login-wrap">
+    <section class="login-card glass">
+      <div class="brand-mark">EL</div>
+      <p class="eyebrow">KEYNOTE INFOTECH · OWNER ACCESS</p>
+      <h1>Easy Life <span>Console</span></h1>
+      <p class="muted">A secure command center for your platform.</p>
+      <button id="googleSignIn" class="button primary full">Continue with Google</button>
+      <p class="login-note">Access is restricted by the backend owner allowlist. Signing in alone does not grant admin access.</p>
+      <p id="loginError" class="error-text" role="alert"></p>
+    </section>
+  </main>
+
+  <div id="appView" class="app-shell hidden">
+    <aside id="sidebar" class="sidebar glass">
+      <div class="brand-row"><div class="brand-mark small">EL</div><div><strong>Easy Life</strong><small>OWNER CONSOLE</small></div></div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-page="overview"><span>◫</span> Overview</button>
+        <button class="nav-item" data-page="users"><span>♙</span> Users</button>
+        <button class="nav-item" data-page="crashes"><span>⌁</span> Crash reports</button>
+        <button class="nav-item" data-page="referrals"><span>↗</span> Referrals</button>
+        <button class="nav-item" data-page="settings"><span>⚙</span> Connection & security</button>
+      </nav>
+      <div class="sidebar-bottom"><span class="secure-dot"></span><span>Protected owner session</span></div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar glass">
+        <div class="mobile-brand"><div class="brand-mark small">EL</div><strong>Easy Life</strong></div>
+        <div class="breadcrumb"><span>Owner Console</span><b>/</b><strong id="pageCrumb">Overview</strong></div>
+        <div class="top-actions"><span id="environmentPill" class="environment">API not connected</span><button id="refreshButton" class="icon-button" title="Refresh data" aria-label="Refresh data">↻</button><button id="profileButton" class="profile-button" title="Sign out"><span id="avatarInitial">O</span><span id="ownerEmail">Owner</span></button></div>
+      </header>
+
+      <div class="content">
+        <section id="accessBanner" class="notice glass"><span class="notice-icon">◇</span><div><strong>Owner access is protected</strong><p>Sign in with an account configured in the backend owner allowlist to view live platform data.</p></div><button class="button secondary" data-go="settings">Owner settings</button></section>
+
+        <section id="page-overview" class="page">
+          <div class="page-heading"><div><p class="eyebrow">PLATFORM PULSE</p><h1>Good to see you.</h1><p class="muted">Your platform at a glance. Live figures load from your secured API.</p></div><span class="updated-label" id="lastUpdated">Waiting for connection</span></div>
+          <div class="metric-grid">
+            <article class="metric-card glass"><div class="metric-top"><span>Total users</span><i>♙</i></div><strong id="metricUsers">—</strong><small>Registered accounts</small></article>
+            <article class="metric-card glass"><div class="metric-top"><span>Pro members</span><i>✧</i></div><strong id="metricPro">—</strong><small>Active Pro profiles</small></article>
+            <article class="metric-card glass"><div class="metric-top"><span>Successful payments</span><i>₹</i></div><strong id="metricPayments">—</strong><small>Confirmed transactions</small></article>
+            <article class="metric-card glass"><div class="metric-top"><span>Revenue</span><i>⌁</i></div><strong id="metricRevenue">—</strong><small>Recorded successful payments</small></article>
+            <article class="metric-card glass"><div class="metric-top"><span>Crash reports</span><i>!</i></div><strong id="metricCrashes">—</strong><small>Reported app issues</small></article>
+            <article class="metric-card glass"><div class="metric-top"><span>Referred users</span><i>↗</i></div><strong id="metricReferrals">—</strong><small>Users with referrals</small></article>
+          </div>
+          <div class="panel glass"><div class="panel-heading"><div><h2>Platform health</h2><p class="muted">Connection and access status</p></div><span id="healthStatus" class="status-chip neutral">Not checked</span></div><div class="health-row"><span>Firebase identity</span><strong id="firebaseStatus">Signed out</strong></div><div class="health-row"><span>Owner authorization</span><strong id="ownerStatus">Not verified</strong></div><div class="health-row"><span>NestJS API</span><strong id="apiStatus">Not connected</strong></div></div>
+        </section>
+
+        <section id="page-users" class="page hidden">
+          <div class="page-heading"><div><p class="eyebrow">ACCOUNT DIRECTORY</p><h1>User management</h1><p class="muted">Review account status and manage access safely.</p></div><button class="button secondary" id="usersReload">Refresh list</button></div>
+          <div class="panel glass"><div class="table-toolbar"><div><h2>Registered users</h2><p class="muted">Limited profile fields returned by the owner API.</p></div><input id="userSearch" class="search-input" type="search" placeholder="Search name, email or UID" aria-label="Search users"></div><div class="table-wrap"><table><thead><tr><th>Account</th><th>UID</th><th>Joined</th><th>Plan</th><th>Email</th><th>Status</th><th>Action</th></tr></thead><tbody id="usersBody"><tr><td colspan="7" class="empty-cell">Connect the API to load users.</td></tr></tbody></table></div><div class="pagination"><span id="usersPageInfo">No data loaded</span><button class="button secondary small" id="usersNext" disabled>Next page →</button></div></div>
+        </section>
+
+        <section id="page-crashes" class="page hidden">
+          <div class="page-heading"><div><p class="eyebrow">RELIABILITY</p><h1>Crash reports</h1><p class="muted">Review recent client error reports.</p></div><button class="button secondary" id="crashesReload">Refresh</button></div>
+          <div class="panel glass"><div class="panel-heading"><div><h2>Recent reports</h2><p class="muted">Sensitive fields are filtered by the API.</p></div><span id="crashCount" class="status-chip neutral">0 reports</span></div><div id="crashList" class="report-list"><p class="empty-cell">Connect the API to load reports.</p></div><div class="pagination"><span id="crashPageInfo">No data loaded</span><button class="button secondary small" id="crashesNext" disabled>Next page →</button></div></div>
+        </section>
+
+        <section id="page-referrals" class="page hidden">
+          <div class="page-heading"><div><p class="eyebrow">GROWTH</p><h1>Referral leaderboard</h1><p class="muted">See accounts contributing referrals.</p></div><button class="button secondary" id="referralsReload">Refresh</button></div>
+          <div class="panel glass"><div class="panel-heading"><div><h2>Top referrers</h2><p class="muted">Ranked by referral count.</p></div></div><div id="referralList" class="referral-list"><p class="empty-cell">Connect the API to load referrals.</p></div></div>
+        </section>
+
+        <section id="page-settings" class="page hidden">
+          <div class="page-heading"><div><p class="eyebrow">CONTROL PLANE</p><h1>Connection & security</h1><p class="muted">Inspect the backend connection and your owner session.</p></div></div>
+          <div class="settings-grid"><div class="panel glass"><h2>NestJS API connection</h2><p class="muted">The dashboard is served by this NestJS backend. All API requests use this same HTTPS origin; no separate API URL is required.</p><label for="apiBaseUrl">API base URL</label><input id="apiBaseUrl" class="text-input" type="url" readonly aria-readonly="true"><p class="field-help">Same-origin mode: dashboard and API share one backend host. This field is read-only.</p><div class="button-row"><button id="saveApiButton" class="button primary">Verify backend connection</button></div><p id="connectionMessage" class="inline-message" role="status"></p></div>
+          <div class="panel glass"><h2>Owner session</h2><div class="security-line"><span>Signed-in account</span><strong id="securityEmail">—</strong></div><div class="security-line"><span>Backend owner check</span><strong id="securityOwner">Not verified</strong></div><div class="security-line"><span>Token handling</span><strong>Firebase-managed · not stored by dashboard</strong></div><div class="security-line"><span>Environment</span><strong id="securityEnvironment">Not configured</strong></div><button id="signOutButton" class="button danger-outline">Sign out</button></div></div>
+        </section>
+      </div>
+      <footer class="footer"><span>Easy Life Tools · Keynote Infotech</span><span>Secure owner workspace</span></footer>
+    </section>
+  </div>
+
+  <dialog id="confirmDialog" class="confirm-dialog glass"><form method="dialog"><p class="eyebrow">ACCOUNT ACCESS</p><h2 id="confirmTitle">Confirm action</h2><p id="confirmText" class="muted"></p><div class="button-row end"><button class="button secondary" value="cancel">Cancel</button><button id="confirmAction" class="button danger" value="confirm">Confirm</button></div></form></dialog>
+  <div id="toastRegion" class="toast-region" role="status" aria-live="polite"></div>
+</body>
+</html>
