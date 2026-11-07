@@ -86,7 +86,7 @@ export class AdminService {
       const report: Record<string, unknown> = { id: doc.id };
       for (const field of CRASH_REPORT_FIELDS) {
         if (Object.prototype.hasOwnProperty.call(data, field)) {
-          report[field] = data[field];
+          report[field] = field === 'url' ? this.sanitizeCrashUrl(data[field]) : data[field];
         }
       }
       return report;
@@ -111,6 +111,20 @@ export class AdminService {
         referralCount: Number(doc.get('referralCount')) || 0,
       })),
     };
+  }
+
+  private sanitizeCrashUrl(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+      // Query strings and fragments can contain tokens, identifiers, or user-entered data.
+      url.search = '';
+      url.hash = '';
+      return url.toString();
+    } catch {
+      return null;
+    }
   }
 
   private parseLimit(value: string | undefined, fallback: number): number {
