@@ -158,7 +158,7 @@ describe('AdminService', () => {
         message: 'failure',
         stack: 'Error: failure',
         source: 'error',
-        url: 'https://example.test/app',
+        url: 'https://example.test/app?access_token=secret#private',
         userAgent: 'test-agent',
         appVersion: '1.2.3',
         uid: 'user-1',
