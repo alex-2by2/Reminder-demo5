@@ -12,15 +12,6 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
 
-  // The owner console is a same-origin static application served by this API.
-  // Keep its assets outside the public user PWA and its service-worker scope.
-  app.useStaticAssets(join(process.cwd(), 'public'), {
-    prefix: '/owner/',
-    index: ['index.html'],
-    fallthrough: false,
-    maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
-  });
-
   app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
@@ -46,6 +37,17 @@ async function bootstrap(): Promise<void> {
       },
     },
   }));
+
+  // The owner console is a same-origin static application served by this API.
+  // Keep its assets outside the public user PWA and its service-worker scope.
+  app.useStaticAssets(join(process.cwd(), 'public'), {
+    prefix: '/owner/',
+    index: ['index.html'],
+    fallthrough: false,
+    maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+  });
+
+  app.getHttpAdapter().get('/', (_request, response) => response.redirect(302, '/owner/'));
 
   // Configure only after confirming the exact reverse-proxy hop count for the host.
   // Leaving this unset is safer than trusting spoofable forwarded headers by default.
