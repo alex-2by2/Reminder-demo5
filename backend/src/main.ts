@@ -47,7 +47,7 @@ async function bootstrap(): Promise<void> {
     maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
   });
 
-  app.getHttpAdapter().get('/', (_request, response) => response.redirect(302, '/owner/'));
+  app.getHttpAdapter().getInstance().get('/', (_request, response) => response.redirect(302, '/owner/'));
 
   // Configure only after confirming the exact reverse-proxy hop count for the host.
   // Leaving this unset is safer than trusting spoofable forwarded headers by default.
