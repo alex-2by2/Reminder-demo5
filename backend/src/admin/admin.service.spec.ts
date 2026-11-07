@@ -116,6 +116,28 @@ describe('AdminService', () => {
       .rejects.toThrow(BadRequestException);
   });
 
+  it('starts the next crash-report page after the validated cursor document', async () => {
+    const cursorDocument = { exists: true, id: 'report-1' };
+    const nextDocument = { id: 'report-2', data: () => ({ message: 'next page' }) };
+    const query = {
+      startAfter: jest.fn(),
+      get: jest.fn().mockResolvedValue({ docs: [nextDocument] }),
+    };
+    query.startAfter.mockReturnValue(query);
+    const collection = {
+      orderBy: () => ({ limit: () => query }),
+      doc: jest.fn(() => ({ get: jest.fn().mockResolvedValue(cursorDocument) })),
+    };
+    firebase.getFirestore.mockReturnValue({ collection: () => collection });
+
+    const cursor = Buffer.from('report-1').toString('base64url');
+    const result = await service.listCrashReports('10', cursor);
+
+    expect(collection.doc).toHaveBeenCalledWith('report-1');
+    expect(query.startAfter).toHaveBeenCalledWith(cursorDocument);
+    expect(result.reports).toEqual([{ id: 'report-2', message: 'next page' }]);
+  });
+
   it('rejects zero and non-numeric pagination limits', async () => {
     await expect(service.listUsers('0')).rejects.toThrow(BadRequestException);
     await expect(service.listUsers('1.5')).rejects.toThrow(BadRequestException);
