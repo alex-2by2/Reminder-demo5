@@ -11,12 +11,28 @@ type Session = { tokenHash: string; ownerId: string; expiresAt: Date; createdAt:
 
 @Injectable()
 export class OwnerSessionService {
+  private indexesReady: Promise<void> | null = null;
+
   constructor(@InjectConnection() private readonly connection: Connection) {}
+
+  private async ensureIndexes(): Promise<void> {
+    if (!this.indexesReady) {
+      this.indexesReady = Promise.all([
+        this.sessions().createIndex({ tokenHash: 1 }, { unique: true, name: 'owner_session_token_unique' }),
+        this.sessions().createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'owner_session_expiry_ttl' }),
+        this.sessions().createIndex({ ownerId: 1 }, { name: 'owner_session_owner_lookup' }),
+      ]).then(() => undefined).catch((error) => {
+        this.indexesReady = null;
+        throw error;
+      });
+    }
+    await this.indexesReady;
+  }
 
   private configured(): { id: string; password: string } {
     const id = process.env.OWNER_LOGIN_ID;
     const password = process.env.OWNER_PASSWORD;
-    if (!id || !password || password.length < 12) {
+    if (!id || id.length > 128 || !password || password.length < 12 || password.length > 1024) {
       throw new ServiceUnavailableException('Owner password login is not configured.');
     }
     return { id, password };
@@ -37,6 +53,7 @@ export class OwnerSessionService {
     const validId = givenId.length === expectedId.length && timingSafeEqual(givenId, expectedId);
     const validPassword = givenPassword.length === expectedPassword.length && timingSafeEqual(givenPassword, expectedPassword);
     if (!validId || !validPassword) throw new UnauthorizedException(GENERIC_ERROR);
+    await this.ensureIndexes();
     const token = randomBytes(32).toString('base64url');
     const now = new Date();
     await this.sessions().insertOne({
@@ -54,6 +71,7 @@ export class OwnerSessionService {
       .find(v => v.startsWith(COOKIE + '='));
     const token = cookie?.slice(COOKIE.length + 1);
     if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
+    await this.ensureIndexes();
     const session = await this.sessions().findOne({
       tokenHash: this.digest(token), expiresAt: { $gt: new Date() },
     });
@@ -66,12 +84,14 @@ export class OwnerSessionService {
       .find(v => v.startsWith(COOKIE + '='));
     const token = cookie?.slice(COOKIE.length + 1);
     if (token && /^[A-Za-z0-9_-]{43}$/.test(token)) {
+      await this.ensureIndexes();
       await this.sessions().deleteOne({ tokenHash: this.digest(token) });
     }
     response.clearCookie(COOKIE, { httpOnly: true, secure: true, sameSite: 'strict', path: '/' });
   }
 
   async revokeAll(): Promise<void> {
+    await this.ensureIndexes();
     await this.sessions().deleteMany({ ownerId: process.env.OWNER_LOGIN_ID });
   }
 }
