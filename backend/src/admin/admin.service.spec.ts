@@ -96,6 +96,65 @@ describe('AdminService', () => {
     expect(firebase.getAuth().updateUser).not.toHaveBeenCalled();
   });
 
+  it('blocks disabling another UID-allowlisted owner account', async () => {
+    const updateUser = jest.fn();
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'owner-2', email: 'second-owner@example.com', emailVerified: true,
+    });
+    firebase.getAuth.mockReturnValue({ getUser, updateUser });
+    const previous = process.env.OWNER_UIDS;
+    process.env.OWNER_UIDS = 'owner-1, owner-2';
+    try {
+      await expect(service.setUserDisabled('owner-2', true, 'owner-1'))
+        .rejects.toThrow('Configured owner accounts cannot be disabled');
+      expect(getUser).toHaveBeenCalledWith('owner-2');
+      expect(updateUser).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined) delete process.env.OWNER_UIDS;
+      else process.env.OWNER_UIDS = previous;
+    }
+  });
+
+  it('blocks disabling a verified OWNER_EMAILS account case-insensitively', async () => {
+    const updateUser = jest.fn();
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'owner-email', email: 'SECOND-OWNER@example.com', emailVerified: true,
+    });
+    firebase.getAuth.mockReturnValue({ getUser, updateUser });
+    const previous = process.env.OWNER_EMAILS;
+    process.env.OWNER_EMAILS = 'second-owner@example.com';
+    try {
+      await expect(service.setUserDisabled('owner-email', true, 'owner-1'))
+        .rejects.toThrow('Configured owner accounts cannot be disabled');
+      expect(updateUser).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined) delete process.env.OWNER_EMAILS;
+      else process.env.OWNER_EMAILS = previous;
+    }
+  });
+
+  it('allows disabling a non-owner account', async () => {
+    const updateUser = jest.fn().mockResolvedValue({ uid: 'user-1', disabled: true });
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'user-1', email: 'user@example.com', emailVerified: true,
+    });
+    firebase.getAuth.mockReturnValue({ getUser, updateUser });
+    const previousUids = process.env.OWNER_UIDS;
+    const previousEmails = process.env.OWNER_EMAILS;
+    delete process.env.OWNER_UIDS;
+    delete process.env.OWNER_EMAILS;
+    try {
+      await expect(service.setUserDisabled('user-1', true, 'owner-1'))
+        .resolves.toEqual({ uid: 'user-1', disabled: true });
+      expect(updateUser).toHaveBeenCalledWith('user-1', { disabled: true });
+    } finally {
+      if (previousUids === undefined) delete process.env.OWNER_UIDS;
+      else process.env.OWNER_UIDS = previousUids;
+      if (previousEmails === undefined) delete process.env.OWNER_EMAILS;
+      else process.env.OWNER_EMAILS = previousEmails;
+    }
+  });
+
   it('rejects invalid page limits rather than silently accepting malformed input', async () => {
     await expect(service.listUsers('1abc')).rejects.toThrow(BadRequestException);
   });
