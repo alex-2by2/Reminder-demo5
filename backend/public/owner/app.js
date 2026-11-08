@@ -311,11 +311,30 @@
   }
   async function signIn() {
     $('loginError').textContent = '';
+    const button = $('googleSignIn');
+    button.disabled = true;
+    button.textContent = 'Connecting to Google…';
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      // Android and other mobile browsers are more reliable with a full-page
+      // redirect than a popup, which may be blocked or lose its auth window.
+      const userAgent = navigator.userAgent || '';
+      const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
+      if (isMobile) {
+        await auth.signInWithRedirect(provider);
+        return;
+      }
       await auth.signInWithPopup(provider);
     } catch (error) {
-      $('loginError').textContent = error.code === 'auth/popup-closed-by-user' ? 'Sign-in window was closed.' : error.message || 'Sign-in failed.';
+      $('loginError').textContent = error && error.code === 'auth/unauthorized-domain'
+        ? 'This website (' + window.location.hostname + ') is not authorized for Firebase sign-in. Add this hostname in Firebase Authentication → Settings → Authorized domains.'
+        : (error && error.message) || 'Google sign-in failed. Please try again.';
+    } finally {
+      // A redirect unloads this page; otherwise restore the button for retry.
+      button.disabled = false;
+      button.textContent = 'Continue with Google';
     }
   }
   async function signOut() { ++state.authGeneration; state.owner = false; await auth.signOut(); }
