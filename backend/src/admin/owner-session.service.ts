@@ -1,70 +1,41 @@
 import { Injectable, UnauthorizedException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
-import { randomBytes, createHash, scrypt as scryptCallback, pbkdf2 as pbkdf2Callback, timingSafeEqual } from 'node:crypto';
-import type { ScryptOptions } from 'node:crypto';
-import { promisify } from 'node:util';
+import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import type { Request, Response } from 'express';
 
-const pbkdf2Async = promisify(pbkdf2Callback);
 const COOKIE = '__Host-easy_owner';
 const TTL = 8 * 60 * 60 * 1000;
 const GENERIC_ERROR = 'Invalid owner credentials.';
 type Session = { tokenHash: string; ownerId: string; expiresAt: Date; createdAt: Date };
 
-function scryptAsync(password: string, salt: Buffer, keyLength: number, options: ScryptOptions): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scryptCallback(password, salt, keyLength, options, (error, derivedKey) => {
-      if (error) reject(error);
-      else resolve(derivedKey);
-    });
-  });
-}
-
 @Injectable()
 export class OwnerSessionService {
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
-  private configured(): { id: string; hash: string } {
+  private configured(): { id: string; password: string } {
     const id = process.env.OWNER_LOGIN_ID;
-    const hash = process.env.OWNER_PASSWORD_HASH;
-    const validScrypt = hash && /^scrypt\$16384\$8\$1\$[a-f0-9]{32}\$[a-f0-9]{128}$/.test(hash);
-    const validPbkdf2 = hash && /^pbkdf2\$sha256\$600000\$[a-f0-9]{32}\$[a-f0-9]{128}$/.test(hash);
-    if (!id || (!validScrypt && !validPbkdf2)) {
+    const password = process.env.OWNER_PASSWORD;
+    if (!id || !password || password.length < 12) {
       throw new ServiceUnavailableException('Owner password login is not configured.');
     }
-    return { id, hash: hash! };
+    return { id, password };
   }
 
   private sessions() { return this.connection.collection<Session>('owner_sessions'); }
   private digest(token: string) { return createHash('sha256').update(token).digest('hex'); }
-
-  private async verifyPassword(password: string, encoded: string): Promise<boolean> {
-    const parts = encoded.split('$');
-    let salt: string;
-    let expected: string;
-    let actual: Buffer;
-    if (parts[0] === 'scrypt') {
-      [, , , , salt, expected] = parts;
-      actual = await scryptAsync(password, Buffer.from(salt, 'hex'), 64, {
-        N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024,
-      });
-    } else {
-      [, , , salt, expected] = parts;
-      actual = await pbkdf2Async(password, Buffer.from(salt, 'hex'), 600000, 64, 'sha256') as Buffer;
-    }
-    return timingSafeEqual(actual, Buffer.from(expected, 'hex'));
-  }
 
   async login(id: unknown, password: unknown, response: Response): Promise<{ access: 'owner'; ownerId: string }> {
     const credentials = this.configured();
     if (typeof id !== 'string' || typeof password !== 'string' || id.length > 128 || password.length > 1024) {
       throw new UnauthorizedException(GENERIC_ERROR);
     }
-    const validPassword = await this.verifyPassword(password, credentials.hash);
     const givenId = Buffer.from(id);
     const expectedId = Buffer.from(credentials.id);
+    const givenPassword = Buffer.from(password);
+    const expectedPassword = Buffer.from(credentials.password);
     const validId = givenId.length === expectedId.length && timingSafeEqual(givenId, expectedId);
+    const validPassword = givenPassword.length === expectedPassword.length && timingSafeEqual(givenPassword, expectedPassword);
     if (!validId || !validPassword) throw new UnauthorizedException(GENERIC_ERROR);
     const token = randomBytes(32).toString('base64url');
     const now = new Date();
