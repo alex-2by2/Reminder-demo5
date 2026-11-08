@@ -309,16 +309,38 @@
       showError(error);
     }
   }
+  function describeAuthError(error) {
+    const code = error && error.code ? String(error.code) : 'unknown';
+    const message = error && error.message ? String(error.message) : 'No additional message supplied by Firebase.';
+    // Keep diagnostics useful without exposing OAuth tokens or credential payloads.
+    console.error('[Owner Google sign-in]', { code, message, name: error && error.name });
+    if (code === 'auth/unauthorized-domain') {
+      return 'This website (' + window.location.hostname + ') is not authorized for Firebase sign-in. Add this hostname in Firebase Authentication → Settings → Authorized domains.';
+    }
+    return 'Google sign-in failed (' + code + '). ' + message + ' If this continues, share this exact error code with support.';
+  }
+  async function handleRedirectResult() {
+    try {
+      const result = await auth.getRedirectResult();
+      if (result && result.user) {
+        $('loginError').textContent = '';
+        setText('firebaseStatus', 'Google sign-in completed');
+      }
+    } catch (error) {
+      $('loginError').textContent = describeAuthError(error);
+    }
+  }
   async function signIn() {
     $('loginError').textContent = '';
     const button = $('googleSignIn');
     button.disabled = true;
     button.textContent = 'Connecting to Google…';
     try {
+      // Explicit local persistence helps Firebase restore the redirect session
+      // when Android Chrome returns from the Google/Firebase handler.
+      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      // Android and other mobile browsers are more reliable with a full-page
-      // redirect than a popup, which may be blocked or lose its auth window.
       const userAgent = navigator.userAgent || '';
       const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
@@ -328,11 +350,8 @@
       }
       await auth.signInWithPopup(provider);
     } catch (error) {
-      $('loginError').textContent = error && error.code === 'auth/unauthorized-domain'
-        ? 'This website (' + window.location.hostname + ') is not authorized for Firebase sign-in. Add this hostname in Firebase Authentication → Settings → Authorized domains.'
-        : (error && error.message) || 'Google sign-in failed. Please try again.';
+      $('loginError').textContent = describeAuthError(error);
     } finally {
-      // A redirect unloads this page; otherwise restore the button for retry.
       button.disabled = false;
       button.textContent = 'Continue with Google';
     }
@@ -361,6 +380,9 @@
   }
   bindEvents();
   state.apiBase = window.location.origin;
+  // Consume the OAuth redirect response on page return so Firebase errors are
+  // surfaced here rather than being lost behind the auth-state listener.
+  handleRedirectResult();
   auth.onAuthStateChanged((user) => {
     if (user) showSignedInShell(user);
     else {
