@@ -358,20 +358,26 @@
     }
   }
   async function signOut() {
-    ++state.authGeneration;
     const mode = state.authMode;
+    try {
+      if (mode === 'owner') {
+        const response = await fetch('/api/v1/owner-session/logout', {
+          method: 'POST', headers: { 'X-Owner-Action': '1' }, credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Server logout failed (' + response.status + '). Your owner session may still be active. Please retry.');
+      } else if (mode === 'firebase') {
+        await auth.signOut();
+      }
+    } catch (error) {
+      showError(error);
+      return;
+    }
+    ++state.authGeneration;
     state.owner = false;
     state.authMode = null;
     state.user = null;
     $('appView').classList.add('hidden');
     $('loginView').classList.remove('hidden');
-    if (mode === 'owner') {
-      try {
-        await fetch('/api/v1/owner-session/logout', {
-          method: 'POST', headers: { 'X-Owner-Action': '1' }, credentials: 'same-origin'
-        });
-      } catch (error) { showError(error); }
-    } else if (mode === 'firebase') await auth.signOut();
   }
   async function ownerLogin(event) {
     event.preventDefault();
