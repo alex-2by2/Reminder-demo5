@@ -9,18 +9,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { AuthenticatedRequest, FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { OwnerRequest } from './owner-authentication.guard';
+import { OwnerAuthenticationGuard } from './owner-authentication.guard';
 import { AdminService } from './admin.service';
 import { OwnerGuard } from './owner.guard';
 
 @Controller('admin')
-@UseGuards(FirebaseAuthGuard, OwnerGuard)
+@UseGuards(OwnerAuthenticationGuard, OwnerGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
   @Get('access')
-  getAccess(@Req() request: AuthenticatedRequest) {
-    return { access: 'owner', uid: request.user!.uid };
+  getAccess(@Req() request: OwnerRequest) {
+    return { access: 'owner', uid: (request.ownerSession?.ownerId || request.user!.uid) };
   }
 
   @Get('overview')
@@ -37,7 +38,7 @@ export class AdminController {
   setUserDisabled(
     @Param('uid') uid: string,
     @Body() body: { disabled?: unknown },
-    @Req() request: AuthenticatedRequest,
+    @Req() request: OwnerRequest,
   ) {
     if (typeof body?.disabled !== 'boolean') {
       throw new BadRequestException("Expected a boolean 'disabled' value.");
