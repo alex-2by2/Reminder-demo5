@@ -26,6 +26,10 @@ Configure these in the **easy-life-tools-api** Render service settings. Never co
 | `FIREBASE_PROJECT_ID` | Existing Firebase project ID |
 | `FIREBASE_CLIENT_EMAIL` | Dedicated Firebase service-account email |
 | `FIREBASE_PRIVATE_KEY` | Matching private key; preserve newlines as required by Render |
+| `OWNER_UIDS` | Comma-separated Firebase UIDs authorized for owner access |
+| `OWNER_EMAILS` | Optional comma-separated verified email addresses authorized for owner access |
+
+Keep the owner allowlist limited to trusted owner accounts. The dashboard also prevents disabling any account present in these configured allowlists.
 
 The frontend origin is the origin only; do not append `/Reminder-demo5/`.
 
