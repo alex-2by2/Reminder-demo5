@@ -103,6 +103,11 @@ expire after eight hours. To invalidate all sessions, delete the
 `owner_sessions` documents for the configured owner (or rotate the login ID);
 rotating only the password does **not** automatically revoke existing sessions.
 
+
+### Generate the hash on an Android phone (no Termux)
+
+Open the browser utility at `/owner/password-hash.html` over the deployed HTTPS origin. It uses the browser Web Crypto API to derive a PBKDF2-SHA256 hash locally (600,000 iterations); the password is not submitted to any server endpoint. Copy the resulting `pbkdf2$sha256$600000$...` value into the Render `OWNER_PASSWORD_HASH` environment variable. Use a password of at least 12 characters. The page and script are served locally by this backend and have no third-party scripts or network calls. Keep the generated hash private as well.
+
 The password login depends on MongoDB availability and on the exact
 `RENDER_EXTERNAL_URL` origin for CSRF protection. Test the complete owner
 login and logout flow before enabling this on production.
