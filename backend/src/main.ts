@@ -28,7 +28,7 @@ function proxyFirebaseAuth(request: Request, response: Response): void {
       if (rawValue === undefined || ['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) continue;
       if (name.toLowerCase() === 'set-cookie') {
         const cookies = (Array.isArray(rawValue) ? rawValue : [rawValue])
-          .map((cookie) => cookie.replace(/;\\s*domain=[^;]+/i, ''));
+          .map((cookie) => cookie.replace(/;\s*domain=[^;]+/i, ''));
         response.setHeader(name, cookies);
         continue;
       }
