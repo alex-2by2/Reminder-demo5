@@ -11,7 +11,7 @@ import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 
 const FIREBASE_AUTH_HOST = 'reminder-76588.firebaseapp.com';
-const OWNER_ORIGIN = 'https://reminder-demo5.onrender.com';
+const OWNER_ORIGIN = new URL(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').origin;
 
 function proxyFirebaseAuth(request: Request, response: Response): void {
   const upstream = httpsRequest({
