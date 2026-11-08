@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { App, cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 const INVALID_TOKEN_ERROR_CODES = new Set([
@@ -16,6 +17,14 @@ const INVALID_TOKEN_ERROR_CODES = new Set([
 @Injectable()
 export class FirebaseAdminService {
   private app: App | undefined;
+
+  getAuth() {
+    return getAuth(this.getApp());
+  }
+
+  getFirestore() {
+    return getFirestore(this.getApp());
+  }
 
   async verifyIdToken(token: string): Promise<DecodedIdToken> {
     const app = this.getApp();

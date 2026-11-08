@@ -47,3 +47,7 @@ services:
         sync: false
       - key: FIREBASE_PRIVATE_KEY
         sync: false
+      - key: OWNER_UIDS
+        sync: false
+      - key: OWNER_EMAILS
+        sync: false

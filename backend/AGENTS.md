@@ -1,7 +1,7 @@
 # NestJS API boundary
 
 - This folder is the Easy Life Tools product API only (NestJS + TypeScript + MongoDB).
-- Entry point: src/main.ts; root module: src/app.module.ts.
+- Entry point: src/main.ts; root module: src/app.module.ts. The NestJS service serves the owner console at `/owner/` from `public/owner/`.
 - Use this folder's package.json, TypeScript config, tests, and dependencies.
 - Do not read or import browser modules from ../js/; do not put frontend files here.
 - Do not change the existing Express admin API in ../server/ to implement NestJS behavior.

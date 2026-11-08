@@ -45,6 +45,37 @@ describe('RemindersService ownership boundaries', () => {
     expect(result).not.toHaveProperty('firebaseUid');
   });
 
+
+  it('validates leap days using the supplied year, including years below 100', async () => {
+    const validDto = {
+      clientId: 'client-0099-valid',
+      task: 'Historical date',
+      time: '0096-02-29T09:00',
+    } as CreateReminderDto;
+    create.mockResolvedValue({
+      _id: { toString: () => 'historical-reminder-id' },
+      clientId: validDto.clientId, task: validDto.task, time: validDto.time,
+      timeZone: 'Asia/Kolkata', repeat: 'none', customRepeat: null,
+      priority: 'medium', tags: '', subtasks: [], category: null, status: 'pending',
+      pinned: false, archived: false, preAlarm: 0, assignee: '', project: '',
+      createdAt: new Date(), updatedAt: new Date(),
+    });
+
+    await expect(service.create(token, validDto)).resolves.toHaveProperty('id', 'historical-reminder-id');
+
+    create.mockClear();
+    const invalidDto = {
+      clientId: 'client-0099-invalid',
+      task: 'Invalid historical date',
+      time: '0099-02-29T09:00',
+    } as CreateReminderDto;
+    await expect(service.create(token, invalidDto)).rejects.toMatchObject({
+      status: 400,
+      message: 'Time contains an invalid calendar date or clock value.',
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('rejects custom recurrence settings for a non-custom repeat type', async () => {
     const dto = {
       clientId: 'client-123',
