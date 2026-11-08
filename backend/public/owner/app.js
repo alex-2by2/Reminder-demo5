@@ -319,7 +319,8 @@
       provider.setCustomParameters({ prompt: 'select_account' });
       // Android and other mobile browsers are more reliable with a full-page
       // redirect than a popup, which may be blocked or lose its auth window.
-      const userAgent = navigator.userAgent || '';\n      const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;\n      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
+      const userAgent = navigator.userAgent || '';
+      const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;\n      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
       if (isMobile) {
         await auth.signInWithRedirect(provider);
         return;
