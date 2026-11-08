@@ -83,31 +83,24 @@ No production database or live user data is changed by this scaffold.
 
 ## Optional Render environment-based Owner ID login (under review)
 
-The NestJS owner console can also authenticate with server-side credentials. This
-is separate from Firebase Google sign-in; the Firebase path remains available.
+The NestJS owner console can authenticate with a temporary server-side Owner ID
+and password. This is separate from Firebase Google sign-in; the Firebase path
+remains available.
 
-Set `OWNER_LOGIN_ID` and `OWNER_PASSWORD_HASH` in the **NestJS Render service**
-environment, never in GitHub. The password value must be a salted scrypt hash
-in the format `scrypt$16384$8$1$<32 hex salt>$<128 hex digest>`. Generate
-it locally with Node.js 20+ using the following command; enter the password
-interactively rather than passing it as a shell argument:
+For this initial rollout, set `OWNER_LOGIN_ID` and `OWNER_PASSWORD` only in
+the **NestJS Render service** Environment settings. Never place either value
+in GitHub, frontend code, logs, or ChatGPT. Use a strong unique password (at
+least 16 characters), restrict Render dashboard access, and rotate the password
+if it may have been exposed. This temporary configuration stores the password
+as a Render environment secret; the backend compares it in constant time but
+does not store it in MongoDB. A later hardening update will replace
+`OWNER_PASSWORD` with a salted password hash. Do not enable this login until
+the PR has passed CI, independent review, and end-to-end checks.
 
-```sh
-node -e 'const c=require("node:crypto"),r=require("node:readline").createInterface({input:process.stdin,output:process.stdout});r.question("Owner password: ",p=>{const s=c.randomBytes(16);c.scrypt(p,s,64,{N:16384,r:8,p:1,maxmem:67108864},(e,h)=>{r.close();if(e)throw e;console.log("scrypt$16384$8$1$"+s.toString("hex")+"$"+h.toString("hex"));});});'
-```
-
-Do not paste the password or its hash into ChatGPT or commit it. The login
-endpoint is rate limited and creates a random, revocable MongoDB session. The
-browser receives a Secure, HttpOnly, SameSite=Strict cookie. Owner sessions
-expire after eight hours. To invalidate all sessions, delete the
-`owner_sessions` documents for the configured owner (or rotate the login ID);
-rotating only the password does **not** automatically revoke existing sessions.
-
-
-### Generate the hash on an Android phone (no Termux)
-
-Open the browser utility at `/owner/password-hash.html` over the deployed HTTPS origin. It uses the browser Web Crypto API to derive a PBKDF2-SHA256 hash locally (600,000 iterations); the password is not submitted to any server endpoint. Copy the resulting `pbkdf2$sha256$600000$...` value into the Render `OWNER_PASSWORD_HASH` environment variable. Use a password of at least 12 characters. The page and script are served locally by this backend and have no third-party scripts or network calls. Keep the generated hash private as well.
-
-The password login depends on MongoDB availability and on the exact
-`RENDER_EXTERNAL_URL` origin for CSRF protection. Test the complete owner
-login and logout flow before enabling this on production.
+The login endpoint is rate limited and creates a random, revocable MongoDB
+session. The browser receives a Secure, HttpOnly, SameSite=Strict cookie.
+Owner sessions expire after eight hours. To invalidate all sessions, delete
+the `owner_sessions` documents for the configured owner. The password login
+depends on MongoDB availability and on the exact `RENDER_EXTERNAL_URL`
+origin for CSRF protection. Test the complete owner login and logout flow
+before enabling this on production.
