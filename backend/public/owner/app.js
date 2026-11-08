@@ -2,7 +2,7 @@
   'use strict';
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY',
-    authDomain: 'reminder-demo5.onrender.com',
+    authDomain: window.location.hostname,
     projectId: 'reminder-76588',
     storageBucket: 'reminder-76588.firebasestorage.app',
     messagingSenderId: '813515230126',
