@@ -29,7 +29,7 @@ Configure these in the **easy-life-tools-api** Render service settings. Never co
 | `OWNER_UIDS` | Comma-separated Firebase UIDs authorized for owner access |
 | `OWNER_EMAILS` | Optional comma-separated verified email addresses authorized for owner access |
 
-Keep the owner allowlist limited to trusted owner accounts. The dashboard also prevents disabling any account present in these configured allowlists.
+Owner Console authentication uses only `OWNER_LOGIN_ID` and `OWNER_PASSWORD`, stored in Render environment settings. Do not use Firebase Google sign-in or Firebase bearer tokens for owner-console access. Configure `OWNER_UIDS` with every Firebase product-owner UID that must be protected from being disabled, and optionally `OWNER_EMAILS` for their verified email addresses. At least one of these protection allowlists must be non-empty before the dashboard can disable any Firebase user; accounts matching either allowlist are protected. The Owner ID login is a separate identity and is not automatically linked to a Firebase UID. Never paste the Owner password into GitHub, source code, screenshots, or chat.
 
 The frontend origin is the origin only; do not append `/Reminder-demo5/`.
 
@@ -53,13 +53,13 @@ Express proxy-trust behavior is documented at [Express: behind proxies](https://
 2. Open the service's generated Render URL followed by `/health`. Expect HTTP 200 and `{"status":"ok","service":"easy-life-tools-api"}`.
 3. In a secure authenticated test client, obtain a Firebase ID token and call `GET /api/v1/me` with `Authorization: Bearer <token>`. Expect a profile for the verified Firebase UID.
 4. Test reminder create, list, read, update, soft-delete, and restore with a dedicated test account. Verify persisted records in the intended MongoDB database and confirm a second Firebase account cannot read or mutate the first account's reminders.
-5. Open `/owner/` on the NestJS service and verify same-origin dashboard assets, Google sign-in, owner access, and API requests. Verify invalid/missing tokens are rejected and browser preflight from any cross-origin PWA origin succeeds.
+5. Open `/owner/` on the NestJS service. Sign in using the Owner ID and password configured in Render; verify the HttpOnly owner session cookie, dashboard API requests, and logout. Verify invalid/missing sessions are rejected and state-changing requests without the exact same-origin `Origin` and `X-Owner-Action: 1` header are rejected. Confirm the normal product-user Firebase login still works independently.
 6. Complete the trusted-proxy verification above before considering IP-based rate limiting correctly configured.
 
 Do not put an ID token, service-account private key, or MongoDB URI in GitHub, source files, screenshots, or chat.
 
 ## Owner dashboard
 
-The owner dashboard is packaged under `public/owner/` and served by this same NestJS process at `/owner/`. It calls `/health` and `/api/v1/admin/*` on the same origin; no separate static host or API URL configuration is needed. Open the exact NestJS Render service URL followed by `/owner/`. Add the Render hostname to Firebase Authentication authorized domains if required, and ensure staging `OWNER_UIDS` contains the intended owner UID. Do not use `https://reminder-demo5.onrender.com`, which belongs to the legacy Express service.
+The owner dashboard is packaged under `public/owner/` and served by this same NestJS process at `/owner/`. It calls `/health` and `/api/v1/admin/*` on the same origin; no separate static host or API URL configuration is needed. Open the exact NestJS Render service URL followed by `/owner/`. Configure `OWNER_LOGIN_ID` and `OWNER_PASSWORD` in the NestJS Render service before signing in. Configure `OWNER_UIDS` and/or `OWNER_EMAILS` with the Firebase product-owner accounts that must be protected from dashboard disable actions; these variables do not authenticate the Owner Console. Do not use `https://reminder-demo5.onrender.com`, which belongs to the legacy Express service.
 
 Keep current Firestore reads and writes unchanged until the MongoDB integration has passed the tests above and a separate migration/cutover plan has been reviewed.
