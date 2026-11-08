@@ -7,6 +7,7 @@ import {
   Patch,
   Query,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { OwnerRequest } from './owner-authentication.guard';
@@ -19,9 +20,15 @@ import { OwnerGuard } from './owner.guard';
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
+  private actorId(request: OwnerRequest): string {
+    const actorId = request.ownerSession?.ownerId || request.user?.uid;
+    if (!actorId) throw new UnauthorizedException('Owner identity is missing.');
+    return actorId;
+  }
+
   @Get('access')
   getAccess(@Req() request: OwnerRequest) {
-    return { access: 'owner', uid: (request.ownerSession?.ownerId || request.user!.uid) };
+    return { access: 'owner', uid: this.actorId(request) };
   }
 
   @Get('overview')
@@ -43,7 +50,7 @@ export class AdminController {
     if (typeof body?.disabled !== 'boolean') {
       throw new BadRequestException("Expected a boolean 'disabled' value.");
     }
-    return this.admin.setUserDisabled(uid, body.disabled, request.user!.uid);
+    return this.admin.setUserDisabled(uid, body.disabled, this.actorId(request));
   }
 
   @Get('crash-reports')
