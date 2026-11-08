@@ -28,7 +28,7 @@ function proxyFirebaseAuth(request: Request, response: Response): void {
       if (rawValue === undefined || ['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) continue;
       if (name.toLowerCase() === 'set-cookie') {
         const cookies = (Array.isArray(rawValue) ? rawValue : [rawValue])
-          .map((cookie) => cookie.replace(/;\s*domain=[^;]+/i, ''));
+          .map((cookie) => cookie.replace(/;\\s*domain=[^;]+/i, ''));
         response.setHeader(name, cookies);
         continue;
       }
@@ -120,6 +120,7 @@ async function bootstrap(): Promise<void> {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     keyGenerator: clientIpKeyGenerator,
+    skip: (request) => request.method === 'OPTIONS',
     message: { error: 'Too many login attempts. Try again later.' },
   });
   app.use('/api/v1/owner-session/login', ownerLoginLimiter);
@@ -163,5 +164,4 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT) || 3001;
   await app.listen(port, '0.0.0.0');
 }
-
 void bootstrap();
