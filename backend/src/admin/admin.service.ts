@@ -66,8 +66,25 @@ export class AdminService {
     if (uid === ownerUid && disabled) {
       throw new BadRequestException('You cannot disable your own owner account.');
     }
+    if (disabled) {
+      const target = await this.firebase.getAuth().getUser(uid);
+      const ownerUids = this.readAllowlist(process.env.OWNER_UIDS);
+      const ownerEmails = this.readAllowlist(process.env.OWNER_EMAILS)
+        .map((email) => email.toLowerCase());
+      const targetEmail = typeof target.email === 'string' ? target.email.toLowerCase() : '';
+      const isConfiguredOwner = ownerUids.includes(target.uid)
+        || (target.emailVerified === true && targetEmail.length > 0
+          && ownerEmails.includes(targetEmail));
+      if (isConfiguredOwner) {
+        throw new BadRequestException('Configured owner accounts cannot be disabled from the owner dashboard.');
+      }
+    }
     const user = await this.firebase.getAuth().updateUser(uid, { disabled });
     return { uid: user.uid, disabled: user.disabled };
+  }
+
+  private readAllowlist(value: string | undefined): string[] {
+    return String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean);
   }
 
   async listCrashReports(limitValue?: string, cursor?: string) {
