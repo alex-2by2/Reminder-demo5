@@ -8,7 +8,8 @@ describe('OwnerSessionService', () => {
   const findOne = jest.fn();
   const deleteOne = jest.fn().mockResolvedValue({ deletedCount: 1 });
   const deleteMany = jest.fn().mockResolvedValue({ deletedCount: 1 });
-  const collection = jest.fn(() => ({ insertOne, findOne, deleteOne, deleteMany }));
+  const createIndex = jest.fn().mockResolvedValue('index-created');
+  const collection = jest.fn(() => ({ insertOne, findOne, deleteOne, deleteMany, createIndex }));
   const connection = { collection } as any;
   let service: OwnerSessionService;
   const response = { cookie: jest.fn(), clearCookie: jest.fn() } as any;
@@ -43,6 +44,8 @@ describe('OwnerSessionService', () => {
   it('stores only a digest of a random session token and sets a secure host cookie', async () => {
     await service.login('owner-test', 'a-strong-test-password', response);
 
+    expect(createIndex).toHaveBeenCalledTimes(3);
+    expect(createIndex).toHaveBeenCalledWith({ expiresAt: 1 }, { expireAfterSeconds: 0, name: 'owner_session_expiry_ttl' });
     expect(insertOne).toHaveBeenCalledTimes(1);
     const stored = insertOne.mock.calls[0][0];
     expect(stored.ownerId).toBe('owner-test');
@@ -63,6 +66,7 @@ describe('OwnerSessionService', () => {
   it('revokes the current session and clears the cookie on logout', async () => {
     const request = { headers: { cookie: '__Host-easy_owner=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } } as any;
     await service.logout(request, response);
+    expect(createIndex).toHaveBeenCalledTimes(3);
     expect(deleteOne).toHaveBeenCalledWith({ tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/) });
     expect(response.clearCookie).toHaveBeenCalledWith('__Host-easy_owner', {
       httpOnly: true, secure: true, sameSite: 'strict', path: '/',
