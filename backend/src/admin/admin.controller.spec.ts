@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { AdminController } from './admin.controller';
-import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { OwnerAuthenticationGuard } from './owner-authentication.guard';
 import { OwnerGuard } from './owner.guard';
 import { AdminService } from './admin.service';
 import type { AuthenticatedRequest } from '../auth/firebase-auth.guard';
@@ -20,7 +20,7 @@ describe('AdminController', () => {
 
   it('applies Firebase authentication before the owner allowlist guard', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, AdminController)).toEqual([
-      FirebaseAuthGuard,
+      OwnerAuthenticationGuard,
       OwnerGuard,
     ]);
   });
