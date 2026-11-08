@@ -3,7 +3,8 @@ import { Test } from '@nestjs/testing';
 import { AddressInfo } from 'node:net';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
-import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { OwnerAuthenticationGuard } from './owner-authentication.guard';
+import { OwnerSessionService } from './owner-session.service';
 import { FirebaseAdminService } from '../auth/firebase-admin';
 import { OwnerGuard } from './owner.guard';
 
@@ -25,7 +26,8 @@ describe('AdminController HTTP authorization', () => {
       providers: [
         { provide: AdminService, useValue: { getOverview } },
         { provide: FirebaseAdminService, useValue: { verifyIdToken } },
-        FirebaseAuthGuard,
+        { provide: OwnerSessionService, useValue: { getSession: jest.fn().mockResolvedValue(null) } },
+        OwnerAuthenticationGuard,
         OwnerGuard,
       ],
     }).compile();

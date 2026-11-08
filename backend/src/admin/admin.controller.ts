@@ -7,20 +7,28 @@ import {
   Patch,
   Query,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { AuthenticatedRequest, FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { OwnerRequest } from './owner-authentication.guard';
+import { OwnerAuthenticationGuard } from './owner-authentication.guard';
 import { AdminService } from './admin.service';
 import { OwnerGuard } from './owner.guard';
 
 @Controller('admin')
-@UseGuards(FirebaseAuthGuard, OwnerGuard)
+@UseGuards(OwnerAuthenticationGuard, OwnerGuard)
 export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
+  private actorId(request: OwnerRequest): string {
+    const actorId = request.ownerSession?.ownerId || request.user?.uid;
+    if (!actorId) throw new UnauthorizedException('Owner identity is missing.');
+    return actorId;
+  }
+
   @Get('access')
-  getAccess(@Req() request: AuthenticatedRequest) {
-    return { access: 'owner', uid: request.user!.uid };
+  getAccess(@Req() request: OwnerRequest) {
+    return { access: 'owner', uid: this.actorId(request) };
   }
 
   @Get('overview')
@@ -37,12 +45,12 @@ export class AdminController {
   setUserDisabled(
     @Param('uid') uid: string,
     @Body() body: { disabled?: unknown },
-    @Req() request: AuthenticatedRequest,
+    @Req() request: OwnerRequest,
   ) {
     if (typeof body?.disabled !== 'boolean') {
       throw new BadRequestException("Expected a boolean 'disabled' value.");
     }
-    return this.admin.setUserDisabled(uid, body.disabled, request.user!.uid);
+    return this.admin.setUserDisabled(uid, body.disabled, this.actorId(request));
   }
 
   @Get('crash-reports')

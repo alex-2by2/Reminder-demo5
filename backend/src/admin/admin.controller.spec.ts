@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { AdminController } from './admin.controller';
-import { FirebaseAuthGuard } from '../auth/firebase-auth.guard';
+import { OwnerAuthenticationGuard } from './owner-authentication.guard';
 import { OwnerGuard } from './owner.guard';
 import { AdminService } from './admin.service';
 import type { AuthenticatedRequest } from '../auth/firebase-auth.guard';
@@ -20,7 +20,7 @@ describe('AdminController', () => {
 
   it('applies Firebase authentication before the owner allowlist guard', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, AdminController)).toEqual([
-      FirebaseAuthGuard,
+      OwnerAuthenticationGuard,
       OwnerGuard,
     ]);
   });
@@ -43,6 +43,17 @@ describe('AdminController', () => {
       user: { uid: 'owner-1' },
     } as AuthenticatedRequest)).toThrow(BadRequestException);
     expect(admin.setUserDisabled).not.toHaveBeenCalled();
+  });
+
+  it('passes the Owner ID session identity to account-change audit records', async () => {
+    const result = { uid: 'user-2', disabled: true };
+    (admin.setUserDisabled as jest.Mock).mockResolvedValue(result);
+    const response = await controller.setUserDisabled('user-2', { disabled: true }, {
+      ownerSession: { ownerId: 'configured-owner-id' },
+    } as any);
+
+    expect(admin.setUserDisabled).toHaveBeenCalledWith('user-2', true, 'configured-owner-id');
+    expect(response).toEqual(result);
   });
 
   it('passes validated account changes with the verified owner UID', async () => {

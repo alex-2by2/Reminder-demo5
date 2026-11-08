@@ -47,7 +47,6 @@ Set these only in the backend host's secret/environment settings:
   service-account credentials. Never commit or paste these into chat.
 - `FRONTEND_ORIGINS` — comma-separated exact website origins.
 - `PORT` — supplied by Render; defaults to 3001 locally.
-- `TRUST_PROXY_HOPS` — optional non-negative integer. Set only after verifying the exact proxy hop count for the deployed host; leave unset otherwise.
 
 Do not reuse a broad Owner/Admin service account if a narrower service account
 can be provisioned. Do not add secrets to GitHub files.
@@ -80,3 +79,27 @@ See [RENDER-DEPLOYMENT.md](./RENDER-DEPLOYMENT.md) for the separate Render
 service configuration, required environment variables, and post-deploy checks.
 
 No production database or live user data is changed by this scaffold.
+
+## Optional Render environment-based Owner ID login (under review)
+
+The NestJS owner console can authenticate with a temporary server-side Owner ID
+and password. This is separate from Firebase Google sign-in; the Firebase path
+remains available.
+
+For this initial rollout, set `OWNER_LOGIN_ID` and `OWNER_PASSWORD` only in
+the **NestJS Render service** Environment settings. Never place either value
+in GitHub, frontend code, logs, or ChatGPT. Use a strong unique password (at
+least 16 characters), restrict Render dashboard access, and rotate the password
+if it may have been exposed. This temporary configuration stores the password
+as a Render environment secret; the backend compares it in constant time but
+does not store it in MongoDB. A later hardening update will replace
+`OWNER_PASSWORD` with a salted password hash. Do not enable this login until
+the PR has passed CI, independent review, and end-to-end checks.
+
+The login endpoint is rate limited and creates a random, revocable MongoDB
+session. The browser receives a Secure, HttpOnly, SameSite=Strict cookie.
+Owner sessions expire after eight hours. To invalidate all sessions, delete
+the `owner_sessions` documents for the configured owner. The password login
+depends on MongoDB availability and on the exact `RENDER_EXTERNAL_URL`
+origin for CSRF protection. Test the complete owner login and logout flow
+before enabling this on production.

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { AuthenticatedRequest } from '../auth/firebase-auth.guard';
+import { OwnerRequest } from './owner-authentication.guard';
 
 /**
  * Restricts owner/admin endpoints to explicitly configured owner identities.
@@ -14,7 +14,8 @@ import { AuthenticatedRequest } from '../auth/firebase-auth.guard';
 @Injectable()
 export class OwnerGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<OwnerRequest>();
+    if (request.ownerSession?.ownerId && request.ownerSession.ownerId === process.env.OWNER_LOGIN_ID) return true;
     const user = request.user;
     if (!user?.uid) throw new ForbiddenException('Owner access required.');
 
