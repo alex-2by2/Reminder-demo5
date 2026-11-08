@@ -1,5 +1,8 @@
 import 'reflect-metadata';
 import { join } from 'node:path';
+import { request as httpsRequest } from 'node:https';
+import { json, urlencoded } from 'express';
+import type { Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -7,10 +10,61 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 
+const FIREBASE_AUTH_HOST = 'reminder-76588.firebaseapp.com';
+const OWNER_ORIGIN = new URL(process.env.RENDER_EXTERNAL_URL || 'http://localhost:3001').origin;
+
+function proxyFirebaseAuth(request: Request, response: Response): void {
+  const upstream = httpsRequest({
+    hostname: FIREBASE_AUTH_HOST,
+    port: 443,
+    method: request.method,
+    path: request.originalUrl,
+    headers: { ...request.headers, host: FIREBASE_AUTH_HOST },
+    servername: FIREBASE_AUTH_HOST,
+  }, (upstreamResponse) => {
+    response.status(upstreamResponse.statusCode || 502);
+    for (const [name, rawValue] of Object.entries(upstreamResponse.headers)) {
+      if (rawValue === undefined || ['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) continue;
+      if (name.toLowerCase() === 'set-cookie') {
+        const cookies = (Array.isArray(rawValue) ? rawValue : [rawValue])
+          .map((cookie) => cookie.replace(/;\s*domain=[^;]+/i, ''));
+        response.setHeader(name, cookies);
+        continue;
+      }
+      if (name.toLowerCase() === 'location') {
+        const location = String(rawValue).replaceAll('https://' + FIREBASE_AUTH_HOST, OWNER_ORIGIN);
+        response.setHeader(name, location);
+        continue;
+      }
+      response.setHeader(name, rawValue);
+    }
+    upstreamResponse.pipe(response);
+  });
+
+  upstream.setTimeout(20_000, () => upstream.destroy(new Error('Firebase auth upstream timed out.')));
+  upstream.on('error', () => {
+    if (!response.headersSent) response.status(502).type('text/plain').send('Firebase Authentication proxy is temporarily unavailable.');
+    else response.destroy();
+  });
+  request.on('aborted', () => upstream.destroy());
+  response.on('close', () => {
+    if (!response.writableEnded) upstream.destroy();
+  });
+  request.pipe(upstream);
+}
+
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, bodyParser: false });
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
+
+  // Firebase's redirect helper must be served transparently from this origin.
+  // A browser redirect (302) is not sufficient for Firebase's cross-origin storage flow.
+  app.use('/__/auth', (request: Request, response: Response) => proxyFirebaseAuth(request, response));
+
+  // Keep Firebase proxy request bodies untouched; parse application requests afterwards.
+  app.use(json());
+  app.use(urlencoded({ extended: true }));
 
   app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
@@ -31,7 +85,7 @@ async function bootstrap(): Promise<void> {
           'https://www.googleapis.com',
           'https://firebaseinstallations.googleapis.com',
         ],
-        frameSrc: ['https://reminder-76588.firebaseapp.com', 'https://accounts.google.com'],
+        frameSrc: ["'self'", 'https://reminder-76588.firebaseapp.com', 'https://accounts.google.com'],
         formAction: ["'self'", 'https://accounts.google.com'],
         upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
       },
