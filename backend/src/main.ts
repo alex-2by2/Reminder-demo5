@@ -1,13 +1,14 @@
 import 'reflect-metadata';
 import { join } from 'node:path';
 import { request as httpsRequest } from 'node:https';
+import { isIP } from 'node:net';
 import { json, urlencoded } from 'express';
 import type { Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AppModule } from './app.module';
 
 const FIREBASE_AUTH_HOST = 'reminder-76588.firebaseapp.com';
@@ -27,7 +28,7 @@ function proxyFirebaseAuth(request: Request, response: Response): void {
       if (rawValue === undefined || ['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) continue;
       if (name.toLowerCase() === 'set-cookie') {
         const cookies = (Array.isArray(rawValue) ? rawValue : [rawValue])
-          .map((cookie) => cookie.replace(/;\s*domain=[^;]+/i, ''));
+          .map((cookie) => cookie.replace(/;\\s*domain=[^;]+/i, ''));
         response.setHeader(name, cookies);
         continue;
       }
@@ -92,8 +93,6 @@ async function bootstrap(): Promise<void> {
     },
   }));
 
-  // Mount the owner console directory itself at /owner/. Mounting its parent
-  // would make Express look for public/index.html instead of public/owner/index.html.
   app.useStaticAssets(join(process.cwd(), 'public', 'owner'), {
     prefix: '/owner/',
     index: ['index.html'],
@@ -103,29 +102,23 @@ async function bootstrap(): Promise<void> {
 
   app.getHttpAdapter().getInstance().get('/', (_request, response) => response.redirect(302, '/owner/'));
 
-  // Configure only after confirming the exact reverse-proxy hop count for the host.
-  // Leaving this unset is safer than trusting spoofable forwarded headers by default.
-  const trustProxyHops = process.env.TRUST_PROXY_HOPS;
-  if (trustProxyHops !== undefined) {
-    const parsedHops = Number(trustProxyHops);
-    if (!Number.isSafeInteger(parsedHops) || parsedHops < 0) {
-      throw new Error('TRUST_PROXY_HOPS must be a non-negative integer.');
-    }
-    app.getHttpAdapter().getInstance().set('trust proxy', parsedHops);
-  }
-
-  // Tight per-IP limit for password verification; the global limiter remains in place.
-  app.use('/api/v1/owner-session/login', rateLimit({
+  // Render's public web services are fronted by Cloudflare, which overwrites
+  // CF-Connecting-IP. Do not trust X-Forwarded-For: Render appends to it.
+  const ownerLoginLimiter = rateLimit({
     windowMs: 15 * 60_000,
     limit: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    keyGenerator: (request) => {
+      const forwardedClientIp = request.get('cf-connecting-ip')?.trim();
+      const clientIp = forwardedClientIp && isIP(forwardedClientIp) ? forwardedClientIp : request.ip;
+      return ipKeyGenerator(clientIp);
+    },
     message: { error: 'Too many login attempts. Try again later.' },
-  }));
+  });
+  app.use('/api/v1/owner-session/login', ownerLoginLimiter);
 
   app.use(rateLimit({
-    // CORS preflight is transport negotiation, not an application API operation.
-    // Do not consume the authenticated API request budget for OPTIONS requests.
     skip: (request) => request.method === 'OPTIONS',
     windowMs: 60_000,
     limit: 120,
@@ -143,7 +136,6 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: (origin, callback) => {
-      // Same-origin dashboard requests do not need CORS. Native/mobile clients may omit Origin.
       if (!origin || allowedOrigins.has(origin)) return callback(null, true);
       return callback(null, false);
     },
