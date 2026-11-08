@@ -114,6 +114,15 @@ async function bootstrap(): Promise<void> {
     app.getHttpAdapter().getInstance().set('trust proxy', parsedHops);
   }
 
+  // Tight per-IP limit for password verification; the global limiter remains in place.
+  app.use('/api/v1/owner-session/login', rateLimit({
+    windowMs: 15 * 60_000,
+    limit: 5,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts. Try again later.' },
+  }));
+
   app.use(rateLimit({
     // CORS preflight is transport negotiation, not an application API operation.
     // Do not consume the authenticated API request budget for OPTIONS requests.
