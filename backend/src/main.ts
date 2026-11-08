@@ -104,26 +104,31 @@ async function bootstrap(): Promise<void> {
 
   // Render's public web services are fronted by Cloudflare, which overwrites
   // CF-Connecting-IP. Do not trust X-Forwarded-For: Render appends to it.
+  // Reuse the same validated client-IP key for both limiters so unrelated
+  // visitors do not share one rate-limit bucket behind the Render proxy.
+  const clientIpKeyGenerator = (request: Request): string => {
+    const forwardedClientIp = request.get('cf-connecting-ip')?.trim();
+    const clientIp = forwardedClientIp && isIP(forwardedClientIp)
+      ? forwardedClientIp
+      : request.ip || request.socket.remoteAddress || 'unknown';
+    return ipKeyGenerator(clientIp);
+  };
+
   const ownerLoginLimiter = rateLimit({
     windowMs: 15 * 60_000,
     limit: 5,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    keyGenerator: (request) => {
-      const forwardedClientIp = request.get('cf-connecting-ip')?.trim();
-      const clientIp = forwardedClientIp && isIP(forwardedClientIp)
-        ? forwardedClientIp
-        : request.ip || request.socket.remoteAddress || 'unknown';
-      return ipKeyGenerator(clientIp);
-    },
+    keyGenerator: clientIpKeyGenerator,
     message: { error: 'Too many login attempts. Try again later.' },
   });
   app.use('/api/v1/owner-session/login', ownerLoginLimiter);
 
   app.use(rateLimit({
-    // The dedicated owner-login limiter already applies its own client-IP key.
-    // Avoid a second shared-proxy bucket blocking all owners at once.
+    // The dedicated owner-login limiter applies its stricter 5-attempt limit.
+    // All other API routes still receive a per-client-IP shared API limit.
     skip: (request) => request.method === 'OPTIONS' || request.path === '/api/v1/owner-session/login',
+    keyGenerator: clientIpKeyGenerator,
     windowMs: 60_000,
     limit: 120,
     standardHeaders: 'draft-7',
