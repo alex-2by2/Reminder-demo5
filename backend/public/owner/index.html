@@ -6,10 +6,7 @@
   <meta name="theme-color" content="#101522">
   <meta name="description" content="Easy Life Tools secure owner dashboard">
   <title>Easy Life Tools · Owner Console</title>
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/owner/styles.css">
-  <script defer src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script defer src="/owner/app.js"></script>
 </head>
 <body>
@@ -20,15 +17,14 @@
       <p class="eyebrow">KEYNOTE INFOTECH · OWNER ACCESS</p>
       <h1>Easy Life <span>Console</span></h1>
       <p class="muted">A secure command center for your platform.</p>
-      <button id="googleSignIn" class="button primary full">Continue with Google</button>
-      <form id="ownerLoginForm" autocomplete="on" style="display:grid;gap:12px;margin-top:18px">
+      <form id="ownerLoginForm" method="post" action="/owner/" autocomplete="on" style="display:grid;gap:12px;margin-top:18px">
         <label for="ownerLoginId">Owner Login ID</label>
         <input id="ownerLoginId" name="username" class="text-input" autocomplete="username" required maxlength="128">
         <label for="ownerLoginPassword">Password</label>
         <input id="ownerLoginPassword" name="password" class="text-input" type="password" autocomplete="current-password" required>
-        <button id="ownerLoginButton" class="button secondary full" type="submit">Sign in with Owner ID</button>
+        <button id="ownerLoginButton" class="button secondary full" type="submit">Sign in</button>
       </form>
-      <p class="login-note">Google sign-in requires an allowlisted Firebase identity. Owner ID sign-in uses backend credentials configured on Render.</p>
+      <p class="login-note">Sign in with the Owner ID and password configured in the backend environment.</p>
       <p id="loginError" class="error-text" role="alert"></p>
     </section>
   </main>
@@ -66,7 +62,7 @@
             <article class="metric-card glass"><div class="metric-top"><span>Crash reports</span><i>!</i></div><strong id="metricCrashes">—</strong><small>Reported app issues</small></article>
             <article class="metric-card glass"><div class="metric-top"><span>Referred users</span><i>↗</i></div><strong id="metricReferrals">—</strong><small>Users with referrals</small></article>
           </div>
-          <div class="panel glass"><div class="panel-heading"><div><h2>Platform health</h2><p class="muted">Connection and access status</p></div><span id="healthStatus" class="status-chip neutral">Not checked</span></div><div class="health-row"><span>Authentication method</span><strong id="firebaseStatus">Signed out</strong></div><div class="health-row"><span>Owner authorization</span><strong id="ownerStatus">Not verified</strong></div><div class="health-row"><span>NestJS API</span><strong id="apiStatus">Not connected</strong></div></div>
+          <div class="panel glass"><div class="panel-heading"><div><h2>Platform health</h2><p class="muted">Connection and access status</p></div><span id="healthStatus" class="status-chip neutral">Not checked</span></div><div class="health-row"><span>Authentication method</span><strong id="authMethodStatus">Signed out</strong></div><div class="health-row"><span>Owner authorization</span><strong id="ownerStatus">Not verified</strong></div><div class="health-row"><span>NestJS API</span><strong id="apiStatus">Not connected</strong></div></div>
         </section>
 
         <section id="page-users" class="page hidden">
