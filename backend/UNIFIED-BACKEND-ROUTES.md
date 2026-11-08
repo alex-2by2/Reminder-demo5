@@ -6,7 +6,7 @@ This document records the staged route contract for one NestJS service serving a
 
 - One NestJS API serves authenticated end users and the owner dashboard.
 - User routes require a valid Firebase ID token and scope every user-owned MongoDB record to the verified Firebase UID.
-- Owner routes require Firebase authentication plus the server-side owner allowlist guard. Client-supplied role/profile fields are never authority.
+- Owner routes require the Owner ID session cookie; Firebase bearer tokens and client-supplied role/profile fields are never authority.
 - MongoDB is the intended application data store for NestJS routes.
 - Existing PWA Firestore reads/writes remain authoritative until a separately reviewed migration, parity test, backup, and cutover are approved.
 - Firebase Cloud Functions remain separate for scheduled push delivery and callable functions until each responsibility has a reviewed replacement.
@@ -28,7 +28,7 @@ All routes require `Authorization: Bearer <Firebase ID token>`. Ownership is tak
 
 ## Owner routes
 
-All routes use the global `/api/v1` prefix and require a Firebase ID token from an allowlisted owner.
+All routes use the global `/api/v1` prefix and require a valid Owner ID session cookie.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
@@ -39,13 +39,13 @@ All routes use the global `/api/v1` prefix and require a Firebase ID token from 
 | GET | `/api/v1/admin/crash-reports` | Paginated crash reports |
 | GET | `/api/v1/admin/referrals` | Referral ranking |
 
-Owner identity is established only by `OWNER_UIDS` or a Firebase-verified email in `OWNER_EMAILS`. UID allowlisting is preferred.
+Owner-console identity is established only by the configured `OWNER_LOGIN_ID` and its server-side session. `OWNER_UIDS` and `OWNER_EMAILS` are protection allowlists for Firebase product-owner accounts that must not be disabled through the dashboard; they do not grant console access. At least one protection allowlist must be configured before disable actions are enabled.
 
 ## Dashboard integration
 
 The owner dashboard is served from the same NestJS origin at `/owner/`. Its static files are in `backend/public/owner/`; it calls `/health` and `/api/v1/admin/*` on that same origin and does not call Firestore directly. The dashboard must not be configured to use the legacy Express URL.
 
-The NestJS `FRONTEND_ORIGINS` allowlist is for cross-origin clients such as the existing PWA; same-origin dashboard requests do not require CORS. Add the exact Render hostname to Firebase Authentication authorized domains if required for browser sign-in. The dashboard is not yet deployed; no production URL is assumed.
+The NestJS `FRONTEND_ORIGINS` allowlist is for cross-origin clients such as the existing PWA; same-origin dashboard requests do not require CORS. The dashboard does not use Firebase browser sign-in and does not require its hostname to be added to Firebase Authentication authorized domains for owner-console login.
 
 ## Rate limiting and proxy trust
 
@@ -62,9 +62,9 @@ The existing Express service exposes `/api/admin/*`; equivalent NestJS routes ar
 ## Release gates
 
 1. CI passes backend typecheck/build/tests and existing application checks.
-2. HTTP guard tests prove missing/invalid tokens and non-owners cannot access owner handlers.
+2. HTTP guard tests prove missing/invalid Owner ID sessions cannot access owner handlers; state-changing requests also require exact same-origin CSRF checks.
 3. Owner list/detail responses remain allowlisted and pagination is tested.
-4. Deploy to staging; verify exact Firebase authorized domain, token refresh, same-origin dashboard behavior, and error handling.
+4. Deploy to staging; verify Owner ID login/session restore/logout, same-origin dashboard behavior, CSRF rejection, and error handling.
 5. Verify Render proxy hop count and spoofed-forwarded-header handling before configuring `TRUST_PROXY_HOPS`.
 6. Exercise the NestJS API and dashboard in staging with staging Firebase/MongoDB credentials.
 7. Review MongoDB data parity/migration separately.
