@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { user: null, apiBase: window.location.origin, owner: false, authMode: null, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
+  const state = { user: null, apiBase: window.location.origin, owner: false, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
 
   function toast(message, type) {
     const item = document.createElement('div');
@@ -51,7 +51,6 @@
     const requestUser = userOverride || state.user;
     const requestGeneration = state.authGeneration;
     if (!requestUser || state.user !== requestUser) throw new Error('Sign in again to continue.');
-    const token = null;
     if (state.authGeneration !== requestGeneration || state.user !== requestUser) {
       const error = new Error('The account changed while this request was starting.');
       error.code = 'STALE_AUTH_SESSION';
@@ -98,7 +97,6 @@
     const generation = ++state.authGeneration;
     state.owner = false;
     state.user = user;
-    state.authMode = 'owner';
     $('loginView').classList.add('hidden');
     $('appView').classList.remove('hidden');
     setText('ownerEmail', user.email || 'Owner');
@@ -310,7 +308,6 @@
     if (logoutError) { showError(logoutError); return; }
     ++state.authGeneration;
     state.owner = false;
-    state.authMode = null;
     state.user = null;
     $('appView').classList.add('hidden');
     $('loginView').classList.remove('hidden');
