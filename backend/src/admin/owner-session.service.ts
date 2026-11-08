@@ -2,14 +2,23 @@ import { Injectable, UnauthorizedException, ServiceUnavailableException } from '
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { randomBytes, createHash, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
+import type { ScryptOptions } from 'node:crypto';
+import { isIP } from 'node:net';
 import type { Request, Response } from 'express';
 
-const scrypt = promisify(scryptCallback);
 const COOKIE = '__Host-easy_owner';
 const TTL = 8 * 60 * 60 * 1000;
 const GENERIC_ERROR = 'Invalid owner credentials.';
 type Session = { tokenHash: string; ownerId: string; expiresAt: Date; createdAt: Date };
+
+function scryptAsync(password: string, salt: Buffer, keyLength: number, options: ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keyLength, options, (error, derivedKey) => {
+      if (error) reject(error);
+      else resolve(derivedKey);
+    });
+  });
+}
 
 @Injectable()
 export class OwnerSessionService {
@@ -29,7 +38,9 @@ export class OwnerSessionService {
 
   private async verifyPassword(password: string, encoded: string): Promise<boolean> {
     const [, , , , salt, expected] = encoded.split('$');
-    const actual = await scrypt(password, Buffer.from(salt, 'hex'), 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }) as Buffer;
+    const actual = await scryptAsync(password, Buffer.from(salt, 'hex'), 64, {
+      N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024,
+    });
     return timingSafeEqual(actual, Buffer.from(expected, 'hex'));
   }
 
