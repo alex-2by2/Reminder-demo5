@@ -38,9 +38,9 @@ async function bootstrap(): Promise<void> {
     },
   }));
 
-  // The owner console is a same-origin static application served by this API.
-  // Keep its assets outside the public user PWA and its service-worker scope.
-  app.useStaticAssets(join(process.cwd(), 'public'), {
+  // Mount the owner console directory itself at /owner/. Mounting its parent
+  // would make Express look for public/index.html instead of public/owner/index.html.
+  app.useStaticAssets(join(process.cwd(), 'public', 'owner'), {
     prefix: '/owner/',
     index: ['index.html'],
     fallthrough: false,
