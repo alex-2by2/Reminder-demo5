@@ -1,17 +1,7 @@
 (function () {
   'use strict';
-  const FIREBASE_CONFIG = {
-    apiKey: 'AIzaSyDc-k1JnOySVExS4QbDsbkh7Ro9pvNydIY',
-    authDomain: window.location.hostname,
-    projectId: 'reminder-76588',
-    storageBucket: 'reminder-76588.firebasestorage.app',
-    messagingSenderId: '813515230126',
-    appId: '1:813515230126:web:dde11175645257dc44d63f'
-  };
   const $ = (id) => document.getElementById(id);
   const state = { user: null, apiBase: window.location.origin, owner: false, authMode: null, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
-  const authApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
-  const auth = authApp.auth();
 
   function toast(message, type) {
     const item = document.createElement('div');
@@ -61,7 +51,7 @@
     const requestUser = userOverride || state.user;
     const requestGeneration = state.authGeneration;
     if (!requestUser || state.user !== requestUser) throw new Error('Sign in again to continue.');
-    const token = state.authMode === 'firebase' ? await requestUser.getIdToken() : null;
+    const token = null;
     if (state.authGeneration !== requestGeneration || state.user !== requestUser) {
       const error = new Error('The account changed while this request was starting.');
       error.code = 'STALE_AUTH_SESSION';
@@ -69,10 +59,10 @@
     }
     const response = await fetch(state.apiBase + path, {
       method: (options && options.method) || 'GET',
-      headers: Object.assign({ Accept: 'application/json' }, token ? { Authorization: 'Bearer ' + token } : { 'X-Owner-Action': '1' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
+      headers: Object.assign({ Accept: 'application/json', 'X-Owner-Action': '1' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
       body: options && options.body ? JSON.stringify(options.body) : undefined,
       cache: 'no-store',
-      credentials: token ? 'omit' : 'same-origin'
+      credentials: 'same-origin'
     });
     let payload = null;
     const contentType = response.headers.get('content-type') || '';
@@ -104,18 +94,17 @@
     if (page === 'crashes') loadCrashes(false);
     if (page === 'referrals') loadReferrals();
   }
-  function showSignedInShell(user, mode = 'firebase') {
-    // Invalidate pending authorization checks from the previous Firebase session.
+  function showSignedInShell(user) {
     const generation = ++state.authGeneration;
     state.owner = false;
     state.user = user;
-    state.authMode = mode;
+    state.authMode = 'owner';
     $('loginView').classList.add('hidden');
     $('appView').classList.remove('hidden');
     setText('ownerEmail', user.email || 'Owner');
     setText('securityEmail', user.email || '—');
     setText('avatarInitial', (user.displayName || user.email || 'O').charAt(0).toUpperCase());
-    setText('firebaseStatus', mode === 'firebase' ? 'Google / Firebase' : 'Owner ID / Secure session');
+    setText('authMethodStatus', 'Owner ID / Secure session');
     $('apiBaseUrl').value = state.apiBase;
     setPage('overview');
     if (state.apiBase) verifyOwnerAccess(generation, user).catch((error) => {
@@ -310,68 +299,15 @@
       showError(error);
     }
   }
-  function describeAuthError(error) {
-    const code = error && error.code ? String(error.code) : 'unknown';
-    const message = error && error.message ? String(error.message) : 'No additional message supplied by Firebase.';
-    // Keep diagnostics useful without exposing OAuth tokens or credential payloads.
-    console.error('[Owner Google sign-in]', { code, message, name: error && error.name });
-    if (code === 'auth/unauthorized-domain') {
-      return 'This website (' + window.location.hostname + ') is not authorized for Firebase sign-in. Add this hostname in Firebase Authentication → Settings → Authorized domains.';
-    }
-    return 'Google sign-in failed (' + code + '). ' + message + ' If this continues, share this exact error code with support.';
-  }
-  async function handleRedirectResult() {
-    try {
-      const result = await auth.getRedirectResult();
-      if (result && result.user) {
-        $('loginError').textContent = '';
-        setText('firebaseStatus', 'Google sign-in completed');
-      }
-    } catch (error) {
-      $('loginError').textContent = describeAuthError(error);
-    }
-  }
-  async function signIn() {
-    $('loginError').textContent = '';
-    const button = $('googleSignIn');
-    button.disabled = true;
-    button.textContent = 'Connecting to Google…';
-    try {
-      // Explicit local persistence helps Firebase restore the redirect session
-      // when Android Chrome returns from the Google/Firebase handler.
-      await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const userAgent = navigator.userAgent || '';
-      const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
-      if (isMobile) {
-        await auth.signInWithRedirect(provider);
-        return;
-      }
-      await auth.signInWithPopup(provider);
-    } catch (error) {
-      $('loginError').textContent = describeAuthError(error);
-    } finally {
-      button.disabled = false;
-      button.textContent = 'Continue with Google';
-    }
-  }
   async function signOut() {
-    const mode = state.authMode;
+    let logoutError = null;
     try {
-      if (mode === 'owner') {
-        const response = await fetch('/api/v1/owner-session/logout', {
-          method: 'POST', headers: { 'X-Owner-Action': '1' }, credentials: 'same-origin'
-        });
-        if (!response.ok) throw new Error('Server logout failed (' + response.status + '). Your owner session may still be active. Please retry.');
-      } else if (mode === 'firebase') {
-        await auth.signOut();
-      }
-    } catch (error) {
-      showError(error);
-      return;
-    }
+      const response = await fetch('/api/v1/owner-session/logout', {
+        method: 'POST', headers: { 'X-Owner-Action': '1' }, credentials: 'same-origin', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error('Server logout failed (' + response.status + '). The owner session may still be active. Please retry.');
+    } catch (error) { logoutError = error; }
+    if (logoutError) { showError(logoutError); return; }
     ++state.authGeneration;
     state.owner = false;
     state.authMode = null;
@@ -402,11 +338,10 @@
       const response = await fetch('/api/v1/owner-session/me', { credentials: 'same-origin', cache: 'no-store' });
       if (!response.ok) return;
       const owner = await response.json();
-      if (state.authMode !== 'firebase') showSignedInShell({ email: owner.ownerId, displayName: owner.ownerId }, 'owner');
+      showSignedInShell({ email: owner.ownerId, displayName: owner.ownerId });
     } catch (_) { /* No active owner session. */ }
   }
   function bindEvents() {
-    $('googleSignIn').addEventListener('click', signIn);
     $('ownerLoginForm').addEventListener('submit', ownerLogin);
     $('profileButton').addEventListener('click', signOut);
     $('signOutButton').addEventListener('click', signOut);
@@ -429,17 +364,5 @@
   }
   bindEvents();
   state.apiBase = window.location.origin;
-  // Consume the OAuth redirect response on page return so Firebase errors are
-  // surfaced here rather than being lost behind the auth-state listener.
-  handleRedirectResult();
   restoreOwnerSession();
-  auth.onAuthStateChanged((user) => {
-    if (user) showSignedInShell(user, 'firebase');
-    else if (state.authMode !== 'owner') {
-      ++state.authGeneration;
-      state.user = null; state.owner = false;
-      $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden');
-      setText('firebaseStatus', 'Signed out');
-    }
-  });
 })();
