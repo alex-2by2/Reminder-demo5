@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { join } from 'node:path';
 import { request as httpsRequest } from 'node:https';
+import { json, urlencoded } from 'express';
 import type { Request, Response } from 'express';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -53,13 +54,17 @@ function proxyFirebaseAuth(request: Request, response: Response): void {
 }
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, bodyParser: false });
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
 
   // Firebase's redirect helper must be served transparently from this origin.
   // A browser redirect (302) is not sufficient for Firebase's cross-origin storage flow.
   app.use('/__/auth', (request: Request, response: Response) => proxyFirebaseAuth(request, response));
+
+  // Keep Firebase proxy request bodies untouched; parse application requests afterwards.
+  app.use(json());
+  app.use(urlencoded({ extended: true }));
 
   app.use(helmet({
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
