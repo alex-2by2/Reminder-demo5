@@ -319,7 +319,7 @@
       provider.setCustomParameters({ prompt: 'select_account' });
       // Android and other mobile browsers are more reliable with a full-page
       // redirect than a popup, which may be blocked or lose its auth window.
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const userAgent = navigator.userAgent || '';\n      const isIPadOS = /Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1;\n      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) || isIPadOS;
       if (isMobile) {
         await auth.signInWithRedirect(provider);
         return;
@@ -327,7 +327,7 @@
       await auth.signInWithPopup(provider);
     } catch (error) {
       $('loginError').textContent = error && error.code === 'auth/unauthorized-domain'
-        ? 'This website is not authorized for Firebase sign-in. Add reminder-demo5.onrender.com in Firebase Authentication → Settings → Authorized domains.'
+        ? 'This website (' + window.location.hostname + ') is not authorized for Firebase sign-in. Add this hostname in Firebase Authentication → Settings → Authorized domains.'
         : (error && error.message) || 'Google sign-in failed. Please try again.';
     } finally {
       // A redirect unloads this page; otherwise restore the button for retry.
