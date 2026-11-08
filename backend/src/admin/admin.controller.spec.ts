@@ -45,6 +45,17 @@ describe('AdminController', () => {
     expect(admin.setUserDisabled).not.toHaveBeenCalled();
   });
 
+  it('passes the Owner ID session identity to account-change audit records', async () => {
+    const result = { uid: 'user-2', disabled: true };
+    (admin.setUserDisabled as jest.Mock).mockResolvedValue(result);
+    const response = await controller.setUserDisabled('user-2', { disabled: true }, {
+      ownerSession: { ownerId: 'configured-owner-id' },
+    } as any);
+
+    expect(admin.setUserDisabled).toHaveBeenCalledWith('user-2', true, 'configured-owner-id');
+    expect(response).toEqual(result);
+  });
+
   it('passes validated account changes with the verified owner UID', async () => {
     const result = { uid: 'user-1', disabled: true };
     (admin.setUserDisabled as jest.Mock).mockResolvedValue(result);
