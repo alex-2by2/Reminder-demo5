@@ -80,11 +80,9 @@ service configuration, required environment variables, and post-deploy checks.
 
 No production database or live user data is changed by this scaffold.
 
-## Optional Render environment-based Owner ID login (under review)
+## Owner Console authentication
 
-The NestJS owner console can authenticate with a temporary server-side Owner ID
-and password. This is separate from Firebase Google sign-in; the Firebase path
-remains available.
+The NestJS owner console authenticates only with the server-side Owner ID and password session. Firebase Google sign-in and Firebase bearer tokens are not accepted for owner-console access. Firebase Authentication remains in use for normal product users and product-user data.
 
 For this initial rollout, set `OWNER_LOGIN_ID` and `OWNER_PASSWORD` only in
 the **NestJS Render service** Environment settings. Never place either value
@@ -93,10 +91,9 @@ least 16 characters), restrict Render dashboard access, and rotate the password
 if it may have been exposed. This temporary configuration stores the password
 as a Render environment secret; the backend compares it in constant time but
 does not store it in MongoDB. A later hardening update will replace
-`OWNER_PASSWORD` with a salted password hash. Do not enable this login until
-the PR has passed CI, independent review, and end-to-end checks.
+`OWNER_PASSWORD` with a salted password hash. Enable this login only after CI, independent review, and deployment verification pass.
 
-The login endpoint is rate limited and creates a random, revocable MongoDB
+The owner login endpoint is rate limited and creates a random, revocable MongoDB
 session. The browser receives a Secure, HttpOnly, SameSite=Strict cookie.
 Owner sessions expire after eight hours. To invalidate all sessions, delete
 the `owner_sessions` documents for the configured owner. The password login
