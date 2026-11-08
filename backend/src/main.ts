@@ -26,15 +26,12 @@ function proxyFirebaseAuth(request: Request, response: Response): void {
       if (rawValue === undefined || ['connection', 'keep-alive', 'transfer-encoding', 'upgrade'].includes(name.toLowerCase())) continue;
       if (name.toLowerCase() === 'set-cookie') {
         const cookies = (Array.isArray(rawValue) ? rawValue : [rawValue])
-          .map((cookie) => cookie.replace(/;\\s*domain=[^;]+/i, ''));
+          .map((cookie) => cookie.replace(/;\s*domain=[^;]+/i, ''));
         response.setHeader(name, cookies);
         continue;
       }
       if (name.toLowerCase() === 'location') {
-        const location = String(rawValue).replace(
-          new RegExp('https://' + FIREBASE_AUTH_HOST.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'), 'gi'),
-          OWNER_ORIGIN,
-        );
+        const location = String(rawValue).replaceAll('https://' + FIREBASE_AUTH_HOST, OWNER_ORIGIN);
         response.setHeader(name, location);
         continue;
       }
@@ -109,7 +106,6 @@ async function bootstrap(): Promise<void> {
     if (!Number.isSafeInteger(parsedHops) || parsedHops < 0) {
       throw new Error('TRUST_PROXY_HOPS must be a non-negative integer.');
     }
-    app.getHttpAdapter().getHttpServer();
     app.getHttpAdapter().getInstance().set('trust proxy', parsedHops);
   }
 
