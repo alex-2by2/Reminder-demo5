@@ -9,7 +9,7 @@
     appId: '1:813515230126:web:dde11175645257dc44d63f'
   };
   const $ = (id) => document.getElementById(id);
-  const state = { user: null, apiBase: window.location.origin, owner: false, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
+  const state = { user: null, apiBase: window.location.origin, owner: false, authMode: null, usersToken: null, usersPage: 0, crashCursor: null, crashHasMore: false, crashCount: 0, users: [], page: 'overview', authGeneration: 0 };
   const authApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
   const auth = authApp.auth();
 
@@ -61,7 +61,7 @@
     const requestUser = userOverride || state.user;
     const requestGeneration = state.authGeneration;
     if (!requestUser || state.user !== requestUser) throw new Error('Sign in again to continue.');
-    const token = await requestUser.getIdToken();
+    const token = state.authMode === 'firebase' ? await requestUser.getIdToken() : null;
     if (state.authGeneration !== requestGeneration || state.user !== requestUser) {
       const error = new Error('The account changed while this request was starting.');
       error.code = 'STALE_AUTH_SESSION';
@@ -69,10 +69,10 @@
     }
     const response = await fetch(state.apiBase + path, {
       method: (options && options.method) || 'GET',
-      headers: Object.assign({ Authorization: 'Bearer ' + token, Accept: 'application/json' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
+      headers: Object.assign({ Accept: 'application/json' }, token ? { Authorization: 'Bearer ' + token } : { 'X-Owner-Action': '1' }, options && options.body ? { 'Content-Type': 'application/json' } : {}, options && options.headers || {}),
       body: options && options.body ? JSON.stringify(options.body) : undefined,
       cache: 'no-store',
-      credentials: 'omit'
+      credentials: token ? 'omit' : 'same-origin'
     });
     let payload = null;
     const contentType = response.headers.get('content-type') || '';
@@ -83,10 +83,10 @@
       throw error;
     }
     if (response.status === 401) {
-      if (state.user === requestUser) await auth.signOut();
+      if (state.user === requestUser) await signOut();
       throw new Error('Session expired or token rejected. Please sign in again.');
     }
-    if (response.status === 403) throw new Error('Access denied. This Firebase account is not on the backend owner allowlist.');
+    if (response.status === 403) throw new Error('Access denied. This account is not authorized for owner access.');
     if (!response.ok) {
       const message = payload && (payload.message || payload.error);
       throw new Error(Array.isArray(message) ? message.join(', ') : message || 'API request failed (' + response.status + ').');
@@ -104,17 +104,18 @@
     if (page === 'crashes') loadCrashes(false);
     if (page === 'referrals') loadReferrals();
   }
-  function showSignedInShell(user) {
+  function showSignedInShell(user, mode = 'firebase') {
     // Invalidate pending authorization checks from the previous Firebase session.
     const generation = ++state.authGeneration;
     state.owner = false;
     state.user = user;
+    state.authMode = mode;
     $('loginView').classList.add('hidden');
     $('appView').classList.remove('hidden');
     setText('ownerEmail', user.email || 'Owner');
     setText('securityEmail', user.email || '—');
     setText('avatarInitial', (user.displayName || user.email || 'O').charAt(0).toUpperCase());
-    setText('firebaseStatus', 'Authenticated');
+    setText('firebaseStatus', mode === 'firebase' ? 'Google / Firebase' : 'Owner ID / Secure session');
     $('apiBaseUrl').value = state.apiBase;
     setPage('overview');
     if (state.apiBase) verifyOwnerAccess(generation, user).catch((error) => {
@@ -137,11 +138,11 @@
       if (!health.ok) throw new Error('API health check returned HTTP ' + health.status + '.');
       const access = await api('/api/v1/admin/access', undefined, user);
       if (state.authGeneration !== generation || state.user !== user) return false;
-      if (!access || access.access !== 'owner' || !access.uid) throw new Error('The API did not confirm owner access.');
+      if (!access || access.access !== 'owner' || !(access.uid || access.ownerId)) throw new Error('The API did not confirm owner access.');
       state.owner = true;
       $('accessBanner').classList.add('hidden');
       setText('ownerStatus', 'Verified owner');
-      setText('securityOwner', 'Verified · ' + access.uid);
+      setText('securityOwner', 'Verified · ' + (access.uid || access.ownerId));
       setText('apiStatus', 'Connected');
       setText('healthStatus', 'Secure connection');
       $('healthStatus').className = 'status-chip ok';
@@ -356,9 +357,51 @@
       button.textContent = 'Continue with Google';
     }
   }
-  async function signOut() { ++state.authGeneration; state.owner = false; await auth.signOut(); }
+  async function signOut() {
+    ++state.authGeneration;
+    const mode = state.authMode;
+    state.owner = false;
+    state.authMode = null;
+    state.user = null;
+    $('appView').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+    if (mode === 'owner') {
+      try {
+        await fetch('/api/v1/owner-session/logout', {
+          method: 'POST', headers: { 'X-Owner-Action': '1' }, credentials: 'same-origin'
+        });
+      } catch (error) { showError(error); }
+    } else if (mode === 'firebase') await auth.signOut();
+  }
+  async function ownerLogin(event) {
+    event.preventDefault();
+    $('loginError').textContent = '';
+    const button = $('ownerLoginButton');
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/v1/owner-session/login', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-Owner-Action': '1' },
+        body: JSON.stringify({ id: $('ownerLoginId').value, password: $('ownerLoginPassword').value })
+      });
+      $('ownerLoginPassword').value = '';
+      if (!response.ok) throw new Error(response.status === 429 ? 'Too many attempts. Try again later.' : 'Owner login failed. Check the credentials and Render configuration.');
+      const owner = await response.json();
+      showSignedInShell({ email: owner.ownerId, displayName: owner.ownerId }, 'owner');
+    } catch (error) { $('loginError').textContent = error.message; }
+    finally { button.disabled = false; }
+  }
+  async function restoreOwnerSession() {
+    try {
+      const response = await fetch('/api/v1/owner-session/me', { credentials: 'same-origin', cache: 'no-store' });
+      if (!response.ok) return;
+      const owner = await response.json();
+      if (state.authMode !== 'firebase') showSignedInShell({ email: owner.ownerId, displayName: owner.ownerId }, 'owner');
+    } catch (_) { /* No active owner session. */ }
+  }
   function bindEvents() {
     $('googleSignIn').addEventListener('click', signIn);
+    $('ownerLoginForm').addEventListener('submit', ownerLogin);
     $('profileButton').addEventListener('click', signOut);
     $('signOutButton').addEventListener('click', signOut);
     $('saveApiButton').addEventListener('click', saveApiConnection);
@@ -383,9 +426,10 @@
   // Consume the OAuth redirect response on page return so Firebase errors are
   // surfaced here rather than being lost behind the auth-state listener.
   handleRedirectResult();
+  restoreOwnerSession();
   auth.onAuthStateChanged((user) => {
-    if (user) showSignedInShell(user);
-    else {
+    if (user) showSignedInShell(user, 'firebase');
+    else if (state.authMode !== 'owner') {
       ++state.authGeneration;
       state.user = null; state.owner = false;
       $('appView').classList.add('hidden'); $('loginView').classList.remove('hidden');
