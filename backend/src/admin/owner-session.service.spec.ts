@@ -63,6 +63,35 @@ describe('OwnerSessionService', () => {
     expect(findOne).not.toHaveBeenCalled();
   });
 
+  it('accepts only an unexpired session belonging to the currently configured owner', async () => {
+    const token = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    findOne.mockResolvedValue({
+      tokenHash: 'unused-test-hash',
+      ownerId: 'owner-test',
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const request = { headers: { cookie: '__Host-easy_owner=' + token } } as any;
+
+    await expect(service.getSession(request)).resolves.toMatchObject({ ownerId: 'owner-test' });
+    expect(findOne).toHaveBeenCalledWith({
+      tokenHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      expiresAt: { $gt: expect.any(Date) },
+    });
+  });
+
+  it('rejects a session that belongs to a different configured owner', async () => {
+    findOne.mockResolvedValue({
+      tokenHash: 'unused-test-hash',
+      ownerId: 'previous-owner',
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const request = { headers: { cookie: '__Host-easy_owner=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } } as any;
+
+    await expect(service.getSession(request)).resolves.toBeNull();
+  });
+
   it('revokes the current session and clears the cookie on logout', async () => {
     const request = { headers: { cookie: '__Host-easy_owner=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' } } as any;
     await service.logout(request, response);
