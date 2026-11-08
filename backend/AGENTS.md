@@ -5,7 +5,7 @@
 - Use this folder's package.json, TypeScript config, tests, and dependencies.
 - Do not read or import browser modules from ../js/; do not put frontend files here.
 - Do not change the existing Express admin API in ../server/ to implement NestJS behavior.
-- Keep Firebase identity verification and MongoDB ownership scoping inside this API.
+- Keep Firebase identity verification for product/user data where required, but owner-console authorization must use the dedicated Owner ID session only. MongoDB ownership scoping remains mandatory.
 - The PWA still uses Firestore; do not switch or migrate data without a separately reviewed migration plan.
 - Build: npm run build; tests: npm test; typecheck: npm run typecheck.
 - Never commit secrets or generated dist/ output.
