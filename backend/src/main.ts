@@ -111,7 +111,9 @@ async function bootstrap(): Promise<void> {
     legacyHeaders: false,
     keyGenerator: (request) => {
       const forwardedClientIp = request.get('cf-connecting-ip')?.trim();
-      const clientIp = forwardedClientIp && isIP(forwardedClientIp) ? forwardedClientIp : request.ip;
+      const clientIp = forwardedClientIp && isIP(forwardedClientIp)
+        ? forwardedClientIp
+        : request.ip || request.socket.remoteAddress || 'unknown';
       return ipKeyGenerator(clientIp);
     },
     message: { error: 'Too many login attempts. Try again later.' },
