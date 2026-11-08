@@ -121,7 +121,9 @@ async function bootstrap(): Promise<void> {
   app.use('/api/v1/owner-session/login', ownerLoginLimiter);
 
   app.use(rateLimit({
-    skip: (request) => request.method === 'OPTIONS',
+    // The dedicated owner-login limiter already applies its own client-IP key.
+    // Avoid a second shared-proxy bucket blocking all owners at once.
+    skip: (request) => request.method === 'OPTIONS' || request.path === '/api/v1/owner-session/login',
     windowMs: 60_000,
     limit: 120,
     standardHeaders: 'draft-7',
