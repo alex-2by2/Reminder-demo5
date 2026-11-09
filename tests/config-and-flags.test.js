@@ -58,7 +58,7 @@ test("PWA release version stays aligned with its package and service worker", ()
   assert.equal(rootPackage.version, appVersion);
   assert.equal(functionsPackage.version, appVersion);
   assert.match(backendPackage.version, /^\d+\.\d+\.\d+$/);
-  assert.match(serviceWorker, new RegExp(`const CACHE_VERSION = 'v${appVersion.replaceAll(".", "\\\\.")}';`));
+  assert.ok(serviceWorker.includes(`const CACHE_VERSION = 'v${appVersion}';`));
 });
 
 test("config falls back to globalThis when window is unavailable", () => {
