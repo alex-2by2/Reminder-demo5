@@ -2618,3 +2618,104 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
     animation: none !important;
   }
 }
+
+
+/* Mobile visual QA fixes — contrast, fixed chrome clearance and theme parity. */
+#page-home .widget-card:first-child {
+  background: linear-gradient(135deg,#3b82f6,#2563eb);
+}
+#page-home #nextTaskWidget {
+  background: var(--el-surface) !important;
+  border-color: var(--el-line) !important;
+  color: var(--el-ink);
+}
+#page-home #nextTaskWidget #nextTaskName {
+  color: var(--el-ink) !important;
+}
+#page-home #nextTaskWidget #nextTaskTime {
+  color: var(--primary) !important;
+}
+#page-home .analytics-section .stats-header,
+#page-home .analytics-section .stats-header > div,
+#page-home #taskCountText,
+#page-home #percentageText {
+  color: var(--el-ink) !important;
+}
+#page-home .analytics-section .view-report-btn {
+  color: var(--primary) !important;
+  background: var(--el-surface) !important;
+  border: 1px solid var(--el-line) !important;
+}
+body.dark-mode #page-home .widget-card:first-child {
+  background: linear-gradient(135deg,#343941,#252a33) !important;
+}
+body.dark-mode #page-home #nextTaskWidget {
+  background: var(--el-surface) !important;
+  border-color: var(--el-line) !important;
+}
+body.dark-mode #page-home #nextTaskWidget #nextTaskName,
+body.dark-mode #page-home .analytics-section .stats-header,
+body.dark-mode #page-home .analytics-section .stats-header > div,
+body.dark-mode #page-home #taskCountText,
+body.dark-mode #page-home #percentageText {
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings .app-container > div[style*="background:#f2f2f7"],
+body.dark-mode #page-settings .app-container > div[style*="background: #f2f2f7"],
+body.dark-mode #page-more > div[style*="background:#f2f2f7"],
+body.dark-mode #page-more > div[style*="background: #f2f2f7"] {
+  background: var(--el-surface) !important;
+  border: 1px solid var(--el-line);
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row,
+body.dark-mode #page-settings .widget-toggle-row span,
+body.dark-mode #page-settings label,
+body.dark-mode #page-settings .app-container > div[style*="background:#f2f2f7"] *,
+body.dark-mode #page-more > div[style*="background:#f2f2f7"] * {
+  color: var(--el-ink);
+}
+body.dark-mode #page-settings .widget-toggle-row {
+  border-color: var(--el-line);
+}
+body.dark-mode #page-settings input:not([type="checkbox"]):not([type="radio"]),
+body.dark-mode #page-settings select,
+body.dark-mode #page-finance input,
+body.dark-mode #page-finance select,
+body.dark-mode #page-add input,
+body.dark-mode #page-add select,
+body.dark-mode #page-add textarea {
+  color: var(--el-ink);
+  background: var(--el-control);
+  border-color: var(--el-line);
+}
+body.dark-mode #page-settings input::placeholder,
+body.dark-mode #page-finance input::placeholder,
+body.dark-mode #page-add input::placeholder,
+body.dark-mode #page-add textarea::placeholder {
+  color: var(--el-muted);
+  opacity: 1;
+}
+#page-finance .finance-tab,
+#page-home .tabs {
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+@media (max-width: 600px) {
+  body { padding-bottom: calc(118px + env(safe-area-inset-bottom,0px)); }
+  .bottom-nav {
+    bottom: max(8px,env(safe-area-inset-bottom,0px));
+    min-height: 70px;
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    width: calc(100% - 24px);
+    left: 12px;
+    padding: 4px 6px;
+  }
+  .main-fab {
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom,0px));
+    z-index: 8999;
+  }
+  .app-container { padding-bottom: 18px; }
+}
