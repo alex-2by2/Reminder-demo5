@@ -1,6 +1,6 @@
 # Owner Dashboard UI Design System
 
-Status: approved visual direction for implementation planning. This specification does not connect a browser client to production APIs.
+Status: visual direction retained; authentication guidance below reflects the integrated Owner ID session console. This specification does not authorize production API cutover.
 
 ## Visual direction
 
@@ -68,13 +68,15 @@ Use a modern, restrained Liquid Glass interface inspired by current platform gla
 ## API and security boundaries
 
 - The UI is a separate owner-only client; it must not be bundled into the end-user PWA.
-- Firebase client sign-in obtains the ID token; the NestJS API independently verifies it and enforces the owner allowlist.
-- UI route protection is not authorization. A non-owner must be denied by the API.
-- No service-account key, MongoDB URI, or owner allowlist is shipped to the browser.
+- Owner-console sign-in uses only the server-side `OWNER_LOGIN_ID` and `OWNER_PASSWORD`; the backend issues a Secure, HttpOnly, SameSite=Strict session cookie backed by MongoDB.
+- Every owner API request requires a valid Owner ID session; Firebase ID bearer tokens do not authenticate the owner console.
+- `OWNER_UIDS` and `OWNER_EMAILS` are backend-only protection allowlists for Firebase product-owner accounts that must not be disabled. They do not grant owner-console access.
+- UI route protection is not authorization. The API must reject missing or invalid Owner ID sessions and enforce same-origin CSRF checks for state-changing requests.
+- No service-account key, MongoDB URI, owner password, session token, or protection allowlist is shipped to the browser.
 - Only render user fields and crash-report fields explicitly returned by the API.
 - Do not invent metrics or show fabricated sample records. Use explicit skeleton, empty, or error states until real staging data is returned.
 - Configure exact staging/production API origins and CORS separately. Never reuse the legacy Express URL as the NestJS API base URL.
 
 ## Implementation gate
 
-Before connecting real data, confirm the actual staging NestJS Render URL, dashboard hosting origin, Firebase web-app configuration, and staging owner UID allowlist. Build and verify the dashboard in isolation; do not alter the PWA build order, service worker scope, Firestore persistence, Firebase Rules, existing Render services, or production data.
+Before connecting real data, confirm the exact target NestJS Render service and URL, configure `OWNER_LOGIN_ID` and `OWNER_PASSWORD` only in that service's secret settings, and configure `OWNER_UIDS` and/or `OWNER_EMAILS` only to protect product-owner Firebase accounts from disable actions. Test Owner ID login, session restore/logout, invalid-session rejection, and CSRF checks in staging. Build and verify the dashboard in isolation; do not alter the PWA build order, service worker scope, Firestore persistence, Firebase Rules, existing Render services, or production data.
