@@ -133,8 +133,8 @@ describe('AdminService', () => {
     }
   });
 
-  it('allows disabling a non-owner account', async () => {
-    const updateUser = jest.fn().mockResolvedValue({ uid: 'user-1', disabled: true });
+  it('fails closed when no Firebase owner accounts are configured for protection', async () => {
+    const updateUser = jest.fn();
     const getUser = jest.fn().mockResolvedValue({
       uid: 'user-1', email: 'user@example.com', emailVerified: true,
     });
@@ -144,7 +144,29 @@ describe('AdminService', () => {
     delete process.env.OWNER_UIDS;
     delete process.env.OWNER_EMAILS;
     try {
-      await expect(service.setUserDisabled('user-1', true, 'owner-1'))
+      await expect(service.setUserDisabled('user-1', true, 'owner-id'))
+        .rejects.toThrow('Configure OWNER_UIDS or OWNER_EMAILS');
+      expect(updateUser).not.toHaveBeenCalled();
+    } finally {
+      if (previousUids === undefined) delete process.env.OWNER_UIDS;
+      else process.env.OWNER_UIDS = previousUids;
+      if (previousEmails === undefined) delete process.env.OWNER_EMAILS;
+      else process.env.OWNER_EMAILS = previousEmails;
+    }
+  });
+
+  it('allows disabling a non-owner account when protected Firebase owners are configured', async () => {
+    const updateUser = jest.fn().mockResolvedValue({ uid: 'user-1', disabled: true });
+    const getUser = jest.fn().mockResolvedValue({
+      uid: 'user-1', email: 'user@example.com', emailVerified: true,
+    });
+    firebase.getAuth.mockReturnValue({ getUser, updateUser });
+    const previousUids = process.env.OWNER_UIDS;
+    const previousEmails = process.env.OWNER_EMAILS;
+    process.env.OWNER_UIDS = 'owner-firebase-uid';
+    process.env.OWNER_EMAILS = '';
+    try {
+      await expect(service.setUserDisabled('user-1', true, 'owner-id'))
         .resolves.toEqual({ uid: 'user-1', disabled: true });
       expect(updateUser).toHaveBeenCalledWith('user-1', { disabled: true });
     } finally {

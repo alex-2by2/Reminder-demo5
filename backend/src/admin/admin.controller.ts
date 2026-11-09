@@ -21,8 +21,8 @@ export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
   private actorId(request: OwnerRequest): string {
-    const actorId = request.ownerSession?.ownerId || request.user?.uid;
-    if (!actorId) throw new UnauthorizedException('Owner identity is missing.');
+    const actorId = request.ownerSession?.ownerId;
+    if (!actorId) throw new UnauthorizedException('Owner ID session is missing.');
     return actorId;
   }
 

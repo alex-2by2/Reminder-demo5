@@ -68,9 +68,14 @@ export class AdminService {
     }
     if (disabled) {
       const target = await this.firebase.getAuth().getUser(uid);
+      // Owner ID login is a separate identity from Firebase users. Fail closed unless
+      // the Firebase accounts that must remain protected are explicitly allowlisted.
       const ownerUids = this.readAllowlist(process.env.OWNER_UIDS);
       const ownerEmails = this.readAllowlist(process.env.OWNER_EMAILS)
         .map((email) => email.toLowerCase());
+      if (ownerUids.length === 0 && ownerEmails.length === 0) {
+        throw new BadRequestException('Configure OWNER_UIDS or OWNER_EMAILS before disabling user accounts.');
+      }
       const targetEmail = typeof target.email === 'string' ? target.email.toLowerCase() : '';
       const isConfiguredOwner = ownerUids.includes(target.uid)
         || (target.emailVerified === true && targetEmail.length > 0
