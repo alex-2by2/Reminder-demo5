@@ -2216,3 +2216,281 @@ body.dark-mode #page-journal > div:first-child button {
         animation-iteration-count: 1 !important;
     }
 }
+
+
+/* ==========================================================
+   Liquid Glass — Home dashboard & Add Task workspace
+   Presentation-only layer. Keep existing controls and flows.
+   ========================================================== */
+#page-home > .app-container {
+    padding-top: max(14px, env(safe-area-inset-top));
+}
+#page-home .header-actions {
+    gap: 12px;
+    align-items: center;
+}
+#page-home .user-greeting-inline {
+    letter-spacing: -.045em;
+}
+#page-home .header-actions .icon-btn-small {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.15));
+    border-radius: 15px;
+    background: var(--glass-bg, rgba(255,255,255,.76));
+    box-shadow: 0 5px 16px rgba(25,40,70,.055), inset 0 1px 0 rgba(255,255,255,.85);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+}
+#page-home .ai-tip-card,
+#page-home .analytics-section,
+#page-home .home-calendar-card,
+#page-home .mood-tracker-card {
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.13));
+    border-radius: 21px;
+    box-shadow: 0 9px 26px rgba(25,40,70,.045), inset 0 1px 0 rgba(255,255,255,.78);
+}
+#page-home .ai-tip-card {
+    overflow: hidden;
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+#page-home .widgets-dashboard {
+    gap: 11px !important;
+}
+#page-home .widget-card {
+    min-width: 0;
+    min-height: 112px;
+    padding: 15px !important;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 20px !important;
+    box-shadow: 0 10px 22px rgba(25,40,70,.10), inset 0 1px 0 rgba(255,255,255,.24);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+#page-home .widget-card:active,
+#page-home #nextTaskWidget:active,
+#page-home #dailyChallengeWidget:active {
+    transform: scale(.98);
+}
+#page-home .widget-card h5 {
+    font-size: 10px;
+    letter-spacing: .09em;
+    opacity: .88;
+}
+#page-home .widget-card p {
+    margin: 7px 0 0;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.045em;
+}
+#page-home #nextTaskWidget,
+#page-home #dailyChallengeWidget {
+    min-width: 0;
+    min-height: 94px;
+    border: 1px solid rgba(120,130,150,.14) !important;
+    border-radius: 19px !important;
+    box-shadow: 0 8px 22px rgba(25,40,70,.055), inset 0 1px 0 rgba(255,255,255,.7) !important;
+}
+#page-home .analytics-section {
+    padding: 15px !important;
+    margin: 0 0 20px;
+    background: var(--glass-bg, rgba(255,255,255,.78));
+}
+#page-home .stats-header {
+    gap: 10px;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+#page-home .progress-bar-bg {
+    height: 9px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(120,130,150,.13);
+}
+#page-home .progress-fill {
+    border-radius: inherit;
+}
+#page-home .section-title {
+    margin-top: 23px;
+    margin-bottom: 12px;
+    letter-spacing: -.035em;
+}
+#page-home .home-calendar-card {
+    padding: 14px !important;
+    overflow: hidden;
+    background: var(--glass-bg, rgba(255,255,255,.82));
+    backdrop-filter: blur(18px) saturate(1.35);
+    -webkit-backdrop-filter: blur(18px) saturate(1.35);
+}
+#page-home .cal-header {
+    margin-bottom: 12px;
+}
+#page-home .cal-nav-btn,
+#page-home .cal-view-btn {
+    min-height: 38px;
+    border-radius: 12px;
+}
+#page-home .cal-view-toggle {
+    gap: 6px;
+    padding: 5px;
+    border-radius: 15px;
+    background: rgba(120,130,150,.08);
+}
+#page-home .cal-view-btn.active {
+    box-shadow: 0 3px 10px rgba(25,40,70,.08);
+}
+#page-home .tools-panel {
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.12));
+    background: var(--glass-bg, rgba(255,255,255,.72)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+}
+#page-home .print-btn {
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.14));
+    border-radius: 13px;
+    background: var(--glass-bg, rgba(255,255,255,.78));
+    box-shadow: 0 4px 12px rgba(25,40,70,.035);
+}
+#page-home .tabs {
+    gap: 7px;
+    padding: 5px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.12));
+    border-radius: 17px;
+    background: var(--glass-bg, rgba(255,255,255,.72));
+}
+#page-home .tab-btn {
+    min-height: 40px;
+    border-radius: 12px;
+}
+#page-home .reminder-list {
+    margin-top: 12px;
+}
+#page-home .habit-input-container {
+    padding: 8px;
+    gap: 8px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.13));
+    border-radius: 17px;
+    background: var(--glass-bg, rgba(255,255,255,.72));
+}
+#page-home .habit-input-container input {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+#page-home .habit-add-btn {
+    min-height: 42px;
+    border-radius: 13px;
+}
+#page-home .mood-tracker-card {
+    padding: 15px !important;
+    margin-bottom: 11px;
+    background: var(--glass-bg, rgba(255,255,255,.76));
+}
+#page-home #sleepTrackerCard input {
+    min-height: 44px;
+}
+#page-home button:focus-visible,
+#page-home input:focus-visible,
+#page-home select:focus-visible {
+    outline: 3px solid rgba(0,122,255,.3);
+    outline-offset: 2px;
+}
+
+/* Add Task: calm, legible form hierarchy with generous touch targets */
+#page-add .add-event-container {
+    padding-top: 20px;
+}
+#page-add #modalTitle {
+    letter-spacing: -.045em;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--el-hairline, rgba(120,130,150,.14));
+}
+#page-add .form-group {
+    margin-bottom: 17px;
+    padding: 13px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.12));
+    border-radius: 18px;
+    background: var(--glass-bg, rgba(255,255,255,.58));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+}
+#page-add .form-group > label,
+#page-add .form-group label {
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+#page-add input:not([type="checkbox"]):not([type="radio"]),
+#page-add select,
+#page-add textarea {
+    min-height: 46px;
+    border: 1px solid var(--el-hairline, rgba(120,130,150,.17));
+    border-radius: 13px;
+    background: rgba(255,255,255,.84);
+}
+#page-add textarea {
+    min-height: 96px;
+    padding: 12px;
+    line-height: 1.55;
+}
+#page-add button {
+    min-height: 42px;
+    border-radius: 13px;
+}
+#page-add button:focus-visible,
+#page-add input:focus-visible,
+#page-add select:focus-visible,
+#page-add textarea:focus-visible {
+    outline: 3px solid rgba(0,122,255,.3);
+    outline-offset: 2px;
+}
+body.dark-mode #page-home .header-actions .icon-btn-small,
+body.dark-mode #page-home .analytics-section,
+body.dark-mode #page-home .home-calendar-card,
+body.dark-mode #page-home .mood-tracker-card,
+body.dark-mode #page-home .tools-panel,
+body.dark-mode #page-home .tabs,
+body.dark-mode #page-home .habit-input-container,
+body.dark-mode #page-add .form-group {
+    color: #f5f5fa;
+    background: rgba(39,39,44,.9) !important;
+    border-color: rgba(255,255,255,.09);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+}
+body.dark-mode #page-home #nextTaskWidget {
+    color: #f5f5fa;
+    background: rgba(43,43,48,.94) !important;
+    border-color: rgba(255,255,255,.09) !important;
+}
+body.dark-mode #page-home .print-btn {
+    color: #f5f5fa;
+    background: rgba(48,48,53,.92);
+    border-color: rgba(255,255,255,.1);
+}
+body.dark-mode #page-home .habit-input-container input,
+body.dark-mode #page-add input:not([type="checkbox"]):not([type="radio"]),
+body.dark-mode #page-add select,
+body.dark-mode #page-add textarea {
+    color: #f5f5fa;
+    background: rgba(58,58,62,.92);
+    border-color: rgba(255,255,255,.1);
+}
+body.dark-mode #page-add #modalTitle {
+    border-color: rgba(255,255,255,.1);
+}
+@media (max-width: 380px) {
+    #page-home .widgets-dashboard { gap: 8px !important; }
+    #page-home .widget-card { min-height: 102px; padding: 12px !important; }
+    #page-home #nextTaskWidget,
+    #page-home #dailyChallengeWidget { padding: 11px !important; }
+    #page-home .cal-view-toggle { flex-wrap: wrap; }
+    #page-add .form-group { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #page-home *, #page-add * {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
