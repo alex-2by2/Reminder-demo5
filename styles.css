@@ -161,7 +161,7 @@
             display: flex; 
             justify-content: center; 
             align-items: center;
-            transition: all 0.2s ease; 
+            transition: background-color .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease; 
         }
         .icon-btn-small:hover { 
             background: #e5e5ea; 
@@ -869,7 +869,7 @@
         .add-event-container select, 
         .add-event-container .rich-editor {
             background: #f2f2f7; border: 1.5px solid transparent; border-radius: 12px; 
-            padding: 13px 14px; font-size: 15px; transition: all 0.18s ease;
+            padding: 13px 14px; font-size: 15px; transition: background-color .18s ease,border-color .18s ease,box-shadow .18s ease,color .18s ease;
             width: 100%; box-sizing: border-box; color: #1c1c1e;
         }
         body.dark-mode .add-event-container input, 
@@ -2095,7 +2095,7 @@ body.dark-mode {
   border-color: var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
 }
-input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
 select,
 textarea {
   min-width: 0;
@@ -2546,19 +2546,75 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
   #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
   #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .modal-overlay,
-  .modal-content,
-  .main-fab,
-  .fab-speed-item,
-  #toastContainer .toast,
-  .home-calendar-card .cal-day {
-    transition: none !important;
-    animation: none !important;
-  }
-}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
   .modal-content { background: var(--glass-bg-strong); }
   #toastContainer .toast { background: #303846; }
 }
 
+
+
+/* Interaction polish — restrained motion, only on capable pointer devices. */
+.widget-card,
+.ai-tip-card,
+.reminder-item,
+.habit-item,
+.feature-tile,
+.fin-stat-card,
+.fin-chart-wrap,
+.kanban-card,
+.home-calendar-card,
+.savings-goal-card,
+.nav-item,
+.icon-btn-small,
+.template-chip,
+.cal-nav-btn,
+.cal-view-btn,
+.cal-day,
+.main-fab,
+.fab-speed-item {
+  transition-property: background-color,border-color,box-shadow,color,opacity,transform;
+  transition-duration: .2s;
+  transition-timing-function: cubic-bezier(.2,.8,.2,1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .widget-card:hover,
+  .feature-tile:hover,
+  .fin-stat-card:hover,
+  .savings-goal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 var(--glass-highlight),0 12px 28px rgba(0,0,0,.09);
+  }
+  .icon-btn-small:hover,
+  .cal-nav-btn:hover,
+  .template-chip:hover {
+    transform: translateY(-1px);
+  }
+  .nav-item:hover {
+    background: rgba(0,122,255,.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-card,
+  .ai-tip-card,
+  .reminder-item,
+  .habit-item,
+  .feature-tile,
+  .fin-stat-card,
+  .fin-chart-wrap,
+  .kanban-card,
+  .home-calendar-card,
+  .savings-goal-card,
+  .nav-item,
+  .icon-btn-small,
+  .template-chip,
+  .cal-nav-btn,
+  .cal-view-btn,
+  .cal-day,
+  .main-fab,
+  .fab-speed-item {
+    transition: none !important;
+    animation: none !important;
+  }
+}
