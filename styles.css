@@ -2357,3 +2357,104 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
 @media (prefers-reduced-motion: reduce) {
   .home-calendar-card .cal-day { transition: none !important; }
 }
+
+
+/* ==========================================================================
+   LIQUID GLASS — FOCUS TIMER, HABIT DETAIL AND SAVINGS GOALS
+   ========================================================================== */
+#pomodoroModal .modal-content {
+  text-align: center;
+}
+#pomodoroModal #pomodoroDisplay {
+  display: grid;
+  min-height: 126px;
+  place-items: center;
+  margin: 22px 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(255,59,48,.10),transparent 65%),
+    var(--glass-bg);
+  color: #ff453a !important;
+  font-size: clamp(48px,14vw,68px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -.055em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+#pomodoroModal #pomoTaskSelect,
+#pomodoroModal #pomoTimeSelect {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+}
+#pomodoroModal .modal-content > div[style*="display:flex"] {
+  gap: 8px !important;
+}
+#pomodoroModal .modal-content > div[style*="display:flex"] .add-btn {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 6px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 13px;
+  font-size: 12px;
+}
+#habitDetailModal #habitScoreCircle {
+  width: 96px;
+  height: 96px;
+  border: 5px solid rgba(0,122,255,.12);
+  background: var(--glass-bg-strong) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight),0 8px 24px rgba(0,0,0,.07);
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] {
+  gap: 7px !important;
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px !important;
+  background: var(--glass-bg) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] h3 {
+  color: var(--el-ink);
+  font-variant-numeric: tabular-nums;
+}
+#habitDetailModal #habitCalGrid {
+  gap: 5px;
+}
+#habitDetailModal #habitCalGrid .cal-day {
+  min-width: 0;
+  border-radius: 10px;
+  font-size: 12px;
+}
+#savingsGoalModal #savingsGoalList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+#savingsGoalModal .savings-goal-card {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+#savingsGoalModal .savings-ring {
+  filter: drop-shadow(0 3px 8px rgba(0,122,255,.12));
+}
+#savingsGoalModal .modal-content > div[style*="display:flex"] input {
+  min-width: 0;
+}
+@media (max-width: 420px) {
+  #pomodoroModal #pomodoroDisplay { min-height: 112px; margin: 18px 0; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] { gap: 6px !important; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] .add-btn { font-size: 11px; }
+  #habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div { padding: 9px 5px !important; }
+  #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
+}
