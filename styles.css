@@ -2071,11 +2071,230 @@ body.dark-mode #page-settings #autoDarkTimesWrap > div > div {
   body.dark-mode { --el-surface: #242428; --glass-bg: #29292e; --glass-bg-strong: #202024; }
 }
 
-
 /* ==========================================================================
-   LIQUID GLASS — SHARED MODAL, TOAST AND FLOATING ACTION SURFACES
-   Consistent presentation for feature dialogs without changing their markup.
+   EASY LIFE TOOLS — UNIFIED LIQUID GLASS SYSTEM
+   One final presentation layer for shared surfaces and feature components.
+   Legacy feature rules above are retained to protect existing behavior.
    ========================================================================== */
+
+/* Shared surfaces and controls */
+:root {
+  color-scheme: light;
+}
+body.dark-mode {
+  color-scheme: dark;
+}
+.page-section .app-container,
+.home-calendar-card,
+#page-finance .fin-chart-wrap,
+#page-student .fin-chart-wrap,
+#page-more .feature-tile,
+#page-finance .fin-stat-card,
+#page-student > div[style*="display:grid"] > div,
+#page-journal > div[style*="display:grid"] > div {
+  border-color: var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+select,
+textarea {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 13px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  accent-color: var(--primary);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--el-muted);
+  opacity: .78;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.add-btn,
+.print-btn,
+.view-report-btn,
+.clear-filter-btn,
+.btn-primary,
+.btn-danger {
+  min-height: 42px;
+  border-radius: 13px;
+  font-weight: 750;
+}
+.section-title {
+  letter-spacing: .045em;
+}
+.page-section,
+.page-section .app-container,
+.modal-content,
+.home-calendar-card,
+#page-finance .fin-chart-wrap,
+#page-student .fin-chart-wrap {
+  min-width: 0;
+}
+
+/* Feature pages and cards */
+#page-home .widget-card,
+#page-home #nextTaskWidget,
+#page-home #dailyChallengeWidget,
+#page-more .feature-tile,
+#page-finance .fin-stat-card,
+#page-student > div[style*="display:grid"] > div,
+#page-journal > div[style*="display:grid"] > div {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+#page-more .feature-tile {
+  border-radius: 18px;
+}
+#page-more .ft-label {
+  color: var(--el-ink);
+}
+#page-finance .fin-stat-card h3 {
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+#page-finance #financeTabBar {
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  background: var(--glass-bg);
+}
+#page-finance #financeTabBar .fin-tab-btn {
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+#page-finance #financeTabBar .fin-tab-btn.active {
+  border-color: rgba(0,122,255,.18);
+  background: rgba(0,122,255,.12);
+  color: var(--primary);
+}
+#page-journal #journalEntryInput {
+  min-height: 130px;
+  line-height: 1.65;
+}
+
+/* Calendar */
+.home-calendar-card {
+  padding: 15px;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+.home-calendar-card .cal-header {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.home-calendar-card .cal-header h3 {
+  color: var(--el-ink);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+.home-calendar-card .cal-nav-btn {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg-strong);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.home-calendar-card .cal-view-toggle {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass-bg-strong);
+}
+.home-calendar-card .cal-view-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--el-muted);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.home-calendar-card .cal-view-btn.active {
+  border-color: rgba(0,122,255,.18);
+  background: rgba(0,122,255,.12);
+  color: var(--primary);
+}
+.home-calendar-card .cal-weekdays {
+  color: var(--el-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.home-calendar-card .cal-grid,
+#fullCalendarGrid,
+#habitDetailModal #habitCalGrid {
+  gap: 5px;
+}
+.home-calendar-card .cal-day,
+#habitDetailModal #habitCalGrid .cal-day {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: var(--glass-bg-strong);
+  color: var(--el-ink);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  -webkit-tap-highlight-color: transparent;
+}
+.home-calendar-card .cal-day:not(.empty):hover {
+  transform: none;
+  border-color: var(--glass-border);
+}
+.home-calendar-card .cal-day.today {
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+}
+.home-calendar-card .cal-day.selected {
+  border-color: transparent;
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(0,122,255,.24),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.home-calendar-card .cal-day.empty {
+  background: transparent;
+  box-shadow: none;
+}
+#fullCalendarModal .modal-content > div[style*="grid-template-columns: repeat(7"] {
+  gap: 5px !important;
+}
+
+/* Modal and overlay system */
 .modal-overlay {
   align-items: center;
   justify-content: center;
@@ -2115,12 +2334,53 @@ body.dark-mode #page-settings #autoDarkTimesWrap > div > div {
   width: 38px;
   height: 38px;
   border: 1px solid var(--glass-border);
+  border-radius: 50%;
   background: var(--glass-bg);
   color: var(--el-ink);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 body.dark-mode .modal-content { color: var(--el-ink); }
 body.dark-mode .modal-content label { color: var(--el-muted); }
+
+/* Notifications and toasts */
+#notifCentreList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+#notifCentreList .notif-item {
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  line-height: 1.5;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+#notifCentreList .notif-item:last-child {
+  border-bottom: 1px solid var(--glass-border);
+}
+#notifCentreList .notif-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0,122,255,.10);
+}
+#notifCentreModal #notifUnreadCount {
+  color: var(--el-muted) !important;
+}
+#notifCentreModal #notifCentreList:empty::after {
+  content: "You're all caught up";
+  display: block;
+  padding: 28px 14px;
+  border: 1px dashed var(--glass-border);
+  border-radius: 16px;
+  color: var(--el-muted);
+  text-align: center;
+  font-size: 13px;
+}
 #toastContainer {
   top: max(14px,env(safe-area-inset-top,0px));
   width: min(440px,calc(100% - 28px));
@@ -2130,9 +2390,9 @@ body.dark-mode .modal-content label { color: var(--el-muted); }
 #toastContainer .toast {
   width: 100%;
   max-width: none;
+  padding: 13px 16px;
   border: 1px solid rgba(255,255,255,.24);
   border-radius: 17px;
-  padding: 13px 16px;
   background: rgba(35,42,55,.88);
   color: #fff;
   box-shadow: 0 12px 34px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);
@@ -2143,6 +2403,93 @@ body.dark-mode .modal-content label { color: var(--el-muted); }
 #toastContainer .toast.success { background: rgba(28,125,75,.9); }
 #toastContainer .toast.error { background: rgba(170,48,53,.92); }
 #toastContainer .toast.info { background: rgba(24,91,165,.92); }
+
+/* Focus timer, habits and savings goals */
+#pomodoroModal .modal-content { text-align: center; }
+#pomodoroModal #pomodoroDisplay {
+  display: grid;
+  min-height: 126px;
+  place-items: center;
+  margin: 22px 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: radial-gradient(circle at 50% 0%,rgba(255,59,48,.10),transparent 65%),var(--glass-bg);
+  color: #ff453a !important;
+  font-size: clamp(48px,14vw,68px) !important;
+  font-weight: 800 !important;
+  letter-spacing: -.055em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+#pomodoroModal #pomoTaskSelect,
+#pomodoroModal #pomoTimeSelect {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+}
+#pomodoroModal .modal-content > div[style*="display:flex"] {
+  gap: 8px !important;
+}
+#pomodoroModal .modal-content > div[style*="display:flex"] .add-btn {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 6px;
+  border-radius: 13px;
+  font-size: 12px;
+}
+#habitDetailModal #habitScoreCircle {
+  width: 96px;
+  height: 96px;
+  border: 5px solid rgba(0,122,255,.12);
+  border-radius: 50%;
+  background: var(--glass-bg-strong) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight),0 8px 24px rgba(0,0,0,.07);
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] {
+  gap: 7px !important;
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px !important;
+  background: var(--glass-bg) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+#habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] h3 {
+  color: var(--el-ink);
+  font-variant-numeric: tabular-nums;
+}
+#savingsGoalModal #savingsGoalList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+#savingsGoalModal .savings-goal-card {
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+}
+
+/* Chart sizing */
+.fin-chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+}
+#page-finance .fin-chart-wrap,
+#page-student .fin-chart-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Floating actions */
 .main-fab {
   right: max(18px,env(safe-area-inset-right,0px));
   bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
@@ -2158,6 +2505,7 @@ body.dark-mode .modal-content label { color: var(--el-muted); }
 }
 body.dark-mode .fab-speed-item { color: var(--el-ink); }
 
+/* Responsive behavior */
 @media (max-width: 600px) {
   .modal-overlay {
     align-items: flex-end;
@@ -2185,8 +2533,26 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
     bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
   }
 }
+@media (max-width: 420px) {
+  .home-calendar-card { padding: 12px 10px; border-radius: 19px; }
+  .home-calendar-card .cal-grid { gap: 4px; }
+  .home-calendar-card .cal-day { min-height: 34px; border-radius: 10px; font-size: 12px; }
+  .home-calendar-card .cal-view-btn { padding: 0 4px; font-size: 10px; }
+  #notifCentreList .notif-item { padding: 10px; }
+  #pomodoroModal #pomodoroDisplay { min-height: 112px; margin: 18px 0; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] { gap: 6px !important; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] .add-btn { font-size: 11px; }
+  #habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div { padding: 9px 5px !important; }
+  #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
+  #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .modal-overlay,.modal-content,.main-fab,.fab-speed-item,#toastContainer .toast {
+  .modal-overlay,
+  .modal-content,
+  .main-fab,
+  .fab-speed-item,
+  #toastContainer .toast,
+  .home-calendar-card .cal-day {
     transition: none !important;
     animation: none !important;
   }
@@ -2196,164 +2562,3 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
   #toastContainer .toast { background: #303846; }
 }
 
-
-/* ==========================================================================
-   LIQUID GLASS — CALENDAR, NOTIFICATION AND CHART DETAIL POLISH
-   CSS-only refinement of existing feature surfaces.
-   ========================================================================== */
-.home-calendar-card {
-  padding: 15px;
-  border: 1px solid var(--glass-border);
-  border-radius: 22px;
-  background: var(--glass-bg);
-  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-  backdrop-filter: blur(18px) saturate(145%);
-}
-.home-calendar-card .cal-header {
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.home-calendar-card .cal-header h3 {
-  color: var(--el-ink);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -.025em;
-}
-.home-calendar-card .cal-nav-btn,
-#fullCalendarGrid ~ * .cal-nav-btn {
-  min-width: 38px;
-  min-height: 38px;
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  background: var(--glass-bg-strong);
-  color: var(--el-ink);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-.home-calendar-card .cal-view-toggle {
-  display: flex;
-  gap: 5px;
-  padding: 4px;
-  margin-bottom: 12px;
-  border: 1px solid var(--glass-border);
-  border-radius: 14px;
-  background: var(--glass-bg-strong);
-}
-.home-calendar-card .cal-view-btn {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 38px;
-  padding: 0 7px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--el-muted);
-  font-size: 11px;
-  font-weight: 750;
-  white-space: nowrap;
-}
-.home-calendar-card .cal-view-btn.active {
-  border-color: rgba(0,122,255,.18);
-  background: rgba(0,122,255,.12);
-  color: var(--primary);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
-}
-.home-calendar-card .cal-weekdays {
-  color: var(--el-muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .035em;
-}
-.home-calendar-card .cal-grid {
-  gap: 5px;
-}
-.home-calendar-card .cal-day {
-  min-width: 0;
-  min-height: 36px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: var(--glass-bg-strong);
-  color: var(--el-ink);
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-  -webkit-tap-highlight-color: transparent;
-}
-.home-calendar-card .cal-day:not(.empty):hover {
-  transform: none;
-  border-color: var(--glass-border);
-}
-.home-calendar-card .cal-day.today {
-  border: 1.5px solid var(--primary);
-  color: var(--primary);
-}
-.home-calendar-card .cal-day.selected {
-  border-color: transparent;
-  background: var(--primary) !important;
-  color: #fff !important;
-  box-shadow: 0 5px 14px rgba(0,122,255,.24),inset 0 1px 0 rgba(255,255,255,.28);
-}
-.home-calendar-card .cal-day.empty {
-  background: transparent;
-  box-shadow: none;
-}
-#fullCalendarModal .modal-content > div[style*="grid-template-columns: repeat(7"] {
-  gap: 5px !important;
-}
-#fullCalendarGrid {
-  gap: 5px !important;
-}
-#notifCentreList {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-#notifCentreList .notif-item {
-  align-items: flex-start;
-  padding: 12px;
-  border: 1px solid var(--glass-border);
-  border-radius: 15px;
-  background: var(--glass-bg);
-  color: var(--el-ink);
-  line-height: 1.5;
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-#notifCentreList .notif-item:last-child { border-bottom: 1px solid var(--glass-border); }
-#notifCentreList .notif-dot {
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  background: var(--primary);
-  box-shadow: 0 0 0 4px rgba(0,122,255,.10);
-}
-#notifCentreModal #notifUnreadCount { color: var(--el-muted) !important; }
-#notifCentreModal #notifCentreList:empty::after {
-  content: "You're all caught up";
-  display: block;
-  padding: 28px 14px;
-  border: 1px dashed var(--glass-border);
-  border-radius: 16px;
-  color: var(--el-muted);
-  text-align: center;
-  font-size: 13px;
-}
-.fin-chart-wrap canvas {
-  display: block;
-  width: 100% !important;
-  max-width: 100%;
-}
-#page-finance .fin-chart-wrap,
-#page-student .fin-chart-wrap {
-  min-width: 0;
-  overflow: hidden;
-}
-@media (max-width: 420px) {
-  .home-calendar-card { padding: 12px 10px; border-radius: 19px; }
-  .home-calendar-card .cal-grid { gap: 4px; }
-  .home-calendar-card .cal-day { min-height: 34px; border-radius: 10px; font-size: 12px; }
-  .home-calendar-card .cal-view-btn { padding: 0 4px; font-size: 10px; }
-  #notifCentreList .notif-item { padding: 10px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .home-calendar-card .cal-day { transition: none !important; }
-}
