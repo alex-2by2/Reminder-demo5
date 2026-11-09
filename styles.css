@@ -1278,3 +1278,84 @@
         .clear-filter-btn { background: var(--primary); color: white; border: none; border-radius: 12px; padding: 10px 20px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 122, 255, 0.3); transition: 0.2s; }
         .clear-filter-btn:active { transform: scale(0.95); }
 
+
+
+/* Easy Life Liquid Glass — phase 1: accessible, mobile-first design foundation.
+   Chrome uses translucency; information-dense content remains opaque. */
+:root {
+  --el-surface: #ffffff;
+  --el-surface-muted: #f5f6fa;
+  --el-ink: #1c1c1e;
+  --el-hairline: rgba(60, 60, 67, .14);
+  --el-focus: rgba(0, 122, 255, .55);
+  --el-ease: cubic-bezier(.2, .8, .2, 1);
+}
+body.dark-mode {
+  --el-surface: #1c1c1e;
+  --el-surface-muted: #2c2c2e;
+  --el-ink: #f5f5f7;
+  --el-hairline: rgba(235, 235, 245, .18);
+  --el-focus: rgba(100, 180, 255, .75);
+}
+body {
+  padding-bottom: max(90px, calc(78px + env(safe-area-inset-bottom, 0px)));
+}
+.app-container {
+  background: var(--el-surface);
+  border: 1px solid var(--el-hairline);
+  box-shadow: 0 14px 50px rgba(25, 45, 90, .07);
+}
+body.dark-mode .app-container {
+  background: var(--el-surface);
+  border: 1px solid var(--el-hairline);
+}
+.widget-card, .analytics-section, .reminder-item, .habit-item {
+  border-radius: 20px;
+  border: 1px solid var(--el-hairline);
+}
+button, input, textarea, select {
+  font-family: inherit;
+}
+button, .btn, .add-btn, .icon-btn-small {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button:focus-visible, a:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--el-focus);
+  outline-offset: 3px;
+}
+.add-btn {
+  border-radius: 18px;
+  min-height: 48px;
+  transition: transform .22s var(--el-ease), box-shadow .22s var(--el-ease);
+}
+.add-btn:active { transform: scale(.985); }
+@media (max-width: 600px) {
+  body { padding: 0 0 max(92px, calc(78px + env(safe-area-inset-bottom, 0px))); }
+  .app-container {
+    max-width: 100%;
+    min-height: 100dvh;
+    border-radius: 0;
+    margin-bottom: 0;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-container { animation: none; }
+  .add-btn { transition: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-bg: #f4f5f9; --glass-bg-strong: #ffffff; }
+  body.dark-mode { --glass-bg: #252529; --glass-bg-strong: #252529; }
+}
+
+
+/* Keep semantic priority rails visible above the shared surface border. */
+.reminder-item.priority-high { border-left: 4px solid #ff3b30; }
+.reminder-item.priority-medium { border-left: 4px solid #ff9500; }
+.reminder-item.priority-low { border-left: 4px solid #34c759; }
