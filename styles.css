@@ -1418,3 +1418,118 @@ body.dark-mode .nav-item.active {
 
 /* Include capsule padding and border in its declared viewport width. */
 .bottom-nav { box-sizing: border-box; }
+
+
+/* Easy Life Liquid Glass — home dashboard surfaces. */
+#page-home .header-actions {
+  padding: 5px 2px 12px;
+  align-items: center;
+}
+#page-home .header-actions .icon-btn-small {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  border: 1px solid var(--el-hairline);
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 14px rgba(25,45,90,.06);
+}
+#page-home .ai-tip-card {
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 24px rgba(25,45,90,.07);
+  padding: 15px 16px;
+}
+#page-home .widgets-dashboard {
+  gap: 12px !important;
+}
+#page-home .widget-card {
+  position: relative;
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 22px;
+  padding: 16px 12px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 22px rgba(20,35,70,.12);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+#page-home .widget-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent);
+  pointer-events: none;
+}
+#page-home .widget-card h5 {
+  color: rgba(255,255,255,.82);
+  letter-spacing: .9px;
+}
+#page-home .widget-card p {
+  color: #fff;
+  font-size: 30px !important;
+  letter-spacing: -.8px;
+  line-height: 1.05;
+}
+#page-home #nextTaskWidget,
+#page-home #dailyChallengeWidget {
+  min-height: 112px;
+  border-radius: 20px !important;
+  border: 1px solid var(--el-hairline) !important;
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 22px rgba(20,35,70,.07);
+  overflow: hidden;
+}
+#page-home #nextTaskWidget {
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+#page-home #nextTaskWidget h5 { color: var(--text-secondary, #8e8e93) !important; }
+#page-home #nextTaskWidget p { color: var(--el-ink); }
+#page-home #dailyChallengeWidget {
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 8px 22px rgba(80,45,140,.16);
+}
+#page-home .analytics-section {
+  border-radius: 20px;
+  border: 1px solid var(--el-hairline);
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 22px rgba(20,35,70,.06);
+  padding: 15px;
+}
+#page-home .home-calendar-card {
+  border: 1px solid var(--el-hairline);
+  border-radius: 22px;
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 24px rgba(20,35,70,.06);
+  overflow: hidden;
+}
+#page-home .tools-panel {
+  border: 1px solid var(--el-hairline);
+  background: var(--glass-bg) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+#page-home .print-btn {
+  border: 1px solid var(--el-hairline);
+  border-radius: 13px;
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 3px 10px rgba(20,35,70,.05);
+}
+body.dark-mode #page-home #nextTaskWidget {
+  background: var(--glass-bg-strong) !important;
+}
+body.dark-mode #page-home #nextTaskWidget p { color: var(--el-ink); }
+body.dark-mode #page-home .widget-card {
+  border-color: rgba(255,255,255,.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 22px rgba(0,0,0,.22);
+}
+@media (max-width: 380px) {
+  #page-home .widgets-dashboard { gap: 9px !important; }
+  #page-home .widget-card { min-height: 104px; padding: 13px 8px; }
+  #page-home .widget-card p { font-size: 26px !important; }
+}
