@@ -1,7 +1,7 @@
 {
-  "name": "master-app-functions",
+  "name": "easy-life-tools-functions",
   "version": "1.0.0",
-  "description": "Cloud Functions for Master Reminder App — server-side Gemini AI proxy",
+  "description": "Firebase Cloud Functions for Easy Life Tools",
   "engines": {
     "node": "20"
   },
