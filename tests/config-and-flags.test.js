@@ -5,10 +5,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-// js/00-config.js is a self-contained IIFE that only touches `window` and
-// `localStorage` — no DOM, no Firebase — so unlike the other test files it
-// can be run in full rather than needing extractFunction() to pull out one
-// function at a time.
+// js/00-config.js is a self-contained IIFE that only touches window and
+// localStorage — no DOM, no Firebase — so it can be run in full.
 function loadConfigModule(initialStore = {}) {
   const store = Object.assign({}, initialStore);
   const localStorage = {
@@ -34,15 +32,12 @@ test("Features.set persists across a reload (new sandbox reading the same store)
   const { window, store } = loadConfigModule();
   window.Features.set("swipeToComplete", false);
   assert.strictEqual(window.Features.isEnabled("swipeToComplete"), false);
-
-  // Simulate a page reload: fresh module instance, same underlying storage.
   const reloaded = loadConfigModule(store);
   assert.strictEqual(reloaded.window.Features.isEnabled("swipeToComplete"), false);
-  // Untouched flags still default correctly for the reloaded instance too.
   assert.strictEqual(reloaded.window.Features.isEnabled("leaderboard"), true);
 });
 
-test("STORAGE_KEYS and APP_CONFIG are frozen (accidental mutation is a no-op, not a silent bug)", () => {
+test("STORAGE_KEYS and APP_CONFIG are frozen", () => {
   const { window } = loadConfigModule();
   assert.throws(() => {
     "use strict";
@@ -52,18 +47,18 @@ test("STORAGE_KEYS and APP_CONFIG are frozen (accidental mutation is a no-op, no
   assert.strictEqual(Object.isFrozen(window.APP_CONFIG), true);
 });
 
-test("stable release version stays aligned across app, backends, and service worker", () => {
+test("PWA release version stays aligned with its package and service worker", () => {
   const appVersion = loadConfigModule().window.APP_VERSION;
   const rootPackage = require("../package.json");
-  const renderPackage = require("../server/package.json");
   const functionsPackage = require("../functions/package.json");
+  const backendPackage = require("../backend/package.json");
   const serviceWorker = fs.readFileSync(path.join(__dirname, "..", "sw.js"), "utf8");
 
   assert.equal(appVersion, "1.0.0");
   assert.equal(rootPackage.version, appVersion);
-  assert.equal(renderPackage.version, appVersion);
   assert.equal(functionsPackage.version, appVersion);
-  assert.match(serviceWorker, new RegExp(`const CACHE_VERSION = 'v${appVersion.replaceAll(".", "\\.")}';`));
+  assert.match(backendPackage.version, /^\d+\.\d+\.\d+$/);
+  assert.ok(serviceWorker.includes(`const CACHE_VERSION = 'v${appVersion}';`));
 });
 
 test("config falls back to globalThis when window is unavailable", () => {
@@ -95,26 +90,10 @@ test("bootstrap tolerates a missing Firebase SDK without crashing", () => {
     addEventListener() {},
   };
   const context = {
-    localStorage,
-    document,
-    console,
-    JSON,
-    Object,
-    Array,
-    Math,
-    Date,
-    Number,
-    String,
-    Boolean,
-    parseInt,
-    isNaN,
-    setTimeout,
-    clearTimeout,
-    setInterval,
-    clearInterval,
-    navigator: { serviceWorker: null },
-    location: { href: "https://example.com" },
-    globalThis: {},
+    localStorage, document, console, JSON, Object, Array, Math, Date, Number,
+    String, Boolean, parseInt, isNaN, setTimeout, clearTimeout, setInterval,
+    clearInterval, navigator: { serviceWorker: null },
+    location: { href: "https://example.com" }, globalThis: {},
   };
   vm.createContext(context);
   const source = fs.readFileSync(path.join(__dirname, "..", "js", "01-core", "01-bootstrap.js"), "utf8");

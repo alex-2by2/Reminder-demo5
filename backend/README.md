@@ -1,55 +1,42 @@
-# Easy Life Tools — NestJS API
+# Easy Life Tools — Sole NestJS Backend
 
-This is a new API service being introduced alongside the existing live PWA and
-the existing owner-only Express admin API. It is intentionally isolated under
-`backend/`; it does not replace `server/`, alter GitHub Pages, or migrate
-Firestore data.
+This is the only backend service for Easy Life Tools. It contains the consumer API and the Owner Console in one NestJS application and is deployed as the single Render web service. No separate Express admin backend is used.
 
 ## Current foundation
 
 - NestJS 10 + TypeScript, Node.js 20.
 - MongoDB connection is required through `MONGODB_URI`.
-- Public health endpoint: `GET /health` (reports only service/database state).
+- Public health endpoint: `GET /health`.
 - API prefix: `/api/v1`.
-- Protected `GET /api/v1/me` verifies the Firebase ID token and creates or returns the matching MongoDB user profile. The UID is always taken from the verified token, never from request input.
-- Firebase Admin token verification service and guard protect authenticated endpoints.
-- Helmet, exact browser-origin allowlist, request rate limiting, and strict
-  DTO validation defaults are configured.
+- Protected profile and reminder endpoints verify Firebase ID tokens. User identity is derived only from the verified token.
+- Owner Console at `/owner/` uses the separate server-side Owner ID/password session; consumer Firebase login is unchanged.
+- Helmet, exact browser-origin allowlist, request rate limiting, and strict DTO validation defaults.
 
-## Reminder API (staged; not yet connected to the PWA)
+## Reminder API
 
-All routes below require `Authorization: Bearer <Firebase ID token>`. The API derives
-`firebaseUid` only from the verified token and scopes every read, update, delete,
-and restore query to that UID.
+All routes require `Authorization: Bearer <Firebase ID token>`. Reads, updates, deletes, and restores are scoped to the verified Firebase UID.
 
-- `POST /api/v1/reminders` — create a reminder.
-- `GET /api/v1/reminders?page=1&limit=50&status=pending` — list active reminders with bounded pagination.
+- `POST /api/v1/reminders` — create.
+- `GET /api/v1/reminders?page=1&limit=50&status=pending` — list with bounded pagination.
 - `GET /api/v1/reminders/:id` — read one owned reminder.
-- `PATCH /api/v1/reminders/:id` — update supported reminder fields.
-- `DELETE /api/v1/reminders/:id` — soft-delete an owned reminder.
-- `PATCH /api/v1/reminders/:id/restore` — restore a soft-deleted reminder.
+- `PATCH /api/v1/reminders/:id` — update supported fields.
+- `DELETE /api/v1/reminders/:id` — soft-delete.
+- `PATCH /api/v1/reminders/:id/restore` — restore.
 
-The initial API contract preserves the PWA's task, notes, local date-time string,
-IANA time zone, recurrence, priority, tags, subtasks, category, status, pin,
-archive, pre-alarm, assignee, and project fields. Attachment bytes (image/voice
-memo) and client integration are deliberately excluded from this phase; they
-need a separately designed storage and migration path. No Firestore data is
-read, copied, or changed by these endpoints. The PWA continues using its current
-Firestore/local-storage path until a later, separately tested cutover.
+The PWA continues using its current Firestore/local-storage path until a separately tested cutover. No Firestore data is silently migrated.
 
 ## Environment
 
-Set these only in the backend host's secret/environment settings:
+Set secrets only in the Render service environment:
 
-- `MONGODB_URI` — MongoDB Atlas connection string, least-privilege database user.
-- `FIREBASE_PROJECT_ID` — existing Firebase project ID.
-- `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` — dedicated Firebase
-  service-account credentials. Never commit or paste these into chat.
+- `MONGODB_URI` — least-privilege MongoDB Atlas connection string.
+- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` — Firebase Admin credentials.
 - `FRONTEND_ORIGINS` — comma-separated exact website origins.
-- `PORT` — supplied by Render; defaults to 3001 locally.
+- `OWNER_LOGIN_ID`, `OWNER_PASSWORD` — Owner Console credentials.
+- `OWNER_UIDS`, `OWNER_EMAILS` — allowlists protecting Firebase product-owner accounts for admin operations.
+- `PORT` — supplied by Render.
 
-Do not reuse a broad Owner/Admin service account if a narrower service account
-can be provisioned. Do not add secrets to GitHub files.
+Never commit secrets or paste them into chat.
 
 ## Local development
 
@@ -58,45 +45,15 @@ npm install
 npm run start:dev
 ```
 
-The service will not start until a valid `MONGODB_URI` is supplied. Firebase
-credentials are loaded lazily and are needed only when a protected route uses
-the Firebase auth service.
+A valid `MONGODB_URI` is required. Firebase credentials are needed when a protected consumer route uses Firebase Admin.
 
-## Safe rollout boundary
+## Render
 
-1. Build and test this API independently.
-2. Deploy it as a separate Render service only after review and explicit
-   environment setup.
-3. Verify health and protected test endpoints in staging.
-4. Integrate one frontend feature at a time behind a feature flag.
-5. Back up and verify existing user data before any migration.
-6. Keep the current PWA/Firestore path available for rollback until parity is
-   demonstrated.
+The repository Blueprint defines one web service with rootDir `backend`, build `npm install --include=dev && npm run build`, start `npm run start:prod`, and health check `/health`. Existing production service environment variables are managed separately in Render and must not be overwritten with blank Blueprint values.
 
-## Render deployment
+## Security and rollout
 
-See [RENDER-DEPLOYMENT.md](./RENDER-DEPLOYMENT.md) for the separate Render
-service configuration, required environment variables, and post-deploy checks.
-
-No production database or live user data is changed by this scaffold.
-
-## Owner Console authentication
-
-The NestJS owner console authenticates only with the server-side Owner ID and password session. Firebase Google sign-in and Firebase bearer tokens are not accepted for owner-console access. Firebase Authentication remains in use for normal product users and product-user data.
-
-For this initial rollout, set `OWNER_LOGIN_ID` and `OWNER_PASSWORD` only in
-the **NestJS Render service** Environment settings. Never place either value
-in GitHub, frontend code, logs, or ChatGPT. Use a strong unique password (at
-least 16 characters), restrict Render dashboard access, and rotate the password
-if it may have been exposed. This temporary configuration stores the password
-as a Render environment secret; the backend compares it in constant time but
-does not store it in MongoDB. A later hardening update will replace
-`OWNER_PASSWORD` with a salted password hash. Enable this login only after CI, independent review, and deployment verification pass.
-
-The owner login endpoint is rate limited and creates a random, revocable MongoDB
-session. The browser receives a Secure, HttpOnly, SameSite=Strict cookie.
-Owner sessions expire after eight hours. To invalidate all sessions, delete
-the `owner_sessions` documents for the configured owner. The password login
-depends on MongoDB availability and on the exact `RENDER_EXTERNAL_URL`
-origin for CSRF protection. Test the complete owner login and logout flow
-before enabling this on production.
+- Consumer Firebase authentication and Owner Console session authentication are separate.
+- Owner session cookie is Secure, HttpOnly, SameSite=Strict, and expires after eight hours.
+- Never trust client-supplied identity or privileges.
+- Do not migrate Firestore data until backups, parity tests, cross-user isolation tests, and rollback are verified.

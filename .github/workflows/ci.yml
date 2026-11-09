@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "development", "fix/**", "feature/**"]
+    branches: ["main", "development", "fix/**", "feature/**", "chore/**"]
   pull_request:
   workflow_dispatch:
 
@@ -27,9 +27,7 @@ jobs:
           cache: npm
       - name: Install root dependencies
         run: npm ci
-      - name: Install admin API dependencies (server/)
-        run: npm ci --prefix server
-      - name: Install NestJS API dependencies (backend/)
+      - name: Install NestJS API dependencies
         run: npm install --prefix backend --no-package-lock
       - name: Type-check NestJS API
         run: npm run typecheck --prefix backend
@@ -42,6 +40,6 @@ jobs:
       - name: Syntax-check JavaScript
         shell: bash
         run: |
-          find js functions server tests backend/public/owner -type d -name node_modules -prune -o -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          find js functions tests backend/public/owner -type d -name node_modules -prune -o -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Verify production bundle build
         run: node build.js
