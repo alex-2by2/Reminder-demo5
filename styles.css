@@ -2070,3 +2070,128 @@ body.dark-mode #page-settings #autoDarkTimesWrap > div > div {
   :root { --el-surface: #fff; --glass-bg: #f5f6fa; --glass-bg-strong: #fff; }
   body.dark-mode { --el-surface: #242428; --glass-bg: #29292e; --glass-bg-strong: #202024; }
 }
+
+
+/* ==========================================================================
+   LIQUID GLASS — SHARED MODAL, TOAST AND FLOATING ACTION SURFACES
+   Consistent presentation for feature dialogs without changing their markup.
+   ========================================================================== */
+.modal-overlay {
+  align-items: center;
+  justify-content: center;
+  padding: max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-content {
+  width: min(540px,100%);
+  max-width: 540px;
+  max-height: min(88dvh,900px);
+  margin: auto;
+  padding: 28px 22px max(24px,env(safe-area-inset-bottom,0px));
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  background: var(--glass-bg-strong);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow-float);
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.modal-content > :first-child { margin-top: 0; }
+.modal-content > :last-child { margin-bottom: 0; }
+.modal-content h1,
+.modal-content h2,
+.modal-content h3,
+.modal-content h4 { color: var(--el-ink); letter-spacing: -.025em; }
+.modal-content label { color: var(--el-muted); }
+.modal-content button:not(.close-modal-btn) {
+  min-height: 42px;
+  border-radius: 13px;
+}
+.modal-content .close-modal-btn {
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+body.dark-mode .modal-content { color: var(--el-ink); }
+body.dark-mode .modal-content label { color: var(--el-muted); }
+#toastContainer {
+  top: max(14px,env(safe-area-inset-top,0px));
+  width: min(440px,calc(100% - 28px));
+  padding: 0;
+  pointer-events: none;
+}
+#toastContainer .toast {
+  width: 100%;
+  max-width: none;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 17px;
+  padding: 13px 16px;
+  background: rgba(35,42,55,.88);
+  color: #fff;
+  box-shadow: 0 12px 34px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.18);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  pointer-events: auto;
+}
+#toastContainer .toast.success { background: rgba(28,125,75,.9); }
+#toastContainer .toast.error { background: rgba(170,48,53,.92); }
+#toastContainer .toast.info { background: rgba(24,91,165,.92); }
+.main-fab {
+  right: max(18px,env(safe-area-inset-right,0px));
+  bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(255,255,255,.32);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.42),0 12px 30px rgba(0,0,0,.2);
+}
+.fab-speed-item {
+  right: max(21px,env(safe-area-inset-right,0px));
+  border: 1px solid var(--glass-border);
+  color: var(--el-ink);
+}
+body.dark-mode .fab-speed-item { color: var(--el-ink); }
+
+@media (max-width: 600px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-content {
+    width: 100%;
+    max-width: 600px;
+    max-height: min(90dvh,900px);
+    margin: 0 auto;
+    padding: 27px 18px max(34px,calc(24px + env(safe-area-inset-bottom,0px)));
+    border-radius: 26px 26px 0 0;
+    border-bottom: 0;
+  }
+  .modal-content .close-modal-btn {
+    top: 10px;
+    right: 12px;
+  }
+  #toastContainer {
+    top: max(10px,env(safe-area-inset-top,0px));
+    width: calc(100% - 24px);
+  }
+  .main-fab {
+    right: max(16px,env(safe-area-inset-right,0px));
+    bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay,.modal-content,.main-fab,.fab-speed-item,#toastContainer .toast {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  .modal-content { background: var(--glass-bg-strong); }
+  #toastContainer .toast { background: #303846; }
+}
