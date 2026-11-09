@@ -1353,3 +1353,9 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
   :root { --glass-bg: #f4f5f9; --glass-bg-strong: #ffffff; }
   body.dark-mode { --glass-bg: #252529; --glass-bg-strong: #252529; }
 }
+
+
+/* Keep semantic priority rails visible above the shared surface border. */
+.reminder-item.priority-high { border-left: 4px solid #ff3b30; }
+.reminder-item.priority-medium { border-left: 4px solid #ff9500; }
+.reminder-item.priority-low { border-left: 4px solid #34c759; }
