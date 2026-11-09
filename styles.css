@@ -2719,3 +2719,77 @@ body.dark-mode #page-add textarea::placeholder {
   }
   .app-container { padding-bottom: 18px; }
 }
+
+/* Screenshot QA — settings theme parity and mobile fixed-banner clearance. */
+body.dark-mode #page-settings [style*="background:#f2f2f7"],
+body.dark-mode #page-settings [style*="background: #f2f2f7"],
+body.dark-mode #page-settings [style*="background:#fff"],
+body.dark-mode #page-settings [style*="background:white"],
+body.dark-mode #page-settings [style*="background: white"] {
+  background: var(--el-surface) !important;
+  border-color: var(--el-line) !important;
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings [style*="background:#f2f2f7"] > p[style*="background:white"],
+body.dark-mode #page-settings [style*="background:#f2f2f7"] > p[style*="background: white"] {
+  background: var(--el-control) !important;
+  color: var(--el-muted) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row,
+body.dark-mode #page-settings .widget-toggle-row span,
+body.dark-mode #page-settings h5,
+body.dark-mode #page-settings label,
+body.dark-mode #page-settings #gcalStatusText {
+  color: var(--el-muted) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row span {
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row {
+  border-color: var(--el-line) !important;
+}
+body.dark-mode #page-settings input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+body.dark-mode #page-settings select,
+body.dark-mode #page-settings textarea {
+  background: var(--el-control) !important;
+  color: var(--el-ink) !important;
+  border: 1px solid var(--el-line) !important;
+}
+body.dark-mode #page-settings input::placeholder {
+  color: var(--el-muted) !important;
+  opacity: 1;
+}
+body.dark-mode #page-home .reminder-item,
+body.dark-mode #page-home .reminder-item h3,
+body.dark-mode #page-home .reminder-item h4,
+body.dark-mode #page-home .reminder-item p,
+body.dark-mode #page-home .reminder-item .task-name,
+body.dark-mode #page-home .reminder-item .reminder-title {
+  color: var(--el-ink);
+}
+@media (max-width: 600px) {
+  /* Reserve real scroll space for the install prompt and fixed navigation. */
+  body {
+    padding-bottom: calc(196px + env(safe-area-inset-bottom,0px));
+  }
+  .pwa-banner {
+    bottom: calc(82px + env(safe-area-inset-bottom,0px));
+    left: 12px;
+    right: 12px;
+    z-index: 8998;
+    min-height: 82px;
+    gap: 10px;
+    padding: 12px;
+  }
+  .pwa-banner > div:first-child {
+    min-width: 0;
+    line-height: 1.35;
+  }
+  .pwa-banner-btns button {
+    min-height: 42px;
+    white-space: nowrap;
+  }
+  .bottom-nav {
+    z-index: 9000;
+  }
+}
