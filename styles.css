@@ -1359,3 +1359,58 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .reminder-item.priority-high { border-left: 4px solid #ff3b30; }
 .reminder-item.priority-medium { border-left: 4px solid #ff9500; }
 .reminder-item.priority-low { border-left: 4px solid #34c759; }
+
+
+/* Liquid Glass navigation — floating capsule rather than edge-to-edge toolbar. */
+.bottom-nav {
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(480px, calc(100% - 24px));
+  height: 68px;
+  padding: 0 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--glass-bg-strong);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 10px 34px rgba(0, 0, 0, .16);
+  overflow: visible;
+}
+.bottom-nav::before {
+  left: 18px;
+  right: 18px;
+  border-radius: 999px;
+}
+.nav-item {
+  min-width: 0;
+  gap: 2px;
+  border-radius: 17px;
+  margin: 5px 3px;
+  height: calc(100% - 10px);
+  font-size: 10px;
+  transition: color .2s ease, background .2s ease, transform .2s ease;
+}
+.nav-item.active {
+  color: var(--primary);
+  background: rgba(0, 122, 255, .10);
+}
+body.dark-mode .nav-item.active {
+  background: rgba(10, 132, 255, .22);
+}
+.nav-item span.icon {
+  margin-bottom: 1px;
+}
+.nav-item:focus-visible {
+  outline: 2px solid var(--el-focus);
+  outline-offset: -2px;
+}
+@media (max-width: 600px) {
+  .bottom-nav {
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    width: calc(100% - 24px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-item { transition: none; }
+}
