@@ -2013,59 +2013,9 @@ body.dark-mode #page-settings #autoDarkTimesWrap > div > div {
 }
 
 /* Responsive layout */
-@media (max-width: 600px) {
-  body {
-    padding: 0 0 max(100px,calc(88px + env(safe-area-inset-bottom,0px)));
-  }
-  .page-section {
-    width: 100%;
-    max-width: none;
-    padding-bottom: 92px;
-  }
-  .page-section .app-container {
-    max-width: none;
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    box-shadow: none;
-    padding-left: max(16px,env(safe-area-inset-left,0px));
-    padding-right: max(16px,env(safe-area-inset-right,0px));
-  }
-  .bottom-nav {
-    bottom: max(9px,env(safe-area-inset-bottom,0px));
-    width: calc(100% - 20px);
-  }
-  .modal-content {
-    max-height: min(90dvh,900px);
-    border-radius: 25px 25px 0 0;
-  }
-}
-@media (max-width: 420px) {
-  #page-home .widgets-dashboard { gap: 8px !important; }
-  #page-home .widget-card { min-height: 100px; padding: 12px 8px; }
-  #page-home #nextTaskWidget,#page-home #dailyChallengeWidget { padding: 11px !important; }
-  #page-home .cal-view-toggle { flex-wrap: wrap; }
-  #page-add .form-group { padding: 10px; }
-  #page-add .form-group label { font-size: 11px; }
-  #page-add #modalTitle { font-size: 23px !important; }
-  #page-more .features-grid { gap: 8px; }
-  #page-more .feature-tile { min-height: 100px; padding: 11px 5px; }
-  #page-more .ft-icon { width: 41px; height: 41px; font-size: 21px; }
-  #page-more .ft-label { font-size: 10px; }
-  #page-finance #finDashboard { gap: 8px !important; }
-  #page-finance .fin-stat-card { padding: 10px 8px !important; }
-  #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
-  #page-student > div[style*="display:flex"] { flex-wrap: wrap; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *,*::before,*::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+
+
+
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
   :root { --el-surface: #fff; --glass-bg: #f5f6fa; --glass-bg-strong: #fff; }
   body.dark-mode { --el-surface: #242428; --glass-bg: #29292e; --glass-bg-strong: #202024; }
@@ -2506,46 +2456,8 @@ body.dark-mode .modal-content label { color: var(--el-muted); }
 body.dark-mode .fab-speed-item { color: var(--el-ink); }
 
 /* Responsive behavior */
-@media (max-width: 600px) {
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .modal-content {
-    width: 100%;
-    max-width: 600px;
-    max-height: min(90dvh,900px);
-    margin: 0 auto;
-    padding: 27px 18px max(34px,calc(24px + env(safe-area-inset-bottom,0px)));
-    border-radius: 26px 26px 0 0;
-    border-bottom: 0;
-  }
-  .modal-content .close-modal-btn {
-    top: 10px;
-    right: 12px;
-  }
-  #toastContainer {
-    top: max(10px,env(safe-area-inset-top,0px));
-    width: calc(100% - 24px);
-  }
-  .main-fab {
-    right: max(16px,env(safe-area-inset-right,0px));
-    bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
-  }
-}
-@media (max-width: 420px) {
-  .home-calendar-card { padding: 12px 10px; border-radius: 19px; }
-  .home-calendar-card .cal-grid { gap: 4px; }
-  .home-calendar-card .cal-day { min-height: 34px; border-radius: 10px; font-size: 12px; }
-  .home-calendar-card .cal-view-btn { padding: 0 4px; font-size: 10px; }
-  #notifCentreList .notif-item { padding: 10px; }
-  #pomodoroModal #pomodoroDisplay { min-height: 112px; margin: 18px 0; }
-  #pomodoroModal .modal-content > div[style*="display:flex"] { gap: 6px !important; }
-  #pomodoroModal .modal-content > div[style*="display:flex"] .add-btn { font-size: 11px; }
-  #habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div { padding: 9px 5px !important; }
-  #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
-  #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
-}
+
+
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
   .modal-content { background: var(--glass-bg-strong); }
   #toastContainer .toast { background: #303846; }
@@ -2577,47 +2489,9 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
   transition-timing-function: cubic-bezier(.2,.8,.2,1);
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .widget-card:hover,
-  .feature-tile:hover,
-  .fin-stat-card:hover,
-  .savings-goal-card:hover {
-    transform: translateY(-2px);
-    box-shadow: inset 0 1px 0 var(--glass-highlight),0 12px 28px rgba(0,0,0,.09);
-  }
-  .icon-btn-small:hover,
-  .cal-nav-btn:hover,
-  .template-chip:hover {
-    transform: translateY(-1px);
-  }
-  .nav-item:hover {
-    background: rgba(0,122,255,.08);
-  }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .widget-card,
-  .ai-tip-card,
-  .reminder-item,
-  .habit-item,
-  .feature-tile,
-  .fin-stat-card,
-  .fin-chart-wrap,
-  .kanban-card,
-  .home-calendar-card,
-  .savings-goal-card,
-  .nav-item,
-  .icon-btn-small,
-  .template-chip,
-  .cal-nav-btn,
-  .cal-view-btn,
-  .cal-day,
-  .main-fab,
-  .fab-speed-item {
-    transition: none !important;
-    animation: none !important;
-  }
-}
+
+
 
 
 /* Mobile visual QA fixes — contrast, fixed chrome clearance and theme parity. */
@@ -2701,24 +2575,7 @@ body.dark-mode #page-add textarea::placeholder {
   scrollbar-width: thin;
   overscroll-behavior-x: contain;
 }
-@media (max-width: 600px) {
-  body { padding-bottom: calc(118px + env(safe-area-inset-bottom,0px)); }
-  .bottom-nav {
-    bottom: max(8px,env(safe-area-inset-bottom,0px));
-    min-height: 70px;
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    width: calc(100% - 24px);
-    left: 12px;
-    padding: 4px 6px;
-  }
-  .main-fab {
-    right: 16px;
-    bottom: calc(92px + env(safe-area-inset-bottom,0px));
-    z-index: 8999;
-  }
-  .app-container { padding-bottom: 18px; }
-}
+
 
 /* Screenshot QA — settings theme parity and mobile fixed-banner clearance. */
 body.dark-mode #page-settings [style*="background:#f2f2f7"],
@@ -2767,8 +2624,79 @@ body.dark-mode #page-home .reminder-item .task-name,
 body.dark-mode #page-home .reminder-item .reminder-title {
   color: var(--el-ink);
 }
+
+/* Consolidated responsive breakpoints — one cascade layer per viewport/state. */
 @media (max-width: 600px) {
-  /* Reserve real scroll space for the install prompt and fixed navigation. */
+body {
+    padding: 0 0 max(100px,calc(88px + env(safe-area-inset-bottom,0px)));
+  }
+  .page-section {
+    width: 100%;
+    max-width: none;
+    padding-bottom: 92px;
+  }
+  .page-section .app-container {
+    max-width: none;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+    padding-left: max(16px,env(safe-area-inset-left,0px));
+    padding-right: max(16px,env(safe-area-inset-right,0px));
+  }
+  .bottom-nav {
+    bottom: max(9px,env(safe-area-inset-bottom,0px));
+    width: calc(100% - 20px);
+  }
+  .modal-content {
+    max-height: min(90dvh,900px);
+    border-radius: 25px 25px 0 0;
+  }
+
+.modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-content {
+    width: 100%;
+    max-width: 600px;
+    max-height: min(90dvh,900px);
+    margin: 0 auto;
+    padding: 27px 18px max(34px,calc(24px + env(safe-area-inset-bottom,0px)));
+    border-radius: 26px 26px 0 0;
+    border-bottom: 0;
+  }
+  .modal-content .close-modal-btn {
+    top: 10px;
+    right: 12px;
+  }
+  #toastContainer {
+    top: max(10px,env(safe-area-inset-top,0px));
+    width: calc(100% - 24px);
+  }
+  .main-fab {
+    right: max(16px,env(safe-area-inset-right,0px));
+    bottom: max(92px,calc(82px + env(safe-area-inset-bottom,0px)));
+  }
+
+body { padding-bottom: calc(118px + env(safe-area-inset-bottom,0px)); }
+  .bottom-nav {
+    bottom: max(8px,env(safe-area-inset-bottom,0px));
+    min-height: 70px;
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    width: calc(100% - 24px);
+    left: 12px;
+    padding: 4px 6px;
+  }
+  .main-fab {
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom,0px));
+    z-index: 8999;
+  }
+  .app-container { padding-bottom: 18px; }
+
+/* Reserve real scroll space for the install prompt and fixed navigation. */
   body {
     padding-bottom: calc(196px + env(safe-area-inset-bottom,0px));
   }
@@ -2792,4 +2720,144 @@ body.dark-mode #page-home .reminder-item .reminder-title {
   .bottom-nav {
     z-index: 9000;
   }
+}
+
+@media (max-width: 420px) {
+#page-home .widgets-dashboard { gap: 8px !important; }
+  #page-home .widget-card { min-height: 100px; padding: 12px 8px; }
+  #page-home #nextTaskWidget,#page-home #dailyChallengeWidget { padding: 11px !important; }
+  #page-home .cal-view-toggle { flex-wrap: wrap; }
+  #page-add .form-group { padding: 10px; }
+  #page-add .form-group label { font-size: 11px; }
+  #page-add #modalTitle { font-size: 23px !important; }
+  #page-more .features-grid { gap: 8px; }
+  #page-more .feature-tile { min-height: 100px; padding: 11px 5px; }
+  #page-more .ft-icon { width: 41px; height: 41px; font-size: 21px; }
+  #page-more .ft-label { font-size: 10px; }
+  #page-finance #finDashboard { gap: 8px !important; }
+  #page-finance .fin-stat-card { padding: 10px 8px !important; }
+  #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
+  #page-student > div[style*="display:flex"] { flex-wrap: wrap; }
+
+.home-calendar-card { padding: 12px 10px; border-radius: 19px; }
+  .home-calendar-card .cal-grid { gap: 4px; }
+  .home-calendar-card .cal-day { min-height: 34px; border-radius: 10px; font-size: 12px; }
+  .home-calendar-card .cal-view-btn { padding: 0 4px; font-size: 10px; }
+  #notifCentreList .notif-item { padding: 10px; }
+  #pomodoroModal #pomodoroDisplay { min-height: 112px; margin: 18px 0; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] { gap: 6px !important; }
+  #pomodoroModal .modal-content > div[style*="display:flex"] .add-btn { font-size: 11px; }
+  #habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div { padding: 9px 5px !important; }
+  #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
+  #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+.widget-card:hover,
+  .feature-tile:hover,
+  .fin-stat-card:hover,
+  .savings-goal-card:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 var(--glass-highlight),0 12px 28px rgba(0,0,0,.09);
+  }
+  .icon-btn-small:hover,
+  .cal-nav-btn:hover,
+  .template-chip:hover {
+    transform: translateY(-1px);
+  }
+  .nav-item:hover {
+    background: rgba(0,122,255,.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+html { scroll-behavior: auto; }
+  *,*::before,*::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+.widget-card,
+  .ai-tip-card,
+  .reminder-item,
+  .habit-item,
+  .feature-tile,
+  .fin-stat-card,
+  .fin-chart-wrap,
+  .kanban-card,
+  .home-calendar-card,
+  .savings-goal-card,
+  .nav-item,
+  .icon-btn-small,
+  .template-chip,
+  .cal-nav-btn,
+  .cal-view-btn,
+  .cal-day,
+  .main-fab,
+  .fab-speed-item {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Final cross-device safeguards and theme parity. */
+body { min-width: 320px; }
+body.dark-mode { color-scheme: dark; }
+#page-settings [style*="background:#f2f2f7"],
+#page-settings [style*="background: #f2f2f7"],
+#page-settings [style*="background:white"],
+#page-settings [style*="background: white"] {
+  background: var(--el-surface) !important;
+  border-color: var(--el-line) !important;
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings [style*="color:#8e8e93"],
+body.dark-mode #page-settings [style*="color: #8e8e93"] {
+  color: var(--el-muted) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row,
+body.dark-mode #page-settings .widget-toggle-row span {
+  color: var(--el-ink) !important;
+  border-color: var(--el-line) !important;
+}
+body.dark-mode #page-settings input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+body.dark-mode #page-settings select,
+body.dark-mode #page-settings textarea {
+  background: var(--el-control) !important;
+  color: var(--el-ink) !important;
+  border: 1px solid var(--el-line) !important;
+}
+body.dark-mode #page-home .reminder-item,
+body.dark-mode #page-home .reminder-item :is(h3,h4,p,.task-name,.reminder-title) {
+  color: var(--el-ink);
+}
+@media (max-width: 600px) {
+  html, body { max-width: 100%; overflow-x: clip; }
+  .page-section, .app-container, .modal-content,
+  .reminder-item, .habit-item, .widget-card { min-width: 0; }
+  .app-container { width: 100%; }
+  .reminder-item { gap: 10px; }
+  .reminder-details { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+  .reminder-item button { max-width: 100%; }
+  .pwa-banner {
+    bottom: calc(82px + env(safe-area-inset-bottom,0px));
+    left: 12px;
+    right: 12px;
+    z-index: 8998;
+    min-height: 82px;
+    gap: 10px;
+    padding: 12px;
+  }
+  .pwa-banner > div:first-child { min-width: 0; line-height: 1.35; }
+  .pwa-banner-btns button { min-height: 42px; white-space: nowrap; }
+  .bottom-nav { z-index: 9000; }
+  body { padding-bottom: calc(196px + env(safe-area-inset-bottom,0px)); }
+}
+@media (max-width: 420px) {
+  .pwa-banner { left: 8px; right: 8px; padding: 10px; }
+  .pwa-banner > div:first-child span { font-size: 10px !important; }
+  .pwa-banner-btns { gap: 5px; }
+  .pwa-banner-btns button { padding: 8px 10px !important; font-size: 12px; }
 }
