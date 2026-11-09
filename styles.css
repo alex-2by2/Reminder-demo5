@@ -1414,3 +1414,7 @@ body.dark-mode .nav-item.active {
 @media (prefers-reduced-motion: reduce) {
   .nav-item { transition: none; }
 }
+
+
+/* Include capsule padding and border in its declared viewport width. */
+.bottom-nav { box-sizing: border-box; }
