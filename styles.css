@@ -2195,3 +2195,165 @@ body.dark-mode .fab-speed-item { color: var(--el-ink); }
   .modal-content { background: var(--glass-bg-strong); }
   #toastContainer .toast { background: #303846; }
 }
+
+
+/* ==========================================================================
+   LIQUID GLASS — CALENDAR, NOTIFICATION AND CHART DETAIL POLISH
+   CSS-only refinement of existing feature surfaces.
+   ========================================================================== */
+.home-calendar-card {
+  padding: 15px;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: var(--glass-bg);
+  box-shadow: inset 0 1px 0 var(--glass-highlight),var(--el-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  backdrop-filter: blur(18px) saturate(145%);
+}
+.home-calendar-card .cal-header {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.home-calendar-card .cal-header h3 {
+  color: var(--el-ink);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.025em;
+}
+.home-calendar-card .cal-nav-btn,
+#fullCalendarGrid ~ * .cal-nav-btn {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg-strong);
+  color: var(--el-ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+.home-calendar-card .cal-view-toggle {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: var(--glass-bg-strong);
+}
+.home-calendar-card .cal-view-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--el-muted);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.home-calendar-card .cal-view-btn.active {
+  border-color: rgba(0,122,255,.18);
+  background: rgba(0,122,255,.12);
+  color: var(--primary);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+}
+.home-calendar-card .cal-weekdays {
+  color: var(--el-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .035em;
+}
+.home-calendar-card .cal-grid {
+  gap: 5px;
+}
+.home-calendar-card .cal-day {
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--glass-bg-strong);
+  color: var(--el-ink);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  -webkit-tap-highlight-color: transparent;
+}
+.home-calendar-card .cal-day:not(.empty):hover {
+  transform: none;
+  border-color: var(--glass-border);
+}
+.home-calendar-card .cal-day.today {
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+}
+.home-calendar-card .cal-day.selected {
+  border-color: transparent;
+  background: var(--primary) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 14px rgba(0,122,255,.24),inset 0 1px 0 rgba(255,255,255,.28);
+}
+.home-calendar-card .cal-day.empty {
+  background: transparent;
+  box-shadow: none;
+}
+#fullCalendarModal .modal-content > div[style*="grid-template-columns: repeat(7"] {
+  gap: 5px !important;
+}
+#fullCalendarGrid {
+  gap: 5px !important;
+}
+#notifCentreList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+#notifCentreList .notif-item {
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  background: var(--glass-bg);
+  color: var(--el-ink);
+  line-height: 1.5;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+#notifCentreList .notif-item:last-child { border-bottom: 1px solid var(--glass-border); }
+#notifCentreList .notif-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0,122,255,.10);
+}
+#notifCentreModal #notifUnreadCount { color: var(--el-muted) !important; }
+#notifCentreModal #notifCentreList:empty::after {
+  content: "You're all caught up";
+  display: block;
+  padding: 28px 14px;
+  border: 1px dashed var(--glass-border);
+  border-radius: 16px;
+  color: var(--el-muted);
+  text-align: center;
+  font-size: 13px;
+}
+.fin-chart-wrap canvas {
+  display: block;
+  width: 100% !important;
+  max-width: 100%;
+}
+#page-finance .fin-chart-wrap,
+#page-student .fin-chart-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+@media (max-width: 420px) {
+  .home-calendar-card { padding: 12px 10px; border-radius: 19px; }
+  .home-calendar-card .cal-grid { gap: 4px; }
+  .home-calendar-card .cal-day { min-height: 34px; border-radius: 10px; font-size: 12px; }
+  .home-calendar-card .cal-view-btn { padding: 0 4px; font-size: 10px; }
+  #notifCentreList .notif-item { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-calendar-card .cal-day { transition: none !important; }
+}
