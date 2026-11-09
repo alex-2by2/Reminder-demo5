@@ -2626,6 +2626,47 @@ body.dark-mode #page-home .reminder-item .reminder-title {
 }
 
 /* Consolidated responsive breakpoints — one cascade layer per viewport/state. */
+
+
+
+
+
+
+
+
+/* Final cross-device safeguards and theme parity. */
+body { min-width: 320px; }
+body.dark-mode { color-scheme: dark; }
+#page-settings [style*="background:#f2f2f7"],
+#page-settings [style*="background: #f2f2f7"],
+#page-settings [style*="background:white"],
+#page-settings [style*="background: white"] {
+  background: var(--el-surface) !important;
+  border-color: var(--el-line) !important;
+  color: var(--el-ink) !important;
+}
+body.dark-mode #page-settings [style*="color:#8e8e93"],
+body.dark-mode #page-settings [style*="color: #8e8e93"] {
+  color: var(--el-muted) !important;
+}
+body.dark-mode #page-settings .widget-toggle-row,
+body.dark-mode #page-settings .widget-toggle-row span {
+  color: var(--el-ink) !important;
+  border-color: var(--el-line) !important;
+}
+body.dark-mode #page-settings input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+body.dark-mode #page-settings select,
+body.dark-mode #page-settings textarea {
+  background: var(--el-control) !important;
+  color: var(--el-ink) !important;
+  border: 1px solid var(--el-line) !important;
+}
+body.dark-mode #page-home .reminder-item,
+body.dark-mode #page-home .reminder-item :is(h3,h4,p,.task-name,.reminder-title) {
+  color: var(--el-ink);
+}
+
+/* Responsive rules consolidated by breakpoint. */
 @media (max-width: 600px) {
 body {
     padding: 0 0 max(100px,calc(88px + env(safe-area-inset-bottom,0px)));
@@ -2720,6 +2761,27 @@ body { padding-bottom: calc(118px + env(safe-area-inset-bottom,0px)); }
   .bottom-nav {
     z-index: 9000;
   }
+
+html, body { max-width: 100%; overflow-x: clip; }
+  .page-section, .app-container, .modal-content,
+  .reminder-item, .habit-item, .widget-card { min-width: 0; }
+  .app-container { width: 100%; }
+  .reminder-item { gap: 10px; }
+  .reminder-details { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+  .reminder-item button { max-width: 100%; }
+  .pwa-banner {
+    bottom: calc(82px + env(safe-area-inset-bottom,0px));
+    left: 12px;
+    right: 12px;
+    z-index: 8998;
+    min-height: 82px;
+    gap: 10px;
+    padding: 12px;
+  }
+  .pwa-banner > div:first-child { min-width: 0; line-height: 1.35; }
+  .pwa-banner-btns button { min-height: 42px; white-space: nowrap; }
+  .bottom-nav { z-index: 9000; }
+  body { padding-bottom: calc(196px + env(safe-area-inset-bottom,0px)); }
 }
 
 @media (max-width: 420px) {
@@ -2750,6 +2812,11 @@ body { padding-bottom: calc(118px + env(safe-area-inset-bottom,0px)); }
   #habitDetailModal .modal-content > div[style*="grid-template-columns:repeat(3"] > div { padding: 9px 5px !important; }
   #savingsGoalModal .modal-content > div[style*="display:flex"] { flex-wrap: wrap; }
   #page-finance #financeTabBar .fin-tab-btn { padding: 0 10px; }
+
+.pwa-banner { left: 8px; right: 8px; padding: 10px; }
+  .pwa-banner > div:first-child span { font-size: 10px !important; }
+  .pwa-banner-btns { gap: 5px; }
+  .pwa-banner-btns button { padding: 8px 10px !important; font-size: 12px; }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -2800,64 +2867,4 @@ html { scroll-behavior: auto; }
     transition: none !important;
     animation: none !important;
   }
-}
-
-/* Final cross-device safeguards and theme parity. */
-body { min-width: 320px; }
-body.dark-mode { color-scheme: dark; }
-#page-settings [style*="background:#f2f2f7"],
-#page-settings [style*="background: #f2f2f7"],
-#page-settings [style*="background:white"],
-#page-settings [style*="background: white"] {
-  background: var(--el-surface) !important;
-  border-color: var(--el-line) !important;
-  color: var(--el-ink) !important;
-}
-body.dark-mode #page-settings [style*="color:#8e8e93"],
-body.dark-mode #page-settings [style*="color: #8e8e93"] {
-  color: var(--el-muted) !important;
-}
-body.dark-mode #page-settings .widget-toggle-row,
-body.dark-mode #page-settings .widget-toggle-row span {
-  color: var(--el-ink) !important;
-  border-color: var(--el-line) !important;
-}
-body.dark-mode #page-settings input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
-body.dark-mode #page-settings select,
-body.dark-mode #page-settings textarea {
-  background: var(--el-control) !important;
-  color: var(--el-ink) !important;
-  border: 1px solid var(--el-line) !important;
-}
-body.dark-mode #page-home .reminder-item,
-body.dark-mode #page-home .reminder-item :is(h3,h4,p,.task-name,.reminder-title) {
-  color: var(--el-ink);
-}
-@media (max-width: 600px) {
-  html, body { max-width: 100%; overflow-x: clip; }
-  .page-section, .app-container, .modal-content,
-  .reminder-item, .habit-item, .widget-card { min-width: 0; }
-  .app-container { width: 100%; }
-  .reminder-item { gap: 10px; }
-  .reminder-details { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
-  .reminder-item button { max-width: 100%; }
-  .pwa-banner {
-    bottom: calc(82px + env(safe-area-inset-bottom,0px));
-    left: 12px;
-    right: 12px;
-    z-index: 8998;
-    min-height: 82px;
-    gap: 10px;
-    padding: 12px;
-  }
-  .pwa-banner > div:first-child { min-width: 0; line-height: 1.35; }
-  .pwa-banner-btns button { min-height: 42px; white-space: nowrap; }
-  .bottom-nav { z-index: 9000; }
-  body { padding-bottom: calc(196px + env(safe-area-inset-bottom,0px)); }
-}
-@media (max-width: 420px) {
-  .pwa-banner { left: 8px; right: 8px; padding: 10px; }
-  .pwa-banner > div:first-child span { font-size: 10px !important; }
-  .pwa-banner-btns { gap: 5px; }
-  .pwa-banner-btns button { padding: 8px 10px !important; font-size: 12px; }
 }
