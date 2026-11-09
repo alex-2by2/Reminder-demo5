@@ -1783,3 +1783,251 @@ body.dark-mode #page-add #customRepeatUI {
   #page-add #modalTitle { font-size: 24px !important; }
   #page-add input, #page-add select { font-size: 13px; }
 }
+
+
+/* ==========================================================
+   Liquid Glass — Settings & Feature Library
+   CSS-only presentation layer; preserves existing controls,
+   IDs, handlers, storage and feature navigation.
+   ========================================================== */
+#page-settings .app-container {
+    background: linear-gradient(160deg, rgba(255,255,255,.96), rgba(246,248,252,.92));
+    border: 1px solid rgba(255,255,255,.88);
+    box-shadow: 0 18px 48px rgba(28,40,65,.08), inset 0 1px 0 #fff;
+}
+#page-settings > .app-container > h2 {
+    letter-spacing: -.045em;
+    font-size: 26px !important;
+    padding: 4px 0 14px;
+    border-bottom: 1px solid rgba(120,130,150,.14);
+}
+#page-settings .app-container > div[onclick="openProfileModal()"] {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: 0 14px 30px rgba(0,96,210,.2), inset 0 1px 0 rgba(255,255,255,.35);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+#page-settings .app-container > div[onclick="openProfileModal()"]::after {
+    content: "";
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    right: -75px;
+    top: -105px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.13);
+    pointer-events: none;
+}
+#page-settings .app-container > div[onclick="openProfileModal()"]:active {
+    transform: scale(.985);
+}
+#page-settings #profileNameInput {
+    min-width: 0;
+    border: 1px solid rgba(120,130,150,.15);
+    background: rgba(255,255,255,.78);
+    box-shadow: inset 0 1px 2px rgba(20,30,50,.035);
+}
+#page-settings .app-container > div:has(> #profileNameInput) {
+    padding: 10px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.58);
+    border: 1px solid rgba(120,130,150,.12);
+}
+#page-settings #alarmSoundInput {
+    border: 1px solid rgba(120,130,150,.14);
+    background-color: rgba(255,255,255,.82);
+}
+#page-settings .widget-toggle-row {
+    min-height: 54px;
+    padding: 8px 2px;
+    border-bottom: 1px solid rgba(120,130,150,.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+#page-settings .widget-toggle-row > span {
+    letter-spacing: -.015em;
+}
+#page-settings .widget-toggle-row input[type="checkbox"] {
+    accent-color: var(--primary);
+    flex: 0 0 auto;
+}
+#page-settings .app-container > div:has(> .widget-toggle-row) {
+    padding: 7px 15px !important;
+    border: 1px solid rgba(120,130,150,.13);
+    background: linear-gradient(145deg, rgba(255,255,255,.82), rgba(242,245,250,.72)) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 22px rgba(25,40,70,.045), inset 0 1px 0 #fff;
+}
+#page-settings #autoDarkTimesWrap {
+    padding-top: 10px;
+}
+#page-settings #autoDarkTimesWrap > div > div {
+    padding: 10px;
+    border-radius: 14px;
+    background: rgba(120,130,150,.07);
+}
+#page-settings #advSettingsBtn {
+    width: 100%;
+    min-height: 52px;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255,255,255,.15) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.14);
+}
+#page-settings #advancedSettingsPanel {
+    margin-top: 12px;
+    padding: 16px !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(120,130,150,.14);
+    background: rgba(255,255,255,.68);
+    box-shadow: inset 0 1px 0 #fff, 0 8px 22px rgba(25,40,70,.04);
+}
+#page-settings .app-container button:not(.icon-btn-small) {
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+#page-settings .app-container button:not(.icon-btn-small):active {
+    transform: scale(.97);
+}
+#page-more {
+    padding-bottom: 18px;
+}
+#page-more > h2 {
+    font-size: 26px !important;
+    letter-spacing: -.045em;
+    margin-bottom: 18px !important;
+}
+#page-more #moreSearchInput {
+    min-height: 50px;
+    border: 1px solid rgba(120,130,150,.16);
+    background: rgba(255,255,255,.78);
+    box-shadow: 0 8px 24px rgba(25,40,70,.055), inset 0 1px 0 #fff;
+    border-radius: 17px;
+}
+#page-more #morePinnedRow {
+    border-radius: 18px;
+}
+#page-more .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 11px;
+}
+#page-more .feature-tile {
+    position: relative;
+    min-width: 0;
+    min-height: 112px;
+    padding: 15px 8px 12px;
+    border-radius: 21px;
+    border: 1px solid rgba(255,255,255,.88);
+    background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(242,246,252,.82));
+    box-shadow: 0 9px 24px rgba(28,40,65,.065), inset 0 1px 0 #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+#page-more .feature-tile::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.98), transparent);
+    pointer-events: none;
+}
+#page-more .feature-tile:active {
+    transform: scale(.955);
+    box-shadow: 0 4px 12px rgba(28,40,65,.08);
+}
+#page-more .ft-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg, rgba(0,122,255,.12), rgba(94,92,230,.09));
+    font-size: 25px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+#page-more .ft-label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.25;
+    font-weight: 750;
+    color: #30313a;
+}
+#page-more .ft-pin {
+    position: absolute;
+    top: 7px;
+    right: 9px;
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(120,130,150,.1);
+    color: #8a8d98;
+    font-size: 15px;
+}
+#page-more .feature-tile[hidden] {
+    display: none !important;
+}
+body.dark-mode #page-settings .app-container {
+    background: linear-gradient(160deg, rgba(35,35,39,.98), rgba(25,25,29,.96));
+    border-color: rgba(255,255,255,.08);
+    box-shadow: 0 18px 48px rgba(0,0,0,.24);
+}
+body.dark-mode #page-settings #profileNameInput,
+body.dark-mode #page-settings #alarmSoundInput {
+    background: rgba(58,58,62,.9);
+    border-color: rgba(255,255,255,.08);
+    color: #f5f5fa;
+}
+body.dark-mode #page-settings .app-container > div:has(> #profileNameInput),
+body.dark-mode #page-settings .app-container > div:has(> .widget-toggle-row),
+body.dark-mode #page-settings #advancedSettingsPanel {
+    background: linear-gradient(145deg, rgba(48,48,53,.92), rgba(37,37,42,.9)) !important;
+    border-color: rgba(255,255,255,.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+}
+body.dark-mode #page-settings .widget-toggle-row {
+    border-color: rgba(255,255,255,.08);
+}
+body.dark-mode #page-settings #autoDarkTimesWrap > div > div {
+    background: rgba(255,255,255,.055);
+}
+body.dark-mode #page-more #moreSearchInput {
+    background: rgba(48,48,53,.92);
+    border-color: rgba(255,255,255,.08);
+    color: #f5f5fa;
+}
+body.dark-mode #page-more .feature-tile {
+    background: linear-gradient(145deg, rgba(48,48,53,.96), rgba(35,35,40,.94));
+    border-color: rgba(255,255,255,.08);
+    box-shadow: 0 9px 24px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.055);
+}
+body.dark-mode #page-more .ft-icon {
+    background: linear-gradient(145deg, rgba(10,132,255,.2), rgba(94,92,230,.18));
+}
+body.dark-mode #page-more .ft-label {
+    color: #f2f2f7;
+}
+body.dark-mode #page-more .ft-pin {
+    background: rgba(255,255,255,.09);
+    color: #c7c7cc;
+}
+@media (max-width: 360px) {
+    #page-more .features-grid { gap: 8px; }
+    #page-more .feature-tile { min-height: 102px; padding: 12px 5px 10px; border-radius: 18px; }
+    #page-more .ft-icon { width: 42px; height: 42px; font-size: 22px; border-radius: 14px; }
+    #page-more .ft-label { font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #page-settings .app-container *,
+    #page-more .feature-tile { transition: none !important; }
+}
